@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Agent;
-use App\Models\Organization;
 use App\Models\Repo;
 use App\Models\Skill;
 use Illuminate\Support\Collection;
@@ -10,7 +9,6 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Create Skill')] class extends Component {
-    public string $organization_id = '';
     public string $name = '';
     public string $description = '';
     public string $argumentHint = '';
@@ -29,51 +27,23 @@ new #[Title('Create Skill')] class extends Component {
     public array $selectedRepos = [];
 
     #[Computed]
-    public function organizations(): Collection
-    {
-        return auth()->user()->organizations;
-    }
-
-    #[Computed]
     public function agents(): Collection
     {
-        if (! $this->organization_id) {
-            return collect();
-        }
-
-        return Agent::query()
-            ->where('organization_id', $this->organization_id)
-            ->orderBy('name')
-            ->get();
+        return Agent::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     #[Computed]
     public function repos(): Collection
     {
-        if (! $this->organization_id) {
-            return collect();
-        }
-
-        return Repo::query()
-            ->where('organization_id', $this->organization_id)
-            ->orderBy('name')
-            ->get();
-    }
-
-    public function updatedOrganizationId(): void
-    {
-        $this->agent_id = '';
-        $this->selectedAgents = [];
-        $this->selectedRepos = [];
+        return Repo::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     public function save(): void
     {
-        $userOrgIds = auth()->user()->organizations->pluck('id');
-        abort_unless($userOrgIds->contains($this->organization_id), 403);
+        $organizationId = auth()->user()->currentOrganizationId();
+        abort_unless($organizationId, 403);
 
-        $validated = $this->validate([
-            'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
+        $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'argumentHint' => ['nullable', 'string', 'max:255'],
@@ -95,7 +65,7 @@ new #[Title('Create Skill')] class extends Component {
         ]);
 
         $skill = Skill::query()->create([
-            'organization_id' => $this->organization_id,
+            'organization_id' => $organizationId,
             'name' => $this->name,
             'description' => $this->description,
             'argument_hint' => $this->argumentHint,
@@ -129,13 +99,6 @@ new #[Title('Create Skill')] class extends Component {
         </div>
 
         <form wire:submit="save" class="max-w-xl space-y-6">
-            <flux:select wire:model.live="organization_id" :label="__('Organization')" required>
-                <option value="">{{ __('Select Organization') }}</option>
-                @foreach ($this->organizations as $organization)
-                    <option value="{{ $organization->id }}">{{ $organization->name }}</option>
-                @endforeach
-            </flux:select>
-
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
             <flux:textarea wire:model="description" :label="__('Description')" rows="3" />
             <flux:input wire:model="argumentHint" :label="__('Argument Hint')" type="text" />

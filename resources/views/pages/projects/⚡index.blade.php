@@ -36,7 +36,7 @@ new #[Title('Projects')] class extends Component {
     public function projects()
     {
         return Project::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->with('organization')
             ->when($this->search, fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
             ->orderBy($this->sortBy, $this->sortDirection)

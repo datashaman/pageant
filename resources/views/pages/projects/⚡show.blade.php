@@ -46,9 +46,7 @@ new #[Title('Project')] class extends Component {
         <div class="max-w-xl space-y-4">
             <div>
                 <flux:label>{{ __('Organization') }}</flux:label>
-                <flux:link href="{{ route('organizations.show', $project->organization) }}" wire:navigate>
-                    {{ $project->organization->name }}
-                </flux:link>
+                <flux:text>{{ $project->organization->name }}</flux:text>
             </div>
 
             <div>

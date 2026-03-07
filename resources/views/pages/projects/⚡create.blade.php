@@ -8,8 +8,6 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Create Project')] class extends Component {
-    public string $organization_id = '';
-
     public string $name = '';
 
     public string $description = '';
@@ -18,41 +16,25 @@ new #[Title('Create Project')] class extends Component {
     public array $selectedRepos = [];
 
     #[Computed]
-    public function organizations()
-    {
-        return auth()->user()->organizations;
-    }
-
-    #[Computed]
     public function repos()
     {
-        if (! $this->organization_id) {
-            return collect();
-        }
-
-        return Repo::query()
-            ->where('organization_id', $this->organization_id)
-            ->orderBy('name')
-            ->get();
-    }
-
-    public function updatedOrganizationId(): void
-    {
-        $this->selectedRepos = [];
+        return Repo::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     public function save(): void
     {
+        $organizationId = auth()->user()->currentOrganizationId();
+        abort_unless($organizationId, 403);
+
         $validated = $this->validate([
-            'organization_id' => ['required', Rule::in(auth()->user()->organizations->pluck('id'))],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'selectedRepos' => ['array'],
-            'selectedRepos.*' => ['string', Rule::exists('repos', 'id')->where('organization_id', $this->organization_id)],
+            'selectedRepos.*' => ['string', Rule::exists('repos', 'id')->where('organization_id', $organizationId)],
         ]);
 
         $project = Project::create([
-            'organization_id' => $validated['organization_id'],
+            'organization_id' => $organizationId,
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
         ]);
@@ -68,12 +50,6 @@ new #[Title('Create Project')] class extends Component {
         <flux:heading size="xl">{{ __('Create Project') }}</flux:heading>
 
         <form wire:submit="save" class="space-y-6">
-            <flux:select wire:model.live="organization_id" label="{{ __('Organization') }}" placeholder="{{ __('Select an organization') }}">
-                @foreach ($this->organizations as $organization)
-                    <flux:select.option :value="$organization->id">{{ $organization->name }}</flux:select.option>
-                @endforeach
-            </flux:select>
-
             <flux:input wire:model="name" label="{{ __('Name') }}" placeholder="{{ __('Project name') }}" />
 
             <flux:textarea wire:model="description" label="{{ __('Description') }}" placeholder="{{ __('Project description') }}" rows="4" />

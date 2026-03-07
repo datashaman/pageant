@@ -12,7 +12,6 @@ use Livewire\Component;
 new #[Title('Edit Agent')] class extends Component {
     public Agent $agent;
 
-    public string $organization_id = '';
     public string $name = '';
     public ?string $description = '';
     public array $selectedTools = [];
@@ -31,7 +30,6 @@ new #[Title('Edit Agent')] class extends Component {
         abort_unless($userOrgIds->contains($agent->organization_id), 403);
 
         $this->agent = $agent;
-        $this->organization_id = $agent->organization_id;
         $this->name = $agent->name;
         $this->description = $agent->description ?? '';
         $this->selectedTools = $agent->tools ?? [];
@@ -49,12 +47,6 @@ new #[Title('Edit Agent')] class extends Component {
     public function availableTools(): array
     {
         return array_keys(ToolRegistry::available());
-    }
-
-    #[Computed]
-    public function organizations(): Collection
-    {
-        return auth()->user()->organizations;
     }
 
     #[Computed]
@@ -82,7 +74,6 @@ new #[Title('Edit Agent')] class extends Component {
     public function update(): void
     {
         $this->validate([
-            'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'provider' => ['nullable', 'string'],
@@ -92,11 +83,7 @@ new #[Title('Edit Agent')] class extends Component {
             'isolation' => ['nullable', 'string'],
         ]);
 
-        $userOrgIds = auth()->user()->organizations->pluck('id');
-        abort_unless($userOrgIds->contains($this->organization_id), 403);
-
         $this->agent->update([
-            'organization_id' => $this->organization_id,
             'name' => $this->name,
             'description' => $this->description ?: null,
             'tools' => $this->selectedTools,
@@ -125,13 +112,6 @@ new #[Title('Edit Agent')] class extends Component {
         </div>
 
         <form wire:submit="update" class="max-w-xl space-y-6">
-            <flux:select wire:model="organization_id" :label="__('Organization')" required>
-                <option value="">{{ __('Select Organization') }}</option>
-                @foreach ($this->organizations as $organization)
-                    <option value="{{ $organization->id }}">{{ $organization->name }}</option>
-                @endforeach
-            </flux:select>
-
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
 
             <flux:textarea wire:model="description" :label="__('Description')" />

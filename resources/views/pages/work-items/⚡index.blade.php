@@ -40,7 +40,7 @@ new #[Title('Work Items')] class extends Component {
     public function workItems(): LengthAwarePaginator
     {
         return WorkItem::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->with(['organization', 'project'])
             ->when($this->search, fn ($query, $search) => $query->where('title', 'like', "%{$search}%"))
             ->orderBy($this->sortField, $this->sortDirection)
@@ -51,7 +51,7 @@ new #[Title('Work Items')] class extends Component {
     public function trackedRepos(): \Illuminate\Database\Eloquent\Collection
     {
         return Repo::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->where('source', 'github')
             ->with('organization')
             ->orderBy('name')
@@ -62,7 +62,7 @@ new #[Title('Work Items')] class extends Component {
     public function trackedIssueKeys(): array
     {
         return WorkItem::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->where('source', 'github')
             ->pluck('source_reference')
             ->toArray();
@@ -146,7 +146,7 @@ new #[Title('Work Items')] class extends Component {
     public function untrackIssue(string $sourceReference): void
     {
         WorkItem::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->where('source', 'github')
             ->where('source_reference', $sourceReference)
             ->delete();
@@ -161,7 +161,7 @@ new #[Title('Work Items')] class extends Component {
 
     public function delete(string $id): void
     {
-        $workItem = WorkItem::query()->forUser()->findOrFail($id);
+        $workItem = WorkItem::query()->forCurrentOrganization()->findOrFail($id);
         $workItem->delete();
 
         $this->dispatch('close-modal', id: 'confirm-delete-' . $id);

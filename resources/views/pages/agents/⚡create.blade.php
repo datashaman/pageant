@@ -10,7 +10,6 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Create Agent')] class extends Component {
-    public string $organization_id = '';
     public string $name = '';
     public ?string $description = '';
     public array $selectedTools = [];
@@ -30,21 +29,15 @@ new #[Title('Create Agent')] class extends Component {
     }
 
     #[Computed]
-    public function organizations(): Collection
-    {
-        return auth()->user()->organizations;
-    }
-
-    #[Computed]
     public function skills(): Collection
     {
-        return Skill::query()->forUser()->orderBy('name')->get();
+        return Skill::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     #[Computed]
     public function repos(): Collection
     {
-        return Repo::query()->forUser()->orderBy('name')->get();
+        return Repo::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     public function selectAllTools(): void
@@ -60,7 +53,6 @@ new #[Title('Create Agent')] class extends Component {
     public function save(): void
     {
         $this->validate([
-            'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'provider' => ['nullable', 'string'],
@@ -70,11 +62,11 @@ new #[Title('Create Agent')] class extends Component {
             'isolation' => ['nullable', 'string'],
         ]);
 
-        $userOrgIds = auth()->user()->organizations->pluck('id');
-        abort_unless($userOrgIds->contains($this->organization_id), 403);
+        $organizationId = auth()->user()->currentOrganizationId();
+        abort_unless($organizationId, 403);
 
         $agent = Agent::query()->create([
-            'organization_id' => $this->organization_id,
+            'organization_id' => $organizationId,
             'name' => $this->name,
             'description' => $this->description ?: null,
             'tools' => $this->selectedTools,
@@ -103,13 +95,6 @@ new #[Title('Create Agent')] class extends Component {
         </div>
 
         <form wire:submit="save" class="max-w-xl space-y-6">
-            <flux:select wire:model="organization_id" :label="__('Organization')" required>
-                <option value="">{{ __('Select Organization') }}</option>
-                @foreach ($this->organizations as $organization)
-                    <option value="{{ $organization->id }}">{{ $organization->name }}</option>
-                @endforeach
-            </flux:select>
-
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
 
             <flux:textarea wire:model="description" :label="__('Description')" />

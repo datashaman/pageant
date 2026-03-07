@@ -33,7 +33,7 @@ new #[Title('Agents')] class extends Component {
     public function agents(): LengthAwarePaginator
     {
         return Agent::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->with('organization')
             ->when($this->search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy($this->sortField, $this->sortDirection)
@@ -47,7 +47,7 @@ new #[Title('Agents')] class extends Component {
 
     public function delete(string $id): void
     {
-        $agent = Agent::query()->forUser()->findOrFail($id);
+        $agent = Agent::query()->forCurrentOrganization()->findOrFail($id);
         $agent->delete();
 
         $this->dispatch('close-modal', id: 'confirm-delete-' . $id);

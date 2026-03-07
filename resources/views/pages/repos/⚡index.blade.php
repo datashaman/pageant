@@ -40,7 +40,7 @@ new #[Title('Repos')] class extends Component {
     public function repos(): LengthAwarePaginator
     {
         return Repo::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->with('organization')
             ->when($this->search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy($this->sortField, $this->sortDirection)
@@ -62,7 +62,7 @@ new #[Title('Repos')] class extends Component {
     public function trackedRepoKeys(): array
     {
         return Repo::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->where('source', 'github')
             ->pluck('source_reference')
             ->toArray();
@@ -134,7 +134,7 @@ new #[Title('Repos')] class extends Component {
     public function untrackRepo(string $fullName): void
     {
         Repo::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->where('source', 'github')
             ->where('source_reference', $fullName)
             ->delete();
@@ -149,7 +149,7 @@ new #[Title('Repos')] class extends Component {
 
     public function delete(string $id): void
     {
-        $repo = Repo::query()->forUser()->findOrFail($id);
+        $repo = Repo::query()->forCurrentOrganization()->findOrFail($id);
         $repo->delete();
 
         $this->dispatch('close-modal', id: 'confirm-delete-' . $id);

@@ -13,4 +13,17 @@ trait BelongsToUserOrganization
 
         return $query->whereIn('organization_id', $user->organizations()->pluck('organizations.id'));
     }
+
+    public function scopeForCurrentOrganization(Builder $query, ?User $user = null): Builder
+    {
+        $user ??= auth()->user();
+
+        $orgId = $user->currentOrganizationId();
+
+        if ($orgId) {
+            return $query->where('organization_id', $orgId);
+        }
+
+        return $query->whereIn('organization_id', $user->organizations()->pluck('organizations.id'));
+    }
 }

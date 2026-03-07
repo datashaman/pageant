@@ -33,7 +33,7 @@ new #[Title('Skills')] class extends Component {
     public function skills(): LengthAwarePaginator
     {
         return Skill::query()
-            ->forUser()
+            ->forCurrentOrganization()
             ->with('organization')
             ->when($this->search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy($this->sortField, $this->sortDirection)
@@ -47,7 +47,7 @@ new #[Title('Skills')] class extends Component {
 
     public function delete(string $id): void
     {
-        $skill = Skill::query()->forUser()->findOrFail($id);
+        $skill = Skill::query()->forCurrentOrganization()->findOrFail($id);
         $skill->delete();
 
         $this->dispatch('close-modal', id: 'confirm-delete-' . $id);

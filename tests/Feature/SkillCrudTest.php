@@ -8,6 +8,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $this->organization = Organization::factory()->create();
     $this->user->organizations()->attach($this->organization);
+    $this->user->update(['current_organization_id' => $this->organization->id]);
     $this->skill = Skill::factory()->for($this->organization)->create();
 });
 
@@ -21,7 +22,6 @@ it('shows the skills index page', function () {
 it('can create a skill', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::skills.create')
-        ->set('organization_id', $this->organization->id)
         ->set('name', 'test-skill')
         ->set('description', 'A test skill')
         ->set('enabled', true)
@@ -32,13 +32,13 @@ it('can create a skill', function () {
 
     $skill = Skill::where('name', 'test-skill')->first();
     expect($skill)->not->toBeNull()
+        ->and($skill->organization_id)->toBe($this->organization->id)
         ->and($skill->allowed_tools)->toBe(['read', 'write']);
 });
 
 it('validates required fields on create', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::skills.create')
-        ->set('organization_id', $this->organization->id)
         ->set('name', '')
         ->call('save')
         ->assertHasErrors(['name']);

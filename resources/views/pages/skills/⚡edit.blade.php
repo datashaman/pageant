@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Agent;
-use App\Models\Organization;
 use App\Models\Repo;
 use App\Models\Skill;
 use Illuminate\Support\Collection;
@@ -12,7 +11,6 @@ use Livewire\Component;
 new #[Title('Edit Skill')] class extends Component {
     public Skill $skill;
 
-    public string $organization_id = '';
     public string $name = '';
     public string $description = '';
     public string $argumentHint = '';
@@ -37,7 +35,6 @@ new #[Title('Edit Skill')] class extends Component {
 
         $this->skill = $skill->load(['agents', 'repos']);
 
-        $this->organization_id = $skill->organization_id;
         $this->name = $skill->name;
         $this->description = $skill->description ?? '';
         $this->argumentHint = $skill->argument_hint ?? '';
@@ -57,20 +54,10 @@ new #[Title('Edit Skill')] class extends Component {
     }
 
     #[Computed]
-    public function organizations(): Collection
-    {
-        return auth()->user()->organizations;
-    }
-
-    #[Computed]
     public function agents(): Collection
     {
-        if (! $this->organization_id) {
-            return collect();
-        }
-
         return Agent::query()
-            ->where('organization_id', $this->organization_id)
+            ->where('organization_id', $this->skill->organization_id)
             ->orderBy('name')
             ->get();
     }
@@ -78,30 +65,18 @@ new #[Title('Edit Skill')] class extends Component {
     #[Computed]
     public function repos(): Collection
     {
-        if (! $this->organization_id) {
-            return collect();
-        }
-
         return Repo::query()
-            ->where('organization_id', $this->organization_id)
+            ->where('organization_id', $this->skill->organization_id)
             ->orderBy('name')
             ->get();
-    }
-
-    public function updatedOrganizationId(): void
-    {
-        $this->agent_id = '';
-        $this->selectedAgents = [];
-        $this->selectedRepos = [];
     }
 
     public function save(): void
     {
         $userOrgIds = auth()->user()->organizations->pluck('id');
-        abort_unless($userOrgIds->contains($this->organization_id), 403);
+        abort_unless($userOrgIds->contains($this->skill->organization_id), 403);
 
-        $validated = $this->validate([
-            'organization_id' => ['required', 'uuid', 'exists:organizations,id'],
+        $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'argumentHint' => ['nullable', 'string', 'max:255'],
@@ -123,7 +98,6 @@ new #[Title('Edit Skill')] class extends Component {
         ]);
 
         $this->skill->update([
-            'organization_id' => $this->organization_id,
             'name' => $this->name,
             'description' => $this->description,
             'argument_hint' => $this->argumentHint,
@@ -157,13 +131,6 @@ new #[Title('Edit Skill')] class extends Component {
         </div>
 
         <form wire:submit="save" class="max-w-xl space-y-6">
-            <flux:select wire:model.live="organization_id" :label="__('Organization')" required>
-                <option value="">{{ __('Select Organization') }}</option>
-                @foreach ($this->organizations as $organization)
-                    <option value="{{ $organization->id }}">{{ $organization->name }}</option>
-                @endforeach
-            </flux:select>
-
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
             <flux:textarea wire:model="description" :label="__('Description')" rows="3" />
             <flux:input wire:model="argumentHint" :label="__('Argument Hint')" type="text" />

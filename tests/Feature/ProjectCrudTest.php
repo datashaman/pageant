@@ -8,6 +8,7 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $this->organization = Organization::factory()->create();
     $this->user->organizations()->attach($this->organization);
+    $this->user->update(['current_organization_id' => $this->organization->id]);
     $this->project = Project::factory()->for($this->organization)->create();
 });
 
@@ -21,7 +22,6 @@ it('shows the projects index page', function () {
 it('can create a project', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::projects.create')
-        ->set('organization_id', $this->organization->id)
         ->set('name', 'New Project')
         ->set('description', 'A test project')
         ->call('save')
@@ -38,9 +38,8 @@ it('validates required fields on create', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::projects.create')
         ->set('name', '')
-        ->set('organization_id', '')
         ->call('save')
-        ->assertHasErrors(['name', 'organization_id']);
+        ->assertHasErrors(['name']);
 });
 
 it('shows the project detail page', function () {

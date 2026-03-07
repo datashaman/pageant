@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'github_token',
         'github_refresh_token',
         'avatar_url',
+        'current_organization_id',
     ];
 
     /**
@@ -57,6 +59,26 @@ class User extends Authenticatable
             'github_token' => 'encrypted',
             'github_refresh_token' => 'encrypted',
         ];
+    }
+
+    public function currentOrganization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'current_organization_id');
+    }
+
+    public function currentOrganizationId(): ?string
+    {
+        if ($this->current_organization_id) {
+            return $this->current_organization_id;
+        }
+
+        $orgs = $this->organizations;
+
+        if ($orgs->count() === 1) {
+            return $orgs->first()->id;
+        }
+
+        return $orgs->first()?->id;
     }
 
     public function organizations(): BelongsToMany
