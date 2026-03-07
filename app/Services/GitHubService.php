@@ -615,7 +615,7 @@ class GitHubService
     }
 
     /**
-     * @param  array<int, array{path: string, body: string, line?: int, side?: string, start_line?: int, start_side?: string}>  $comments
+     * @param  array<int, array{path: string, body: string, line: int, side?: string, start_line?: int, start_side?: string}>  $comments
      */
     public function createPullRequestReview(GithubInstallation $installation, string $repo, int $pullNumber, string $event, ?string $body = null, array $comments = []): array
     {

@@ -51,14 +51,19 @@ class CreateAgentTool implements Tool
 
         $agent = Agent::create($data);
 
+        $repoIds = [$repo->id];
+
         if (! empty($request['repo_names'])) {
-            $repoIds = Repo::where('source', 'github')
+            $additionalRepoIds = Repo::where('source', 'github')
                 ->whereIn('source_reference', $request['repo_names'])
                 ->where('organization_id', $repo->organization_id)
-                ->pluck('id');
+                ->pluck('id')
+                ->all();
 
-            $agent->repos()->sync($repoIds);
+            $repoIds = array_unique(array_merge($repoIds, $additionalRepoIds));
         }
+
+        $agent->repos()->sync($repoIds);
 
         return json_encode($agent->load('repos')->toArray(), JSON_PRETTY_PRINT);
     }

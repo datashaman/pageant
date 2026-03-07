@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('agents', function (Blueprint $table) {
-            $table->string('isolation')->default('false')->change();
+            $table->string('isolation')->nullable(false)->default('false')->change();
         });
     }
 };

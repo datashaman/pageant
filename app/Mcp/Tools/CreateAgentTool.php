@@ -24,7 +24,9 @@ class CreateAgentTool extends Tool
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'tools' => 'nullable|array',
+            'tools.*' => 'string|in:'.implode(',', array_keys(ToolRegistry::available())),
             'events' => 'nullable|array',
+            'events.*' => 'string|in:'.implode(',', array_keys(EventRegistry::available())),
             'provider' => 'nullable|string|in:anthropic,openai',
             'model' => 'nullable|string',
             'permission_mode' => 'nullable|string|in:full,limited',
@@ -33,6 +35,7 @@ class CreateAgentTool extends Tool
             'isolation' => 'nullable|string|in:worktree',
             'enabled' => 'nullable|boolean',
             'repo_names' => 'nullable|array',
+            'repo_names.*' => 'string',
         ]);
 
         $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
