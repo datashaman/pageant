@@ -76,30 +76,30 @@ new #[Title('Organization')] class extends Component {
                 <flux:text>{{ __('Users') }}</flux:text>
             </div>
 
-            <flux:link href="{{ route('agents.index') }}" wire:navigate class="block rounded-lg border p-4 text-center">
-                <flux:text class="text-2xl font-bold">{{ $organization->agents_count }}</flux:text>
-                <flux:text>{{ __('Agents') }}</flux:text>
-            </flux:link>
-
-            <flux:link href="{{ route('repos.index') }}" wire:navigate class="block rounded-lg border p-4 text-center">
-                <flux:text class="text-2xl font-bold">{{ $organization->repos_count }}</flux:text>
-                <flux:text>{{ __('Repos') }}</flux:text>
-            </flux:link>
-
-            <flux:link href="{{ route('skills.index') }}" wire:navigate class="block rounded-lg border p-4 text-center">
-                <flux:text class="text-2xl font-bold">{{ $organization->skills_count }}</flux:text>
-                <flux:text>{{ __('Skills') }}</flux:text>
-            </flux:link>
-
-            <flux:link href="{{ route('projects.index') }}" wire:navigate class="block rounded-lg border p-4 text-center">
+            <a href="{{ route('projects.index') }}" wire:navigate class="block rounded-lg border p-4 text-center hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                 <flux:text class="text-2xl font-bold">{{ $organization->projects_count }}</flux:text>
                 <flux:text>{{ __('Projects') }}</flux:text>
-            </flux:link>
+            </a>
 
-            <flux:link href="{{ route('work-items.index') }}" wire:navigate class="block rounded-lg border p-4 text-center">
+            <a href="{{ route('repos.index') }}" wire:navigate class="block rounded-lg border p-4 text-center hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                <flux:text class="text-2xl font-bold">{{ $organization->repos_count }}</flux:text>
+                <flux:text>{{ __('Repos') }}</flux:text>
+            </a>
+
+            <a href="{{ route('work-items.index') }}" wire:navigate class="block rounded-lg border p-4 text-center hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                 <flux:text class="text-2xl font-bold">{{ $organization->work_items_count }}</flux:text>
                 <flux:text>{{ __('Work Items') }}</flux:text>
-            </flux:link>
+            </a>
+
+            <a href="{{ route('agents.index') }}" wire:navigate class="block rounded-lg border p-4 text-center hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                <flux:text class="text-2xl font-bold">{{ $organization->agents_count }}</flux:text>
+                <flux:text>{{ __('Agents') }}</flux:text>
+            </a>
+
+            <a href="{{ route('skills.index') }}" wire:navigate class="block rounded-lg border p-4 text-center hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                <flux:text class="text-2xl font-bold">{{ $organization->skills_count }}</flux:text>
+                <flux:text>{{ __('Skills') }}</flux:text>
+            </a>
         </div>
 
         <flux:modal name="confirm-delete">

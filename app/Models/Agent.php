@@ -20,7 +20,6 @@ class Agent extends Model
         'enabled',
         'description',
         'tools',
-        'disallowed_tools',
         'events',
         'provider',
         'model',
@@ -35,7 +34,6 @@ class Agent extends Model
         return [
             'enabled' => 'boolean',
             'tools' => 'array',
-            'disallowed_tools' => 'array',
             'events' => 'array',
             'background' => 'boolean',
         ];

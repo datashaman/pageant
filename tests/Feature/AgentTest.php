@@ -26,13 +26,6 @@ it('casts tools as array', function () {
     expect($agent->tools)->toBe(['tool1', 'tool2']);
 });
 
-it('casts disallowed_tools as array', function () {
-    $agent = Agent::factory()->create(['disallowed_tools' => ['bad_tool']]);
-    $agent->refresh();
-
-    expect($agent->disallowed_tools)->toBe(['bad_tool']);
-});
-
 it('casts background as boolean', function () {
     $agent = Agent::factory()->create(['background' => true]);
     $agent->refresh();

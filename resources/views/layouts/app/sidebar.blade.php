@@ -21,20 +21,20 @@
                     <flux:sidebar.item icon="building-office" :href="route('organizations.index')" :current="request()->routeIs('organizations.*')" wire:navigate>
                         {{ __('Organizations') }}
                     </flux:sidebar.item>
-                    <flux:sidebar.item icon="cpu-chip" :href="route('agents.index')" :current="request()->routeIs('agents.*')" wire:navigate>
-                        {{ __('Agents') }}
+                    <flux:sidebar.item icon="rectangle-stack" :href="route('projects.index')" :current="request()->routeIs('projects.*')" wire:navigate>
+                        {{ __('Projects') }}
                     </flux:sidebar.item>
                     <flux:sidebar.item icon="folder-git-2" :href="route('repos.index')" :current="request()->routeIs('repos.*')" wire:navigate>
                         {{ __('Repos') }}
                     </flux:sidebar.item>
-                    <flux:sidebar.item icon="bolt" :href="route('skills.index')" :current="request()->routeIs('skills.*')" wire:navigate>
-                        {{ __('Skills') }}
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="rectangle-stack" :href="route('projects.index')" :current="request()->routeIs('projects.*')" wire:navigate>
-                        {{ __('Projects') }}
-                    </flux:sidebar.item>
                     <flux:sidebar.item icon="clipboard-document-list" :href="route('work-items.index')" :current="request()->routeIs('work-items.*')" wire:navigate>
                         {{ __('Work Items') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="cpu-chip" :href="route('agents.index')" :current="request()->routeIs('agents.*')" wire:navigate>
+                        {{ __('Agents') }}
+                    </flux:sidebar.item>
+                    <flux:sidebar.item icon="bolt" :href="route('skills.index')" :current="request()->routeIs('skills.*')" wire:navigate>
+                        {{ __('Skills') }}
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
