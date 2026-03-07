@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
-#[Description('Submit a review on a pull request: approve, request changes, or comment.')]
+#[Description('Submit a review on a pull request with optional line-level comments: approve, request changes, or comment.')]
 #[IsOpenWorld]
 class CreatePullRequestReviewTool extends Tool
 {
@@ -27,6 +27,13 @@ class CreatePullRequestReviewTool extends Tool
             'pull_number' => 'required|integer|min:1',
             'event' => 'required|string|in:APPROVE,REQUEST_CHANGES,COMMENT',
             'body' => 'nullable|string',
+            'comments' => 'nullable|array',
+            'comments.*.path' => 'required|string',
+            'comments.*.body' => 'required|string',
+            'comments.*.line' => 'required|integer',
+            'comments.*.side' => 'nullable|string|in:LEFT,RIGHT',
+            'comments.*.start_line' => 'nullable|integer',
+            'comments.*.start_side' => 'nullable|string|in:LEFT,RIGHT',
         ]);
 
         $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
@@ -38,6 +45,7 @@ class CreatePullRequestReviewTool extends Tool
             $validated['pull_number'],
             $validated['event'],
             $validated['body'] ?? null,
+            $validated['comments'] ?? [],
         );
 
         return Response::text(json_encode($review, JSON_PRETTY_PRINT));
@@ -61,6 +69,8 @@ class CreatePullRequestReviewTool extends Tool
                 ->required(),
             'body' => $schema->string()
                 ->description('Review comment body. Required for REQUEST_CHANGES and COMMENT.'),
+            'comments' => $schema->array()
+                ->description('Line-level review comments. Each object: {path: string, body: string, line: int, side?: "LEFT"|"RIGHT", start_line?: int, start_side?: "LEFT"|"RIGHT"}. "line" is the line in the diff to comment on. Use start_line for multi-line comments.'),
         ];
     }
 }

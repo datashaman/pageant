@@ -29,8 +29,8 @@ it('can create an agent', function () {
         ->set('permission_mode', 'full')
         ->set('max_turns', 10)
         ->set('background', false)
-        ->set('isolation', 'false')
         ->set('selectedTools', ['read', 'write', 'edit'])
+        ->set('selectedEvents', ['push', 'issues'])
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect();
@@ -38,7 +38,8 @@ it('can create an agent', function () {
     $agent = Agent::where('name', 'test-agent')->first();
     expect($agent)->not->toBeNull()
         ->and($agent->organization_id)->toBe($this->organization->id)
-        ->and($agent->tools)->toBe(['read', 'write', 'edit']);
+        ->and($agent->tools)->toBe(['read', 'write', 'edit'])
+        ->and($agent->events)->toBe(['push', 'issues']);
 });
 
 it('validates required fields on create', function () {
@@ -61,13 +62,15 @@ it('can update an agent', function () {
         ->test('pages::agents.edit', ['agent' => $this->agent])
         ->set('name', 'updated-agent')
         ->set('selectedTools', ['grep', 'glob'])
+        ->set('selectedEvents', ['pull_request', 'push'])
         ->call('update')
         ->assertHasNoErrors()
         ->assertRedirect();
 
     $fresh = $this->agent->fresh();
     expect($fresh->name)->toBe('updated-agent')
-        ->and($fresh->tools)->toBe(['grep', 'glob']);
+        ->and($fresh->tools)->toBe(['grep', 'glob'])
+        ->and($fresh->events)->toBe(['pull_request', 'push']);
 });
 
 it('can delete an agent', function () {

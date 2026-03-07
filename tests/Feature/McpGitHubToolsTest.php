@@ -17,6 +17,7 @@ use App\Mcp\Tools\DeleteWorkItemTool;
 use App\Mcp\Tools\GetCommitStatusTool;
 use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
+use App\Mcp\Tools\GetPullRequestDiffTool;
 use App\Mcp\Tools\GetPullRequestTool;
 use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
@@ -627,6 +628,57 @@ it('lists pull request files', function () {
     $response->assertOk()
         ->assertSee('index.js')
         ->assertSee('test.js');
+});
+
+it('gets a pull request diff', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getPullRequestDiff')
+            ->once()
+            ->andReturn("diff --git a/src/index.js b/src/index.js\n--- a/src/index.js\n+++ b/src/index.js\n@@ -1,3 +1,4 @@\n+import { Widget } from './widget';\n const app = new App();\n");
+    });
+
+    $response = GitHubServer::tool(GetPullRequestDiffTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('diff --git')
+        ->assertSee('Widget');
+});
+
+it('creates a pull request review with inline comments', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('createPullRequestReview')
+            ->once()
+            ->withArgs(function ($installation, $repo, $pullNumber, $event, $body, $comments) {
+                return $repo === 'acme/widgets'
+                    && $pullNumber === 10
+                    && $event === 'REQUEST_CHANGES'
+                    && $body === 'A few issues'
+                    && count($comments) === 1
+                    && $comments[0]['path'] === 'src/index.js'
+                    && $comments[0]['line'] === 5;
+            })
+            ->andReturn([
+                'id' => 2,
+                'state' => 'CHANGES_REQUESTED',
+                'body' => 'A few issues',
+            ]);
+    });
+
+    $response = GitHubServer::tool(CreatePullRequestReviewTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+        'event' => 'REQUEST_CHANGES',
+        'body' => 'A few issues',
+        'comments' => [
+            ['path' => 'src/index.js', 'body' => 'This import is unused', 'line' => 5],
+        ],
+    ]);
+
+    $response->assertOk()
+        ->assertSee('CHANGES_REQUESTED');
 });
 
 it('requests reviewers on a pull request', function () {

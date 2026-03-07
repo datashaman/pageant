@@ -4,6 +4,7 @@ namespace App\Ai;
 
 use App\Ai\Tools\AddLabelsToIssueTool;
 use App\Ai\Tools\CloseIssueTool;
+use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateBranchTool;
 use App\Ai\Tools\CreateCommentTool;
 use App\Ai\Tools\CreateIssueTool;
@@ -18,6 +19,7 @@ use App\Ai\Tools\DeleteWorkItemTool;
 use App\Ai\Tools\GetCommitStatusTool;
 use App\Ai\Tools\GetFileContentsTool;
 use App\Ai\Tools\GetIssueTool;
+use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
 use App\Ai\Tools\GetRepositoryTreeTool;
 use App\Ai\Tools\ListBranchesTool;
@@ -42,41 +44,60 @@ use Laravel\Ai\Contracts\Tool;
 
 class ToolRegistry
 {
-    /** @var array<string, class-string<Tool>> */
+    /** @var array<string, array{class: class-string<Tool>, description: string, group: string}> */
     private const TOOL_MAP = [
-        'add_labels_to_issue' => AddLabelsToIssueTool::class,
-        'close_issue' => CloseIssueTool::class,
-        'create_branch' => CreateBranchTool::class,
-        'create_comment' => CreateCommentTool::class,
-        'create_issue' => CreateIssueTool::class,
-        'create_label' => CreateLabelTool::class,
-        'create_work_item' => CreateWorkItemTool::class,
-        'create_or_update_file' => CreateOrUpdateFileTool::class,
-        'create_pull_request' => CreatePullRequestTool::class,
-        'create_pull_request_review' => CreatePullRequestReviewTool::class,
-        'delete_file' => DeleteFileTool::class,
-        'delete_label' => DeleteLabelTool::class,
-        'delete_work_item' => DeleteWorkItemTool::class,
-        'get_commit_status' => GetCommitStatusTool::class,
-        'get_file_contents' => GetFileContentsTool::class,
-        'get_issue' => GetIssueTool::class,
-        'get_pull_request' => GetPullRequestTool::class,
-        'get_repository_tree' => GetRepositoryTreeTool::class,
-        'list_branches' => ListBranchesTool::class,
-        'list_check_runs' => ListCheckRunsTool::class,
-        'list_comments' => ListCommentsTool::class,
-        'list_issue_labels' => ListIssueLabelsTool::class,
-        'list_issues' => ListIssuesTool::class,
-        'list_labels' => ListLabelsTool::class,
-        'list_pull_request_files' => ListPullRequestFilesTool::class,
-        'list_pull_requests' => ListPullRequestsTool::class,
-        'merge_pull_request' => MergePullRequestTool::class,
-        'remove_label_from_issue' => RemoveLabelFromIssueTool::class,
-        'request_reviewers' => RequestReviewersTool::class,
-        'search_code' => SearchCodeTool::class,
-        'search_issues' => SearchIssuesTool::class,
-        'update_issue' => UpdateIssueTool::class,
-        'update_pull_request' => UpdatePullRequestTool::class,
+        // Issues
+        'get_issue' => ['class' => GetIssueTool::class, 'description' => 'Get an issue by number', 'group' => 'Issues'],
+        'list_issues' => ['class' => ListIssuesTool::class, 'description' => 'List open issues', 'group' => 'Issues'],
+        'create_issue' => ['class' => CreateIssueTool::class, 'description' => 'Create a new issue', 'group' => 'Issues'],
+        'update_issue' => ['class' => UpdateIssueTool::class, 'description' => 'Update an issue', 'group' => 'Issues'],
+        'close_issue' => ['class' => CloseIssueTool::class, 'description' => 'Close an issue', 'group' => 'Issues'],
+        'search_issues' => ['class' => SearchIssuesTool::class, 'description' => 'Search issues and PRs', 'group' => 'Issues'],
+
+        // Comments
+        'list_comments' => ['class' => ListCommentsTool::class, 'description' => 'List comments on an issue or PR', 'group' => 'Comments'],
+        'create_comment' => ['class' => CreateCommentTool::class, 'description' => 'Comment on an issue or PR', 'group' => 'Comments'],
+
+        // Pull Requests
+        'get_pull_request' => ['class' => GetPullRequestTool::class, 'description' => 'Get a PR by number', 'group' => 'Pull Requests'],
+        'list_pull_requests' => ['class' => ListPullRequestsTool::class, 'description' => 'List pull requests', 'group' => 'Pull Requests'],
+        'create_pull_request' => ['class' => CreatePullRequestTool::class, 'description' => 'Create a pull request', 'group' => 'Pull Requests'],
+        'update_pull_request' => ['class' => UpdatePullRequestTool::class, 'description' => 'Update a pull request', 'group' => 'Pull Requests'],
+        'merge_pull_request' => ['class' => MergePullRequestTool::class, 'description' => 'Merge a pull request', 'group' => 'Pull Requests'],
+        'list_pull_request_files' => ['class' => ListPullRequestFilesTool::class, 'description' => 'List files changed in a PR', 'group' => 'Pull Requests'],
+        'get_pull_request_diff' => ['class' => GetPullRequestDiffTool::class, 'description' => 'Get the unified diff for a PR', 'group' => 'Pull Requests'],
+        'request_reviewers' => ['class' => RequestReviewersTool::class, 'description' => 'Request reviewers for a PR', 'group' => 'Pull Requests'],
+        'create_pull_request_review' => ['class' => CreatePullRequestReviewTool::class, 'description' => 'Submit a PR review', 'group' => 'Pull Requests'],
+
+        // Labels
+        'list_labels' => ['class' => ListLabelsTool::class, 'description' => 'List all labels', 'group' => 'Labels'],
+        'list_issue_labels' => ['class' => ListIssueLabelsTool::class, 'description' => 'List labels on an issue', 'group' => 'Labels'],
+        'add_labels_to_issue' => ['class' => AddLabelsToIssueTool::class, 'description' => 'Add labels to an issue', 'group' => 'Labels'],
+        'remove_label_from_issue' => ['class' => RemoveLabelFromIssueTool::class, 'description' => 'Remove a label from an issue', 'group' => 'Labels'],
+        'create_label' => ['class' => CreateLabelTool::class, 'description' => 'Create a label', 'group' => 'Labels'],
+        'delete_label' => ['class' => DeleteLabelTool::class, 'description' => 'Delete a label', 'group' => 'Labels'],
+
+        // Branches
+        'list_branches' => ['class' => ListBranchesTool::class, 'description' => 'List branches', 'group' => 'Branches'],
+        'create_branch' => ['class' => CreateBranchTool::class, 'description' => 'Create a branch', 'group' => 'Branches'],
+
+        // Files
+        'get_file_contents' => ['class' => GetFileContentsTool::class, 'description' => 'Get file contents', 'group' => 'Files'],
+        'get_repository_tree' => ['class' => GetRepositoryTreeTool::class, 'description' => 'List repository tree', 'group' => 'Files'],
+        'create_or_update_file' => ['class' => CreateOrUpdateFileTool::class, 'description' => 'Create or update a file', 'group' => 'Files'],
+        'delete_file' => ['class' => DeleteFileTool::class, 'description' => 'Delete a file', 'group' => 'Files'],
+        'search_code' => ['class' => SearchCodeTool::class, 'description' => 'Search for code', 'group' => 'Files'],
+
+        // CI / Status
+        'get_commit_status' => ['class' => GetCommitStatusTool::class, 'description' => 'Get commit status', 'group' => 'CI / Status'],
+        'list_check_runs' => ['class' => ListCheckRunsTool::class, 'description' => 'List check runs', 'group' => 'CI / Status'],
+
+        // Work Items
+        'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items'],
+        'delete_work_item' => ['class' => DeleteWorkItemTool::class, 'description' => 'Delete a work item', 'group' => 'Work Items'],
+
+        // Agents
+        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents'],
     ];
 
     /**
@@ -99,7 +120,7 @@ class ToolRegistry
 
         foreach ($toolNames as $name) {
             if (isset(self::TOOL_MAP[$name])) {
-                $tools[] = new (self::TOOL_MAP[$name])($github, $installation, $repoFullName);
+                $tools[] = new (self::TOOL_MAP[$name]['class'])($github, $installation, $repoFullName);
             }
         }
 
@@ -107,10 +128,24 @@ class ToolRegistry
     }
 
     /**
-     * @return array<string, class-string<Tool>>
+     * @return array<string, string>
      */
     public static function available(): array
     {
-        return self::TOOL_MAP;
+        return array_map(fn (array $entry) => $entry['description'], self::TOOL_MAP);
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    public static function grouped(): array
+    {
+        $groups = [];
+
+        foreach (self::TOOL_MAP as $name => $entry) {
+            $groups[$entry['group']][$name] = $entry['description'];
+        }
+
+        return $groups;
     }
 }

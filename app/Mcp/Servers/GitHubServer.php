@@ -4,6 +4,7 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddLabelsToIssueTool;
 use App\Mcp\Tools\CloseIssueTool;
+use App\Mcp\Tools\CreateAgentTool;
 use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
@@ -18,6 +19,7 @@ use App\Mcp\Tools\DeleteWorkItemTool;
 use App\Mcp\Tools\GetCommitStatusTool;
 use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
+use App\Mcp\Tools\GetPullRequestDiffTool;
 use App\Mcp\Tools\GetPullRequestTool;
 use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
@@ -64,6 +66,7 @@ class GitHubServer extends Server
         UpdatePullRequestTool::class,
         MergePullRequestTool::class,
         ListPullRequestFilesTool::class,
+        GetPullRequestDiffTool::class,
         RequestReviewersTool::class,
         CreatePullRequestReviewTool::class,
 
@@ -88,6 +91,9 @@ class GitHubServer extends Server
         // Work Items
         CreateWorkItemTool::class,
         DeleteWorkItemTool::class,
+
+        // Agents
+        CreateAgentTool::class,
 
         // Labels
         ListLabelsTool::class,
