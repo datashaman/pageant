@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
@@ -139,6 +140,10 @@ it('creates organizations from github callback', function () {
     expect($user->organizations)->toHaveCount(2);
     expect(Organization::query()->where('slug', 'acme-corp')->exists())->toBeTrue();
     expect(Organization::query()->where('slug', 'widgets-inc')->exists())->toBeTrue();
+
+    expect(GithubInstallation::query()->count())->toBe(2);
+    expect(GithubInstallation::query()->where('installation_id', 1001)->exists())->toBeTrue();
+    expect(GithubInstallation::query()->where('installation_id', 1002)->exists())->toBeTrue();
 });
 
 it('attaches user to existing organization by slug', function () {

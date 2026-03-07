@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -100,6 +101,17 @@ class GitHubAuthController extends Controller
             $organization = Organization::firstOrCreate(
                 ['slug' => Str::slug($login)],
                 ['title' => $login],
+            );
+
+            GithubInstallation::updateOrCreate(
+                ['installation_id' => $installation['id']],
+                [
+                    'organization_id' => $organization->id,
+                    'account_login' => $login,
+                    'account_type' => $account['type'] ?? 'User',
+                    'permissions' => $installation['permissions'] ?? [],
+                    'events' => $installation['events'] ?? [],
+                ],
             );
 
             $orgIds[] = $organization->id;
