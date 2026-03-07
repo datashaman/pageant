@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToUserOrganization;
 use App\Concerns\HasSource;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Repo extends Model
 {
     /** @use HasFactory<\Database\Factories\RepoFactory> */
-    use HasFactory, HasSource, HasUuids;
+    use BelongsToUserOrganization, HasFactory, HasSource, HasUuids;
+
+    protected $fillable = [
+        'organization_id',
+        'name',
+        'source',
+        'source_reference',
+        'source_url',
+    ];
 
     public function organization(): BelongsTo
     {

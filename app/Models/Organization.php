@@ -13,6 +13,11 @@ class Organization extends Model
     /** @use HasFactory<\Database\Factories\OrganizationFactory> */
     use HasFactory, HasUuids;
 
+    protected $fillable = [
+        'title',
+        'slug',
+    ];
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class);

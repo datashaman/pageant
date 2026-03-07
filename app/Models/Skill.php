@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToUserOrganization;
 use App\Concerns\HasSource;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Skill extends Model
 {
     /** @use HasFactory<\Database\Factories\SkillFactory> */
-    use HasFactory, HasSource, HasUuids;
+    use BelongsToUserOrganization, HasFactory, HasSource, HasUuids;
+
+    protected $fillable = [
+        'organization_id',
+        'name',
+        'description',
+        'argument_hint',
+        'license',
+        'enabled',
+        'path',
+        'allowed_tools',
+        'provider',
+        'model',
+        'context',
+        'agent_id',
+        'source',
+        'source_reference',
+        'source_url',
+    ];
 
     protected function casts(): array
     {

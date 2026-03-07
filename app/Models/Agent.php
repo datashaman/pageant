@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\BelongsToUserOrganization;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Agent extends Model
 {
     /** @use HasFactory<\Database\Factories\AgentFactory> */
-    use HasFactory, HasUuids;
+    use BelongsToUserOrganization, HasFactory, HasUuids;
+
+    protected $fillable = [
+        'organization_id',
+        'name',
+        'description',
+        'tools',
+        'disallowed_tools',
+        'provider',
+        'model',
+        'permission_mode',
+        'max_turns',
+        'background',
+        'isolation',
+    ];
 
     protected function casts(): array
     {
