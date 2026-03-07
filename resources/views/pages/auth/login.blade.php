@@ -49,6 +49,15 @@
             </div>
         </form>
 
+        <div class="relative my-2">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-zinc-200 dark:border-zinc-700"></div></div>
+            <div class="relative flex justify-center text-sm"><span class="bg-white px-2 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">{{ __('Or') }}</span></div>
+        </div>
+
+        <flux:button :href="route('auth.github')" variant="ghost" class="w-full">
+            <x-icon-github class="size-5 mr-2" /> {{ __('Login with GitHub') }}
+        </flux:button>
+
         @if (Route::has('register'))
             <div class="space-x-1 text-sm text-center rtl:space-x-reverse text-zinc-600 dark:text-zinc-400">
                 <span>{{ __('Don\'t have an account?') }}</span>

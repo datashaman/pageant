@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Organization extends Model
 {
@@ -46,5 +47,10 @@ class Organization extends Model
     public function workItems(): HasMany
     {
         return $this->hasMany(WorkItem::class);
+    }
+
+    public function githubInstallation(): HasOne
+    {
+        return $this->hasOne(GithubInstallation::class);
     }
 }

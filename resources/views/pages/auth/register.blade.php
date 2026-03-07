@@ -59,6 +59,15 @@
             </div>
         </form>
 
+        <div class="relative my-2">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-zinc-200 dark:border-zinc-700"></div></div>
+            <div class="relative flex justify-center text-sm"><span class="bg-white px-2 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">{{ __('Or') }}</span></div>
+        </div>
+
+        <flux:button :href="route('auth.github')" variant="ghost" class="w-full">
+            <x-icon-github class="size-5 mr-2" /> {{ __('Sign up with GitHub') }}
+        </flux:button>
+
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
             <span>{{ __('Already have an account?') }}</span>
             <flux:link :href="route('login')" wire:navigate>{{ __('Log in') }}</flux:link>

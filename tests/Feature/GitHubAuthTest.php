@@ -1,0 +1,112 @@
+<?php
+
+use App\Models\User;
+use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\User as SocialiteUser;
+
+it('redirects to github', function () {
+    $response = $this->get(route('auth.github'));
+
+    $response->assertRedirect();
+    expect($response->headers->get('Location'))->toContain('github.com');
+});
+
+it('creates a new user from github callback', function () {
+    $socialiteUser = createSocialiteUser();
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn(mockSocialiteDriver($socialiteUser));
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirect(route('dashboard'));
+
+    $user = User::query()->where('github_id', 123456)->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user->name)->toBe('Test User')
+        ->and($user->email)->toBe('test@example.com')
+        ->and($user->avatar_url)->toBe('https://avatars.githubusercontent.com/u/123456');
+});
+
+it('links existing user by email on github callback', function () {
+    $existingUser = User::factory()->create(['email' => 'test@example.com']);
+
+    $socialiteUser = createSocialiteUser();
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn(mockSocialiteDriver($socialiteUser));
+
+    $this->get(route('auth.github.callback'));
+
+    $existingUser->refresh();
+
+    expect($existingUser->github_id)->toBe(123456)
+        ->and($existingUser->avatar_url)->toBe('https://avatars.githubusercontent.com/u/123456');
+});
+
+it('links existing user by github_id on callback', function () {
+    $existingUser = User::factory()->create([
+        'email' => 'old@example.com',
+        'github_id' => 123456,
+    ]);
+
+    $socialiteUser = createSocialiteUser();
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn(mockSocialiteDriver($socialiteUser));
+
+    $this->get(route('auth.github.callback'));
+
+    $existingUser->refresh();
+
+    expect($existingUser->github_id)->toBe(123456)
+        ->and($existingUser->avatar_url)->toBe('https://avatars.githubusercontent.com/u/123456');
+
+    expect(User::query()->count())->toBe(1);
+});
+
+it('does not allow email/password login for github-only users', function () {
+    User::factory()->create([
+        'email' => 'github@example.com',
+        'password' => null,
+        'github_id' => 999,
+    ]);
+
+    $response = $this->post(route('login.store'), [
+        'email' => 'github@example.com',
+        'password' => 'password',
+    ]);
+
+    $this->assertGuest();
+});
+
+function createSocialiteUser(): SocialiteUser
+{
+    $socialiteUser = new SocialiteUser;
+    $socialiteUser->id = 123456;
+    $socialiteUser->name = 'Test User';
+    $socialiteUser->email = 'test@example.com';
+    $socialiteUser->avatar = 'https://avatars.githubusercontent.com/u/123456';
+    $socialiteUser->token = 'github-token';
+    $socialiteUser->refreshToken = 'github-refresh-token';
+    $socialiteUser->nickname = 'testuser';
+
+    return $socialiteUser;
+}
+
+function mockSocialiteDriver(SocialiteUser $socialiteUser): object
+{
+    return new class($socialiteUser)
+    {
+        public function __construct(private SocialiteUser $user) {}
+
+        public function user(): SocialiteUser
+        {
+            return $this->user;
+        }
+    };
+}
