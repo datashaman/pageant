@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -82,8 +83,15 @@ class GitHubAuthController extends Controller
         ])->get('https://api.github.com/user/orgs');
 
         if ($response->failed()) {
+            Log::warning('Failed to fetch GitHub orgs', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
             return;
         }
+
+        Log::info('GitHub orgs response', ['orgs' => $response->json()]);
 
         foreach ($response->json() as $githubOrg) {
             $organization = Organization::firstOrCreate(
