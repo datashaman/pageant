@@ -35,7 +35,7 @@ it('constructs GitHubWebhookAgent and calls prompt with event context', function
 
     $eventContext = "Event: push\nRepository: acme/widgets\nRef: refs/heads/main";
 
-    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 12345);
+    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets');
     $job->handle(app(ConversationStore::class));
 
     GitHubWebhookAgent::assertPrompted(function ($prompt) {
@@ -63,7 +63,7 @@ it('creates a conversation and persists messages when work item exists', functio
 
     $eventContext = "Event: issue_comment\nRepository: acme/widgets\nIssue #42: Fix the login bug";
 
-    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 12345, 42);
+    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 42);
     $job->handle(app(ConversationStore::class));
 
     $workItem->refresh();
@@ -102,7 +102,7 @@ it('continues existing conversation when conversation_id is set', function () {
 
     $eventContext = "Event: issue_comment\nRepository: acme/widgets\nNew comment on #42";
 
-    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 12345, 42);
+    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 42);
     $job->handle($store);
 
     $workItem->refresh();
@@ -128,7 +128,7 @@ it('does not persist conversation when no work item matches', function () {
 
     $eventContext = "Event: push\nRepository: acme/widgets";
 
-    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 12345, 99);
+    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 99);
     $job->handle(app(ConversationStore::class));
 
     GitHubWebhookAgent::assertPrompted(fn ($prompt) => str_contains($prompt->prompt, 'Event: push'));
@@ -146,7 +146,7 @@ it('does not persist conversation when no issue number provided', function () {
 
     $eventContext = "Event: push\nRepository: acme/widgets";
 
-    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 12345);
+    $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets');
     $job->handle(app(ConversationStore::class));
 
     GitHubWebhookAgent::assertPrompted(fn ($prompt) => str_contains($prompt->prompt, 'Event: push'));

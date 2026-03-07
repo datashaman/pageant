@@ -17,7 +17,6 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
     public function __construct(
         protected Agent $agentModel,
         protected string $repoFullName,
-        protected int $installationId,
         protected ?string $conversationId = null,
     ) {}
 
@@ -46,7 +45,6 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
         return ToolRegistry::resolve(
             $this->agentModel->tools ?? [],
             $this->repoFullName,
-            $this->installationId,
         );
     }
 

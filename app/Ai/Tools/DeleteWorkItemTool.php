@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Models\WorkItem;
+use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -12,7 +13,7 @@ use Laravel\Ai\Tools\Request;
 class DeleteWorkItemTool implements Tool
 {
     public function __construct(
-        protected \App\Services\GitHubService $github,
+        protected GitHubService $github,
         protected GithubInstallation $installation,
         protected string $repoFullName,
     ) {}

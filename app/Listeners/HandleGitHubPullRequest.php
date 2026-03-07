@@ -24,6 +24,6 @@ class HandleGitHubPullRequest
             "Body:\n".($pr['body'] ?? '(empty)'),
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, $event->installationId, 'pull_request', $eventContext, $pr['number']);
+        $this->dispatchAgentsForRepo($repoFullName, 'pull_request', $eventContext, $pr['number']);
     }
 }

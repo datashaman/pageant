@@ -46,8 +46,7 @@ it('dispatches RunWebhookAgent for push event when agent subscribes to push', fu
 
     Queue::assertPushed(RunWebhookAgent::class, function ($job) use ($agent) {
         return $job->agent->id === $agent->id
-            && $job->repoFullName === 'acme/widgets'
-            && $job->installationId === 12345;
+            && $job->repoFullName === 'acme/widgets';
     });
 });
 

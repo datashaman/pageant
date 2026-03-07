@@ -30,6 +30,6 @@ class HandleWorkItemCreated
             "Source URL: {$workItem->source_url}",
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, $event->installationId, 'work_item_created', $eventContext, $issueNumber);
+        $this->dispatchAgentsForRepo($repoFullName, 'work_item_created', $eventContext, $issueNumber);
     }
 }

@@ -36,18 +36,24 @@ class CreateWorkItemTool extends Tool
 
         $issue = $this->github->getIssue($installation, $validated['repo'], $validated['issue_number']);
 
-        $workItem = WorkItem::create([
-            'organization_id' => $repo->organization_id,
-            'project_id' => $validated['project_id'] ?? null,
-            'title' => $issue['title'],
-            'description' => $issue['body'] ?? '',
-            'board_id' => $validated['board_id'],
-            'source' => 'github',
-            'source_reference' => $validated['repo'].'#'.$validated['issue_number'],
-            'source_url' => $issue['html_url'] ?? '',
-        ]);
+        $workItem = WorkItem::firstOrCreate(
+            [
+                'organization_id' => $repo->organization_id,
+                'source' => 'github',
+                'source_reference' => $validated['repo'].'#'.$validated['issue_number'],
+            ],
+            [
+                'project_id' => $validated['project_id'] ?? null,
+                'title' => $issue['title'],
+                'description' => $issue['body'] ?? '',
+                'board_id' => $validated['board_id'],
+                'source_url' => $issue['html_url'] ?? '',
+            ]
+        );
 
-        WorkItemCreated::dispatch($workItem, $validated['repo'], $installation->installation_id);
+        if ($workItem->wasRecentlyCreated) {
+            WorkItemCreated::dispatch($workItem, $validated['repo'], $installation->installation_id);
+        }
 
         return Response::text(json_encode($workItem->toArray(), JSON_PRETTY_PRINT));
     }

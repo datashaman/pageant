@@ -29,6 +29,6 @@ class HandleGitHubIssue
 
         $eventContext = implode("\n", $lines);
 
-        $this->dispatchAgentsForRepo($repoFullName, $event->installationId, 'issues', $eventContext, $issue['number']);
+        $this->dispatchAgentsForRepo($repoFullName, 'issues', $eventContext, $issue['number']);
     }
 }

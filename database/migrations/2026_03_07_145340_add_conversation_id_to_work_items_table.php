@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('work_items', function (Blueprint $table) {
             $table->string('conversation_id', 36)->nullable()->after('source_url');
+            $table->foreign('conversation_id')->references('id')->on('agent_conversations')->nullOnDelete();
         });
     }
 
