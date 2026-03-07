@@ -1,6 +1,7 @@
 <?php
 
 use App\Mcp\Servers\GitHubServer;
+use App\Mcp\Servers\PageantServer;
 use App\Mcp\Tools\AddLabelsToIssueTool;
 use App\Mcp\Tools\CloseIssueTool;
 use App\Mcp\Tools\CreateBranchTool;
@@ -841,7 +842,7 @@ it('creates a work item from a GitHub issue', function () {
             ]);
     });
 
-    $response = GitHubServer::tool(CreateWorkItemTool::class, [
+    $response = PageantServer::tool(CreateWorkItemTool::class, [
         'repo' => 'acme/widgets',
         'issue_number' => 42,
         'board_id' => 'backlog',
@@ -869,7 +870,7 @@ it('deletes a work item by repo and issue number', function () {
         'board_id' => 'backlog',
     ]);
 
-    $response = GitHubServer::tool(DeleteWorkItemTool::class, [
+    $response = PageantServer::tool(DeleteWorkItemTool::class, [
         'repo' => 'acme/widgets',
         'issue_number' => 42,
     ]);
