@@ -1,7 +1,7 @@
 <?php
 
 use App\Ai\ToolRegistry;
-use App\Mcp\Servers\GitHubServer;
+use App\Mcp\Servers\PageantServer;
 use App\Mcp\Tools\CreateAgentTool;
 use App\Models\Agent;
 use App\Models\GithubInstallation;
@@ -21,7 +21,7 @@ beforeEach(function () {
 });
 
 it('creates an agent via MCP tool', function () {
-    $response = GitHubServer::tool(CreateAgentTool::class, [
+    $response = PageantServer::tool(CreateAgentTool::class, [
         'repo' => 'acme/widgets',
         'name' => 'review-bot',
         'description' => 'Reviews pull requests',
@@ -46,7 +46,7 @@ it('creates an agent via MCP tool', function () {
 });
 
 it('creates an agent with defaults via MCP tool', function () {
-    $response = GitHubServer::tool(CreateAgentTool::class, [
+    $response = PageantServer::tool(CreateAgentTool::class, [
         'repo' => 'acme/widgets',
         'name' => 'simple-bot',
     ]);
@@ -70,7 +70,7 @@ it('attaches additional repos via MCP tool', function () {
         'source_reference' => 'acme/gadgets',
     ]);
 
-    $response = GitHubServer::tool(CreateAgentTool::class, [
+    $response = PageantServer::tool(CreateAgentTool::class, [
         'repo' => 'acme/widgets',
         'name' => 'multi-repo-bot',
         'repo_names' => ['acme/gadgets'],
