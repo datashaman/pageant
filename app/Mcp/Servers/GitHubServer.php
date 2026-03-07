@@ -11,8 +11,10 @@ use App\Mcp\Tools\CreateLabelTool;
 use App\Mcp\Tools\CreateOrUpdateFileTool;
 use App\Mcp\Tools\CreatePullRequestReviewTool;
 use App\Mcp\Tools\CreatePullRequestTool;
+use App\Mcp\Tools\CreateWorkItemTool;
 use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\DeleteWorkItemTool;
 use App\Mcp\Tools\GetCommitStatusTool;
 use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
@@ -82,6 +84,10 @@ class GitHubServer extends Server
         // Search
         SearchCodeTool::class,
         SearchIssuesTool::class,
+
+        // Work Items
+        CreateWorkItemTool::class,
+        DeleteWorkItemTool::class,
 
         // Labels
         ListLabelsTool::class,

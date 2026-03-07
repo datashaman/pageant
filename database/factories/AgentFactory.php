@@ -20,9 +20,11 @@ class AgentFactory extends Factory
         return [
             'organization_id' => Organization::factory(),
             'name' => fake()->unique()->word(),
+            'enabled' => true,
             'description' => fake()->sentence(),
             'tools' => [],
             'disallowed_tools' => [],
+            'events' => [],
             'provider' => fake()->randomElement(['anthropic', 'openai']),
             'model' => 'inherit',
             'permission_mode' => fake()->randomElement(['full', 'limited']),

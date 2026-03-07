@@ -17,9 +17,11 @@ class Agent extends Model
     protected $fillable = [
         'organization_id',
         'name',
+        'enabled',
         'description',
         'tools',
         'disallowed_tools',
+        'events',
         'provider',
         'model',
         'permission_mode',
@@ -31,8 +33,10 @@ class Agent extends Model
     protected function casts(): array
     {
         return [
+            'enabled' => 'boolean',
             'tools' => 'array',
             'disallowed_tools' => 'array',
+            'events' => 'array',
             'background' => 'boolean',
         ];
     }
