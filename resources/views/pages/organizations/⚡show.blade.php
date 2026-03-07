@@ -11,7 +11,7 @@ new #[Title('Organization')] class extends Component {
     {
         abort_unless(auth()->user()->organizations()->where('organizations.id', $organization->id)->exists(), 403);
 
-        $this->organization = $organization->loadCount(['repos', 'skills', 'agents', 'projects', 'workItems']);
+        $this->organization = $organization->loadCount(['users', 'repos', 'skills', 'agents', 'projects', 'workItems']);
     }
 
     public function confirmDelete(): void
@@ -71,6 +71,11 @@ new #[Title('Organization')] class extends Component {
         <flux:heading size="lg" class="!mt-8">{{ __('Related Resources') }}</flux:heading>
 
         <div class="grid max-w-xl grid-cols-2 gap-4 sm:grid-cols-3">
+            <div class="rounded-lg border p-4 text-center">
+                <flux:text class="text-2xl font-bold">{{ $organization->users_count }}</flux:text>
+                <flux:text>{{ __('Users') }}</flux:text>
+            </div>
+
             <flux:link href="{{ route('agents.index') }}" wire:navigate class="block rounded-lg border p-4 text-center">
                 <flux:text class="text-2xl font-bold">{{ $organization->agents_count }}</flux:text>
                 <flux:text>{{ __('Agents') }}</flux:text>
