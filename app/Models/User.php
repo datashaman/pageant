@@ -68,17 +68,11 @@ class User extends Authenticatable
 
     public function currentOrganizationId(): ?string
     {
-        if ($this->current_organization_id) {
+        if ($this->current_organization_id && $this->organizations->contains('id', $this->current_organization_id)) {
             return $this->current_organization_id;
         }
 
-        $orgs = $this->organizations;
-
-        if ($orgs->count() === 1) {
-            return $orgs->first()->id;
-        }
-
-        return $orgs->first()?->id;
+        return null;
     }
 
     public function organizations(): BelongsToMany

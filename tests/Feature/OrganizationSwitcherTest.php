@@ -34,8 +34,8 @@ it('updates current organization on change', function () {
     expect($this->user->fresh()->current_organization_id)->toBe($this->org2->id);
 });
 
-it('falls back to first organization when no current org is set', function () {
-    expect($this->user->currentOrganizationId())->toBe($this->org1->id);
+it('returns null when no current org is set', function () {
+    expect($this->user->currentOrganizationId())->toBeNull();
 });
 
 it('returns current organization when set', function () {
