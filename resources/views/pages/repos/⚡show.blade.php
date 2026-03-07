@@ -50,9 +50,7 @@ new #[Title('View Repo')] class extends Component {
         <div class="max-w-xl space-y-4">
             <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Organization') }}</flux:heading>
-                <flux:link href="{{ route('organizations.show', $repo->organization) }}" wire:navigate>
-                    {{ $repo->organization->name }}
-                </flux:link>
+                <flux:text>{{ $repo->organization->name }}</flux:text>
             </div>
 
             <div>

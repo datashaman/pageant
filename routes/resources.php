@@ -3,11 +3,6 @@
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::livewire('organizations', 'pages::organizations.index')->name('organizations.index');
-    Route::livewire('organizations/create', 'pages::organizations.create')->name('organizations.create');
-    Route::livewire('organizations/{organization}', 'pages::organizations.show')->name('organizations.show');
-    Route::livewire('organizations/{organization}/edit', 'pages::organizations.edit')->name('organizations.edit');
-
     Route::livewire('agents', 'pages::agents.index')->name('agents.index');
     Route::livewire('agents/create', 'pages::agents.create')->name('agents.create');
     Route::livewire('agents/{agent}', 'pages::agents.show')->name('agents.show');

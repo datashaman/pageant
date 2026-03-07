@@ -10,6 +10,8 @@
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
 
+            <livewire:organization-switcher />
+
             <flux:sidebar.nav>
                 <flux:sidebar.group :heading="__('Platform')" class="grid">
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
@@ -18,9 +20,6 @@
                 </flux:sidebar.group>
 
                 <flux:sidebar.group :heading="__('Resources')" class="grid">
-                    <flux:sidebar.item icon="building-office" :href="route('organizations.index')" :current="request()->routeIs('organizations.*')" wire:navigate>
-                        {{ __('Organizations') }}
-                    </flux:sidebar.item>
                     <flux:sidebar.item icon="rectangle-stack" :href="route('projects.index')" :current="request()->routeIs('projects.*')" wire:navigate>
                         {{ __('Projects') }}
                     </flux:sidebar.item>
