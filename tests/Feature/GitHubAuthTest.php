@@ -14,7 +14,7 @@ it('redirects to github', function () {
 });
 
 it('creates a new user from github callback', function () {
-    Http::fake(['https://api.github.com/user/orgs' => Http::response([])]);
+    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
     $socialiteUser = createSocialiteUser();
 
@@ -35,7 +35,7 @@ it('creates a new user from github callback', function () {
 });
 
 it('links existing user by email on github callback', function () {
-    Http::fake(['https://api.github.com/user/orgs' => Http::response([])]);
+    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
     $existingUser = User::factory()->create(['email' => 'test@example.com']);
 
@@ -54,7 +54,7 @@ it('links existing user by email on github callback', function () {
 });
 
 it('links existing user by github_id on callback', function () {
-    Http::fake(['https://api.github.com/user/orgs' => Http::response([])]);
+    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
     $existingUser = User::factory()->create([
         'email' => 'old@example.com',
@@ -98,7 +98,7 @@ it('fetches primary email from github api when email is private', function () {
             ['email' => 'secondary@example.com', 'primary' => false, 'verified' => true],
             ['email' => 'primary@example.com', 'primary' => true, 'verified' => true],
         ]),
-        'https://api.github.com/user/orgs' => Http::response([]),
+        'https://api.github.com/user/installations' => Http::response([]),
     ]);
 
     $socialiteUser = createSocialiteUser(email: null);
@@ -117,9 +117,11 @@ it('fetches primary email from github api when email is private', function () {
 
 it('creates organizations from github callback', function () {
     Http::fake([
-        'https://api.github.com/user/orgs' => Http::response([
-            ['login' => 'Acme Corp', 'id' => 1001],
-            ['login' => 'widgets-inc', 'id' => 1002],
+        'https://api.github.com/user/installations' => Http::response([
+            'installations' => [
+                ['id' => 1001, 'account' => ['login' => 'Acme Corp', 'type' => 'Organization']],
+                ['id' => 1002, 'account' => ['login' => 'widgets-inc', 'type' => 'Organization']],
+            ],
         ]),
     ]);
 
@@ -146,8 +148,10 @@ it('attaches user to existing organization by slug', function () {
     ]);
 
     Http::fake([
-        'https://api.github.com/user/orgs' => Http::response([
-            ['login' => 'existing-org', 'id' => 2001],
+        'https://api.github.com/user/installations' => Http::response([
+            'installations' => [
+                ['id' => 2001, 'account' => ['login' => 'existing-org', 'type' => 'Organization']],
+            ],
         ]),
     ]);
 

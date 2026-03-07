@@ -80,10 +80,10 @@ class GitHubAuthController extends Controller
         $response = Http::withHeaders([
             'Authorization' => "Bearer {$token}",
             'Accept' => 'application/vnd.github+json',
-        ])->get('https://api.github.com/user/orgs');
+        ])->get('https://api.github.com/user/installations');
 
         if ($response->failed()) {
-            Log::warning('Failed to fetch GitHub orgs', [
+            Log::warning('Failed to fetch GitHub installations for user', [
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
@@ -91,15 +91,30 @@ class GitHubAuthController extends Controller
             return;
         }
 
-        Log::info('GitHub orgs response', ['orgs' => $response->json()]);
+        $installations = $response->json('installations', []);
 
-        foreach ($response->json() as $githubOrg) {
+        Log::info('GitHub user installations response', ['installations' => $installations]);
+
+        $orgIds = [];
+
+        foreach ($installations as $installation) {
+            $account = $installation['account'] ?? [];
+            $login = $account['login'] ?? null;
+
+            if (! $login) {
+                continue;
+            }
+
             $organization = Organization::firstOrCreate(
-                ['slug' => Str::slug($githubOrg['login'])],
-                ['title' => $githubOrg['login']],
+                ['slug' => Str::slug($login)],
+                ['title' => $login],
             );
 
-            $user->organizations()->syncWithoutDetaching($organization->id);
+            $orgIds[] = $organization->id;
+        }
+
+        if ($orgIds) {
+            $user->organizations()->syncWithoutDetaching($orgIds);
         }
     }
 }
