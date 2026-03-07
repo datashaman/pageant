@@ -23,6 +23,7 @@ class WorkItem extends Model
         'source',
         'source_reference',
         'source_url',
+        'conversation_id',
     ];
 
     public function organization(): BelongsTo
