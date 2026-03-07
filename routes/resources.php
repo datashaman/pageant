@@ -14,7 +14,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('agents/{agent}/edit', 'pages::agents.edit')->name('agents.edit');
 
     Route::livewire('repos', 'pages::repos.index')->name('repos.index');
-    Route::livewire('repos/create', 'pages::repos.create')->name('repos.create');
     Route::livewire('repos/{repo}', 'pages::repos.show')->name('repos.show');
     Route::livewire('repos/{repo}/edit', 'pages::repos.edit')->name('repos.edit');
 

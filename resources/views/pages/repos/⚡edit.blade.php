@@ -12,11 +12,7 @@ use Livewire\Component;
 new #[Title('Edit Repo')] class extends Component {
     public Repo $repo;
 
-    public string $organization_id = '';
     public string $name = '';
-    public string $source = '';
-    public string $source_reference = '';
-    public string $source_url = '';
 
     public array $selectedSkills = [];
     public array $selectedAgents = [];
@@ -27,11 +23,7 @@ new #[Title('Edit Repo')] class extends Component {
         $userOrgIds = auth()->user()->organizations->pluck('id');
         abort_unless($userOrgIds->contains($this->repo->organization_id), 403);
 
-        $this->organization_id = $repo->organization_id;
         $this->name = $repo->name;
-        $this->source = $repo->source;
-        $this->source_reference = $repo->source_reference ?? '';
-        $this->source_url = $repo->source_url ?? '';
 
         $this->selectedSkills = $repo->skills->pluck('id')->toArray();
         $this->selectedAgents = $repo->agents->pluck('id')->toArray();
@@ -39,57 +31,27 @@ new #[Title('Edit Repo')] class extends Component {
     }
 
     #[Computed]
-    public function organizations(): Collection
-    {
-        return auth()->user()->organizations;
-    }
-
-    #[Computed]
     public function availableSkills(): Collection
     {
-        if (! $this->organization_id) {
-            return new Collection;
-        }
-
-        return Skill::query()->where('organization_id', $this->organization_id)->get();
+        return Skill::query()->where('organization_id', $this->repo->organization_id)->get();
     }
 
     #[Computed]
     public function availableAgents(): Collection
     {
-        if (! $this->organization_id) {
-            return new Collection;
-        }
-
-        return Agent::query()->where('organization_id', $this->organization_id)->get();
+        return Agent::query()->where('organization_id', $this->repo->organization_id)->get();
     }
 
     #[Computed]
     public function availableProjects(): Collection
     {
-        if (! $this->organization_id) {
-            return new Collection;
-        }
-
-        return Project::query()->where('organization_id', $this->organization_id)->get();
-    }
-
-    public function updatedOrganizationId(): void
-    {
-        $this->selectedSkills = [];
-        $this->selectedAgents = [];
-        $this->selectedProjects = [];
+        return Project::query()->where('organization_id', $this->repo->organization_id)->get();
     }
 
     public function save(): void
     {
-        $userOrgIds = auth()->user()->organizations->pluck('id');
         $validated = $this->validate([
-            'organization_id' => ['required', 'uuid', 'in:' . $userOrgIds->implode(',')],
             'name' => ['required', 'string', 'max:255'],
-            'source' => ['required', 'string', 'in:github,gitlab,bitbucket'],
-            'source_reference' => ['nullable', 'string', 'max:255'],
-            'source_url' => ['nullable', 'url', 'max:255'],
             'selectedSkills' => ['array'],
             'selectedSkills.*' => ['uuid'],
             'selectedAgents' => ['array'],
@@ -99,11 +61,7 @@ new #[Title('Edit Repo')] class extends Component {
         ]);
 
         $this->repo->update([
-            'organization_id' => $validated['organization_id'],
             'name' => $validated['name'],
-            'source' => $validated['source'],
-            'source_reference' => $validated['source_reference'],
-            'source_url' => $validated['source_url'],
         ]);
 
         $this->repo->skills()->sync($this->selectedSkills);
@@ -124,49 +82,39 @@ new #[Title('Edit Repo')] class extends Component {
         </div>
 
         <form wire:submit="save" class="max-w-xl space-y-6">
-            <flux:select wire:model.live="organization_id" :label="__('Organization')" required>
-                <flux:select.option value="">{{ __('Select organization...') }}</flux:select.option>
-                @foreach ($this->organizations as $organization)
-                    <flux:select.option :value="$organization->id">{{ $organization->title }}</flux:select.option>
-                @endforeach
-            </flux:select>
-
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
 
-            <flux:select wire:model="source" :label="__('Source')" required>
-                <flux:select.option value="">{{ __('Select source...') }}</flux:select.option>
-                <flux:select.option value="github">GitHub</flux:select.option>
-                <flux:select.option value="gitlab">GitLab</flux:select.option>
-                <flux:select.option value="bitbucket">Bitbucket</flux:select.option>
-            </flux:select>
-
-            <flux:input wire:model="source_reference" :label="__('Source Reference')" type="text" />
-            <flux:input wire:model="source_url" :label="__('Source URL')" type="url" />
-
-            @if ($this->organization_id)
-                @if ($this->availableSkills->isNotEmpty())
-                    <flux:checkbox.group wire:model="selectedSkills" :label="__('Skills')">
-                        @foreach ($this->availableSkills as $skill)
-                            <flux:checkbox :label="$skill->name" :value="$skill->id" />
-                        @endforeach
-                    </flux:checkbox.group>
+            <div>
+                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repository') }}</flux:heading>
+                @if ($repo->source_url)
+                    <flux:link href="{{ $repo->source_url }}" target="_blank">{{ $repo->source_reference }}</flux:link>
+                @else
+                    <flux:text>{{ $repo->source_reference }}</flux:text>
                 @endif
+            </div>
 
-                @if ($this->availableAgents->isNotEmpty())
-                    <flux:checkbox.group wire:model="selectedAgents" :label="__('Agents')">
-                        @foreach ($this->availableAgents as $agent)
-                            <flux:checkbox :label="$agent->name" :value="$agent->id" />
-                        @endforeach
-                    </flux:checkbox.group>
-                @endif
+            @if ($this->availableSkills->isNotEmpty())
+                <flux:checkbox.group wire:model="selectedSkills" :label="__('Skills')">
+                    @foreach ($this->availableSkills as $skill)
+                        <flux:checkbox :label="$skill->name" :value="$skill->id" />
+                    @endforeach
+                </flux:checkbox.group>
+            @endif
 
-                @if ($this->availableProjects->isNotEmpty())
-                    <flux:checkbox.group wire:model="selectedProjects" :label="__('Projects')">
-                        @foreach ($this->availableProjects as $project)
-                            <flux:checkbox :label="$project->name" :value="$project->id" />
-                        @endforeach
-                    </flux:checkbox.group>
-                @endif
+            @if ($this->availableAgents->isNotEmpty())
+                <flux:checkbox.group wire:model="selectedAgents" :label="__('Agents')">
+                    @foreach ($this->availableAgents as $agent)
+                        <flux:checkbox :label="$agent->name" :value="$agent->id" />
+                    @endforeach
+                </flux:checkbox.group>
+            @endif
+
+            @if ($this->availableProjects->isNotEmpty())
+                <flux:checkbox.group wire:model="selectedProjects" :label="__('Projects')">
+                    @foreach ($this->availableProjects as $project)
+                        <flux:checkbox :label="$project->name" :value="$project->id" />
+                    @endforeach
+                </flux:checkbox.group>
             @endif
 
             <div class="flex items-center gap-4">

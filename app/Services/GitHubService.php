@@ -47,6 +47,34 @@ class GitHubService
         );
     }
 
+    /**
+     * @return array<int, array{id: int, name: string, full_name: string, html_url: string, description: ?string, private: bool}>
+     */
+    public function listRepositories(GithubInstallation $installation, int $perPage = 100): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+        $repositories = [];
+        $page = 1;
+
+        do {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/vnd.github+json',
+            ])->get(self::API_BASE.'/installation/repositories', [
+                'per_page' => $perPage,
+                'page' => $page,
+            ]);
+
+            $response->throw();
+
+            $data = $response->json();
+            $repositories = array_merge($repositories, $data['repositories'] ?? []);
+            $page++;
+        } while (count($repositories) < ($data['total_count'] ?? 0));
+
+        return $repositories;
+    }
+
     public function createIssue(GithubInstallation $installation, string $repo, array $data): array
     {
         $token = $this->getInstallationToken($installation->installation_id);

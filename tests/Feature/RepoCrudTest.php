@@ -1,14 +1,24 @@
 <?php
 
+use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
 use App\Models\User;
+use App\Services\GitHubService;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
     $this->organization = Organization::factory()->create();
     $this->user->organizations()->attach($this->organization);
-    $this->repo = Repo::factory()->for($this->organization)->create();
+    $this->installation = GithubInstallation::factory()->for($this->organization)->create();
+    $this->repo = Repo::factory()->for($this->organization)->create([
+        'source' => 'github',
+        'source_reference' => 'org/existing-repo',
+    ]);
+
+    $mock = Mockery::mock(GitHubService::class);
+    $mock->shouldReceive('listRepositories')->andReturn([]);
+    app()->instance(GitHubService::class, $mock);
 });
 
 it('shows the repos index page', function () {
@@ -18,31 +28,42 @@ it('shows the repos index page', function () {
         ->assertSee($this->repo->name);
 });
 
-it('can create a repo', function () {
+it('can track a github repo', function () {
     Livewire\Livewire::actingAs($this->user)
-        ->test('pages::repos.create')
-        ->set('organization_id', $this->organization->id)
-        ->set('name', 'new-repo')
-        ->set('source', 'github')
-        ->set('source_reference', 'main')
-        ->set('source_url', 'https://github.com/example/new-repo')
-        ->call('save')
-        ->assertHasNoErrors()
-        ->assertRedirect();
+        ->test('pages::repos.index')
+        ->set('showImportModal', true)
+        ->set('selectedInstallationId', $this->installation->id)
+        ->call('trackRepo', 'org/new-repo', 'https://github.com/org/new-repo');
 
     $this->assertDatabaseHas('repos', [
         'name' => 'new-repo',
         'source' => 'github',
+        'source_reference' => 'org/new-repo',
+        'source_url' => 'https://github.com/org/new-repo',
+        'organization_id' => $this->organization->id,
     ]);
 });
 
-it('validates required fields on create', function () {
+it('does not duplicate an already tracked repo', function () {
     Livewire\Livewire::actingAs($this->user)
-        ->test('pages::repos.create')
-        ->set('name', '')
-        ->set('organization_id', '')
-        ->call('save')
-        ->assertHasErrors(['name', 'organization_id']);
+        ->test('pages::repos.index')
+        ->set('showImportModal', true)
+        ->set('selectedInstallationId', $this->installation->id)
+        ->call('trackRepo', 'org/existing-repo', 'https://github.com/org/existing-repo');
+
+    expect(Repo::query()->where('source_reference', 'org/existing-repo')->count())->toBe(1);
+});
+
+it('can untrack a repo', function () {
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::repos.index')
+        ->set('showImportModal', true)
+        ->set('selectedInstallationId', $this->installation->id)
+        ->call('untrackRepo', 'org/existing-repo');
+
+    $this->assertDatabaseMissing('repos', [
+        'source_reference' => 'org/existing-repo',
+    ]);
 });
 
 it('shows the repo detail page', function () {
