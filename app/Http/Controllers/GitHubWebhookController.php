@@ -31,7 +31,7 @@ class GitHubWebhookController extends Controller
             'pull_request' => $this->handlePullRequest($payload),
             'pull_request_review' => $this->handlePullRequestReview($payload),
             'push' => $this->handlePush($payload),
-            default => $this->handleDefault($event, $payload),
+            default => $this->handleDefault($event),
         };
     }
 
@@ -195,7 +195,7 @@ class GitHubWebhookController extends Controller
         return response()->json(['message' => 'Installation repositories event received.']);
     }
 
-    private function handleDefault(string $event, array $payload): JsonResponse
+    private function handleDefault(string $event): JsonResponse
     {
         Log::info("GitHub webhook event received: {$event}");
 

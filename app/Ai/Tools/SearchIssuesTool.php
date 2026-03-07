@@ -23,7 +23,8 @@ class SearchIssuesTool implements Tool
 
     public function handle(Request $request): string
     {
-        $fullQuery = $request['query'].' repo:'.$this->repoFullName;
+        $sanitized = preg_replace('/\b(repo|org):\S+/', '', $request['query']);
+        $fullQuery = trim($sanitized).' repo:'.$this->repoFullName;
 
         $results = $this->github->searchIssues($this->installation, $fullQuery);
 

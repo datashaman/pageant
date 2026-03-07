@@ -67,7 +67,6 @@ it('HandleWorkItemCreated dispatches agents subscribed to work_item_created', fu
     Queue::assertPushed(RunWebhookAgent::class, function ($job) use ($agent) {
         return $job->agent->id === $agent->id
             && $job->repoFullName === 'acme/widgets'
-            && $job->installationId === 12345
             && $job->issueNumber === 42;
     });
 });

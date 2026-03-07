@@ -25,6 +25,6 @@ class HandleGitHubPullRequestReview
             "Body:\n".($review['body'] ?? '(empty)'),
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, $event->installationId, 'pull_request_review', $eventContext, $pr['number']);
+        $this->dispatchAgentsForRepo($repoFullName, 'pull_request_review', $eventContext, $pr['number']);
     }
 }

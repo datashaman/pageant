@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Events\WorkItemCreated;
 use App\Models\GithubInstallation;
+use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -31,22 +32,28 @@ class CreateWorkItemTool implements Tool
             (int) $request['issue_number'],
         );
 
-        $repo = \App\Models\Repo::where('source', 'github')
+        $repo = Repo::where('source', 'github')
             ->where('source_reference', $this->repoFullName)
             ->firstOrFail();
 
-        $workItem = WorkItem::create([
-            'organization_id' => $repo->organization_id,
-            'project_id' => $request['project_id'] ?? null,
-            'title' => $issue['title'],
-            'description' => $issue['body'] ?? '',
-            'board_id' => $request['board_id'],
-            'source' => 'github',
-            'source_reference' => $this->repoFullName.'#'.$request['issue_number'],
-            'source_url' => $issue['html_url'] ?? '',
-        ]);
+        $workItem = WorkItem::firstOrCreate(
+            [
+                'organization_id' => $repo->organization_id,
+                'source' => 'github',
+                'source_reference' => $this->repoFullName.'#'.$request['issue_number'],
+            ],
+            [
+                'project_id' => $request['project_id'] ?? null,
+                'title' => $issue['title'],
+                'description' => $issue['body'] ?? '',
+                'board_id' => $request['board_id'],
+                'source_url' => $issue['html_url'] ?? '',
+            ]
+        );
 
-        WorkItemCreated::dispatch($workItem, $this->repoFullName, $this->installation->installation_id);
+        if ($workItem->wasRecentlyCreated) {
+            WorkItemCreated::dispatch($workItem, $this->repoFullName, $this->installation->installation_id);
+        }
 
         return json_encode($workItem->toArray(), JSON_PRETTY_PRINT);
     }

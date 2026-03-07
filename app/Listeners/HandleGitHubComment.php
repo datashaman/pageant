@@ -26,6 +26,6 @@ class HandleGitHubComment
             "Comment:\n".($comment['body'] ?? ''),
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, $event->installationId, 'issue_comment', $eventContext, $issue['number']);
+        $this->dispatchAgentsForRepo($repoFullName, 'issue_comment', $eventContext, $issue['number']);
     }
 }

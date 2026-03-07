@@ -1,6 +1,7 @@
 <?php
 
 use App\Events\GitHubCommentReceived;
+use App\Events\GitHubIssueReceived;
 use App\Events\GitHubPullRequestReceived;
 use App\Events\GitHubPullRequestReviewReceived;
 use App\Events\GitHubPushReceived;
@@ -308,6 +309,94 @@ it('dispatches event on pull_request_review webhook', function () {
             && $event->review['state'] === 'approved'
             && $event->pullRequest['number'] === 10
             && $event->installationId === 77777;
+    });
+});
+
+it('dispatches event on issues webhook', function () {
+    Event::fake([GitHubIssueReceived::class]);
+
+    $payload = json_encode([
+        'action' => 'opened',
+        'issue' => [
+            'number' => 5,
+            'title' => 'New bug report',
+            'body' => 'Something is broken',
+            'user' => ['login' => 'reporter'],
+        ],
+        'repository' => [
+            'full_name' => 'acme/widgets',
+        ],
+        'installation' => [
+            'id' => 77777,
+        ],
+    ]);
+
+    $response = $this->call(
+        'POST',
+        route('webhooks.github'),
+        [],
+        [],
+        [],
+        [
+            'HTTP_X_GITHUB_EVENT' => 'issues',
+            'HTTP_X_HUB_SIGNATURE_256' => 'sha256='.hash_hmac('sha256', $payload, 'test-secret'),
+            'CONTENT_TYPE' => 'application/json',
+        ],
+        $payload,
+    );
+
+    $response->assertOk();
+
+    Event::assertDispatched(GitHubIssueReceived::class, function ($event) {
+        return $event->action === 'opened'
+            && $event->issue['number'] === 5
+            && $event->repository['full_name'] === 'acme/widgets'
+            && $event->installationId === 77777
+            && $event->label === null;
+    });
+});
+
+it('dispatches event on issues webhook with label', function () {
+    Event::fake([GitHubIssueReceived::class]);
+
+    $payload = json_encode([
+        'action' => 'labeled',
+        'issue' => [
+            'number' => 5,
+            'title' => 'New bug report',
+            'body' => 'Something is broken',
+            'user' => ['login' => 'reporter'],
+        ],
+        'label' => [
+            'name' => 'bug',
+        ],
+        'repository' => [
+            'full_name' => 'acme/widgets',
+        ],
+        'installation' => [
+            'id' => 77777,
+        ],
+    ]);
+
+    $response = $this->call(
+        'POST',
+        route('webhooks.github'),
+        [],
+        [],
+        [],
+        [
+            'HTTP_X_GITHUB_EVENT' => 'issues',
+            'HTTP_X_HUB_SIGNATURE_256' => 'sha256='.hash_hmac('sha256', $payload, 'test-secret'),
+            'CONTENT_TYPE' => 'application/json',
+        ],
+        $payload,
+    );
+
+    $response->assertOk();
+
+    Event::assertDispatched(GitHubIssueReceived::class, function ($event) {
+        return $event->action === 'labeled'
+            && $event->label['name'] === 'bug';
     });
 });
 

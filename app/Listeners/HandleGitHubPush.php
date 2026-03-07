@@ -28,6 +28,6 @@ class HandleGitHubPush
             "Commits:\n{$commits}",
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, $event->installationId, 'push', $eventContext);
+        $this->dispatchAgentsForRepo($repoFullName, 'push', $eventContext);
     }
 }

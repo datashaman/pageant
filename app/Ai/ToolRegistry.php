@@ -83,8 +83,12 @@ class ToolRegistry
      * @param  array<int, string>  $toolNames
      * @return Tool[]
      */
-    public static function resolve(array $toolNames, string $repoFullName, int $installationId): array
+    public static function resolve(array $toolNames, string $repoFullName): array
     {
+        if (empty($toolNames)) {
+            return [];
+        }
+
         $github = app(GitHubService::class);
         $repo = Repo::where('source', 'github')
             ->where('source_reference', $repoFullName)

@@ -5,13 +5,14 @@ namespace App\Jobs;
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\WorkItem;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Laravel\Ai\Ai;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Prompts\AgentPrompt;
 
-class RunWebhookAgent implements ShouldQueue
+class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
@@ -19,37 +20,58 @@ class RunWebhookAgent implements ShouldQueue
         public Agent $agent,
         public string $eventContext,
         public string $repoFullName,
-        public int $installationId,
         public ?int $issueNumber = null,
     ) {}
+
+    public function uniqueId(): string
+    {
+        $key = "webhook-agent:{$this->agent->id}:{$this->repoFullName}";
+
+        if ($this->issueNumber) {
+            $key .= ":{$this->issueNumber}";
+        }
+
+        return $key;
+    }
 
     public function handle(ConversationStore $store): void
     {
         $workItem = $this->resolveWorkItem();
+        $conversationId = $this->resolveConversationId($workItem, $store);
 
         $webhookAgent = new GitHubWebhookAgent(
             $this->agent,
             $this->repoFullName,
-            $this->installationId,
-            $workItem?->conversation_id,
+            $conversationId,
         );
 
         $response = $webhookAgent->prompt($this->eventContext);
 
-        if ($workItem) {
-            if (! $workItem->conversation_id) {
-                $conversationId = $store->storeConversation(null, $workItem->title);
-                $workItem->update(['conversation_id' => $conversationId]);
-            }
-
+        if ($workItem && $conversationId) {
             $provider = Ai::textProviderFor($webhookAgent, $webhookAgent->provider());
             $model = $webhookAgent->model() ?? $provider->defaultTextModel();
 
             $prompt = new AgentPrompt($webhookAgent, $this->eventContext, [], $provider, $model);
 
-            $store->storeUserMessage($workItem->conversation_id, null, $prompt);
-            $store->storeAssistantMessage($workItem->conversation_id, null, $prompt, $response);
+            $store->storeUserMessage($conversationId, null, $prompt);
+            $store->storeAssistantMessage($conversationId, null, $prompt, $response);
         }
+    }
+
+    protected function resolveConversationId(?WorkItem $workItem, ConversationStore $store): ?string
+    {
+        if (! $workItem) {
+            return null;
+        }
+
+        if ($workItem->conversation_id) {
+            return $workItem->conversation_id;
+        }
+
+        $conversationId = $store->storeConversation(null, $workItem->title);
+        $workItem->update(['conversation_id' => $conversationId]);
+
+        return $conversationId;
     }
 
     protected function resolveWorkItem(): ?WorkItem

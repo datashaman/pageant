@@ -29,7 +29,7 @@ it('resolves instructions from the agent model description', function () {
         'tools' => [],
     ]);
 
-    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets', 12345);
+    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets');
 
     expect($webhookAgent->instructions())->toContain('You are a helpful code review bot.')
         ->and($webhookAgent->instructions())->toContain('acme/widgets');
@@ -41,7 +41,7 @@ it('resolves tools from the agent model tools config', function () {
         'tools' => ['create_comment', 'get_issue', 'get_pull_request'],
     ]);
 
-    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets', 12345);
+    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets');
     $tools = iterator_to_array($webhookAgent->tools());
 
     expect($tools)->toHaveCount(3)
@@ -56,7 +56,7 @@ it('returns empty tools when agent has no tools configured', function () {
         'tools' => [],
     ]);
 
-    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets', 12345);
+    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets');
 
     expect(iterator_to_array($webhookAgent->tools()))->toBeEmpty();
 });
@@ -69,7 +69,7 @@ it('resolves provider and model from agent model', function () {
         'tools' => [],
     ]);
 
-    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets', 12345);
+    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets');
 
     expect($webhookAgent->provider())->toBe('anthropic')
         ->and($webhookAgent->model())->toBe('claude-sonnet-4-5-20250514');
@@ -82,7 +82,7 @@ it('returns null model when set to inherit', function () {
         'tools' => [],
     ]);
 
-    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets', 12345);
+    $webhookAgent = new GitHubWebhookAgent($agent, 'acme/widgets');
 
     expect($webhookAgent->model())->toBeNull();
 });
