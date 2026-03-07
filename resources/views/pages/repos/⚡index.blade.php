@@ -18,7 +18,6 @@ new #[Title('Repos')] class extends Component {
     public string $sortDirection = 'asc';
 
     public bool $showImportModal = false;
-    public string $importSearch = '';
     public string $selectedInstallationId = '';
     public array $githubRepos = [];
     public bool $loadingRepos = false;
@@ -61,21 +60,6 @@ new #[Title('Repos')] class extends Component {
     }
 
     #[Computed]
-    public function filteredGithubRepos(): array
-    {
-        if (! $this->importSearch) {
-            return $this->githubRepos;
-        }
-
-        $search = strtolower($this->importSearch);
-
-        return array_values(array_filter($this->githubRepos, function ($repo) use ($search) {
-            return str_contains(strtolower($repo['full_name']), $search)
-                || str_contains(strtolower($repo['description'] ?? ''), $search);
-        }));
-    }
-
-    #[Computed]
     public function trackedRepoKeys(): array
     {
         return Repo::query()
@@ -88,7 +72,6 @@ new #[Title('Repos')] class extends Component {
     public function openImportModal(): void
     {
         $this->showImportModal = true;
-        $this->importSearch = '';
         $this->githubRepos = [];
 
         if ($this->installations->count() === 1) {
@@ -267,32 +250,61 @@ new #[Title('Repos')] class extends Component {
                 @endif
 
                 @if ($selectedInstallationId && count($githubRepos) > 0)
-                    <flux:input wire:model.live="importSearch" placeholder="{{ __('Filter repositories...') }}" icon="magnifying-glass" />
+                    <div x-data="{
+                        filter: '',
+                        repos: @js($githubRepos),
+                        tracked: @js($this->trackedRepoKeys),
+                        visibleCount: 30,
+                        get filtered() {
+                            if (!this.filter) return this.repos;
+                            const q = this.filter.toLowerCase();
+                            return this.repos.filter(r =>
+                                r.full_name.toLowerCase().includes(q) ||
+                                (r.description && r.description.toLowerCase().includes(q))
+                            );
+                        },
+                        get visible() {
+                            return this.filtered.slice(0, this.visibleCount);
+                        },
+                        get hasMore() {
+                            return this.visibleCount < this.filtered.length;
+                        },
+                        loadMore() {
+                            this.visibleCount += 30;
+                        },
+                    }"
+                         x-on:repo-tracked.window="tracked = [...tracked, $event.detail.fullName]"
+                         x-on:repo-untracked.window="tracked = tracked.filter(r => r !== $event.detail.fullName)">
+                        <flux:input x-model="filter" x-on:input="visibleCount = 30" placeholder="{{ __('Filter repositories...') }}" icon="magnifying-glass" />
 
-                    <div class="max-h-96 space-y-1 overflow-y-auto">
-                        @forelse ($this->filteredGithubRepos as $ghRepo)
-                            <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                <div class="min-w-0 flex-1">
-                                    <div class="truncate text-sm font-medium">{{ $ghRepo['full_name'] }}</div>
-                                    @if ($ghRepo['description'] ?? null)
-                                        <div class="truncate text-xs text-zinc-500 dark:text-zinc-400">{{ $ghRepo['description'] }}</div>
-                                    @endif
+                        <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-2" x-text="filtered.length + ' repositories'"></div>
+
+                        <div class="mt-2 max-h-[70vh] space-y-1 overflow-y-auto">
+                            <template x-for="repo in visible" :key="repo.full_name">
+                                <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="truncate text-sm font-medium" x-text="repo.full_name"></div>
+                                        <div class="truncate text-xs text-zinc-500 dark:text-zinc-400" x-show="repo.description" x-text="repo.description"></div>
+                                    </div>
+                                    <div class="ml-3 shrink-0">
+                                        <template x-if="tracked.includes(repo.full_name)">
+                                            <flux:button size="sm" variant="danger" x-on:click="$wire.untrackRepo(repo.full_name); $dispatch('repo-untracked', { fullName: repo.full_name })">
+                                                {{ __('Remove') }}
+                                            </flux:button>
+                                        </template>
+                                        <template x-if="!tracked.includes(repo.full_name)">
+                                            <flux:button size="sm" variant="primary" x-on:click="$wire.trackRepo(repo.full_name, repo.html_url); $dispatch('repo-tracked', { fullName: repo.full_name })">
+                                                {{ __('Track') }}
+                                            </flux:button>
+                                        </template>
+                                    </div>
                                 </div>
-                                <div class="ml-3 shrink-0">
-                                    @if (in_array($ghRepo['full_name'], $this->trackedRepoKeys))
-                                        <flux:button size="sm" variant="danger" wire:click="untrackRepo('{{ $ghRepo['full_name'] }}')">
-                                            {{ __('Remove') }}
-                                        </flux:button>
-                                    @else
-                                        <flux:button size="sm" variant="primary" wire:click="trackRepo('{{ $ghRepo['full_name'] }}', '{{ $ghRepo['html_url'] }}')">
-                                            {{ __('Track') }}
-                                        </flux:button>
-                                    @endif
-                                </div>
+                            </template>
+
+                            <div x-show="hasMore" x-intersect="loadMore()" class="py-2 text-center">
+                                <flux:text class="text-xs">{{ __('Loading more...') }}</flux:text>
                             </div>
-                        @empty
-                            <flux:text class="py-4 text-center">{{ __('No repositories match your filter.') }}</flux:text>
-                        @endforelse
+                        </div>
                     </div>
                 @elseif ($selectedInstallationId && count($githubRepos) === 0)
                     <flux:text>{{ __('No repositories found for this installation.') }}</flux:text>
