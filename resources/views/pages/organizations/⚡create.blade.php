@@ -6,10 +6,10 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Create Organization')] class extends Component {
-    public string $title = '';
+    public string $name = '';
     public string $slug = '';
 
-    public function updatedTitle(string $value): void
+    public function updatedName(string $value): void
     {
         $this->slug = Str::slug($value);
     }
@@ -17,7 +17,7 @@ new #[Title('Create Organization')] class extends Component {
     public function save(): void
     {
         $validated = $this->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:organizations,slug'],
         ]);
 
@@ -38,7 +38,7 @@ new #[Title('Create Organization')] class extends Component {
         </div>
 
         <form wire:submit="save" class="max-w-xl space-y-6">
-            <flux:input wire:model="title" :label="__('Title')" type="text" required autofocus />
+            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
             <flux:input wire:model="slug" :label="__('Slug')" type="text" required />
 
             <div class="flex items-center gap-4">

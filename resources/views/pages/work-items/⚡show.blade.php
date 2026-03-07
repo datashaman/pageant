@@ -60,7 +60,7 @@ new #[Title('Work Item')] class extends Component {
 
             <div>
                 <flux:label>{{ __('Organization') }}</flux:label>
-                <flux:text>{{ $workItem->organization->title }}</flux:text>
+                <flux:text>{{ $workItem->organization->name }}</flux:text>
             </div>
 
             <div>

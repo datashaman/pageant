@@ -50,7 +50,7 @@ new #[Title('View Agent')] class extends Component {
         <div class="max-w-xl space-y-6">
             <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Organization') }}</flux:heading>
-                <flux:text>{{ $agent->organization->title }}</flux:text>
+                <flux:text>{{ $agent->organization->name }}</flux:text>
             </div>
 
             <div>

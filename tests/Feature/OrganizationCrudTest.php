@@ -13,7 +13,7 @@ it('shows the organizations index page', function () {
     $this->actingAs($this->user)
         ->get(route('organizations.index'))
         ->assertOk()
-        ->assertSee($this->organization->title);
+        ->assertSee($this->organization->name);
 });
 
 it('shows the create organization page', function () {
@@ -25,14 +25,14 @@ it('shows the create organization page', function () {
 it('can create an organization', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::organizations.create')
-        ->set('title', 'New Test Org')
+        ->set('name', 'New Test Org')
         ->set('slug', 'new-test-org')
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect();
 
     $this->assertDatabaseHas('organizations', [
-        'title' => 'New Test Org',
+        'name' => 'New Test Org',
         'slug' => 'new-test-org',
     ]);
 });
@@ -40,17 +40,17 @@ it('can create an organization', function () {
 it('validates required fields on create', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::organizations.create')
-        ->set('title', '')
+        ->set('name', '')
         ->set('slug', '')
         ->call('save')
-        ->assertHasErrors(['title', 'slug']);
+        ->assertHasErrors(['name', 'slug']);
 });
 
 it('shows the organization detail page', function () {
     $this->actingAs($this->user)
         ->get(route('organizations.show', $this->organization))
         ->assertOk()
-        ->assertSee($this->organization->title);
+        ->assertSee($this->organization->name);
 });
 
 it('shows the edit organization page', function () {
@@ -62,13 +62,13 @@ it('shows the edit organization page', function () {
 it('can update an organization', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::organizations.edit', ['organization' => $this->organization])
-        ->set('title', 'Updated Title')
+        ->set('name', 'Updated Title')
         ->set('slug', 'updated-title')
         ->call('update')
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    expect($this->organization->fresh()->title)->toBe('Updated Title');
+    expect($this->organization->fresh()->name)->toBe('Updated Title');
 });
 
 it('can delete an organization from index', function () {

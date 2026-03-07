@@ -94,7 +94,7 @@ new #[Title('Agents')] class extends Component {
                         </flux:table.cell>
                         <flux:table.cell>{{ $agent->provider }}</flux:table.cell>
                         <flux:table.cell>{{ $agent->model }}</flux:table.cell>
-                        <flux:table.cell>{{ $agent->organization->title }}</flux:table.cell>
+                        <flux:table.cell>{{ $agent->organization->name }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">
                                 <flux:button size="sm" href="{{ route('agents.edit', $agent) }}" wire:navigate>

@@ -11,7 +11,7 @@ new #[Title('Organizations')] class extends Component {
     use WithPagination;
 
     public string $search = '';
-    public string $sortField = 'title';
+    public string $sortField = 'name';
     public string $sortDirection = 'asc';
 
     public function updatedSearch(): void
@@ -33,7 +33,7 @@ new #[Title('Organizations')] class extends Component {
     public function organizations(): LengthAwarePaginator
     {
         return auth()->user()->organizations()
-            ->when($this->search, fn ($query, $search) => $query->where('title', 'like', "%{$search}%"))
+            ->when($this->search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
     }
@@ -65,8 +65,8 @@ new #[Title('Organizations')] class extends Component {
 
         <flux:table :paginate="$this->organizations">
             <flux:table.columns>
-                <flux:table.column sortable :sorted="$sortField === 'title'" :direction="$sortDirection" wire:click="sortBy('title')">
-                    {{ __('Title') }}
+                <flux:table.column sortable :sorted="$sortField === 'name'" :direction="$sortDirection" wire:click="sortBy('name')">
+                    {{ __('Name') }}
                 </flux:table.column>
                 <flux:table.column sortable :sorted="$sortField === 'slug'" :direction="$sortDirection" wire:click="sortBy('slug')">
                     {{ __('Slug') }}
@@ -81,7 +81,7 @@ new #[Title('Organizations')] class extends Component {
                     <flux:table.row :key="$organization->id">
                         <flux:table.cell>
                             <flux:link href="{{ route('organizations.show', $organization) }}" wire:navigate>
-                                {{ $organization->title }}
+                                {{ $organization->name }}
                             </flux:link>
                         </flux:table.cell>
                         <flux:table.cell>{{ $organization->slug }}</flux:table.cell>
@@ -98,7 +98,7 @@ new #[Title('Organizations')] class extends Component {
                             <flux:modal name="confirm-delete-{{ $organization->id }}">
                                 <div class="space-y-6">
                                     <flux:heading size="lg">{{ __('Delete Organization') }}</flux:heading>
-                                    <flux:text>{{ __('Are you sure you want to delete ":title"? This action cannot be undone.', ['title' => $organization->title]) }}</flux:text>
+                                    <flux:text>{{ __('Are you sure you want to delete ":title"? This action cannot be undone.', ['name' => $organization->name]) }}</flux:text>
                                     <div class="flex justify-end gap-3">
                                         <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
                                         <flux:button variant="danger" wire:click="delete('{{ $organization->id }}')">{{ __('Delete') }}</flux:button>

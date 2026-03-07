@@ -7,7 +7,7 @@ use Livewire\Component;
 new #[Title('Edit Organization')] class extends Component {
     public Organization $organization;
 
-    public string $title = '';
+    public string $name = '';
     public string $slug = '';
 
     public function mount(Organization $organization): void
@@ -15,14 +15,14 @@ new #[Title('Edit Organization')] class extends Component {
         abort_unless(auth()->user()->organizations()->where('organizations.id', $organization->id)->exists(), 403);
 
         $this->organization = $organization;
-        $this->title = $organization->title;
+        $this->name = $organization->name;
         $this->slug = $organization->slug;
     }
 
     public function update(): void
     {
         $validated = $this->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:organizations,slug,' . $this->organization->id],
         ]);
 
@@ -42,7 +42,7 @@ new #[Title('Edit Organization')] class extends Component {
         </div>
 
         <form wire:submit="update" class="max-w-xl space-y-6">
-            <flux:input wire:model="title" :label="__('Title')" type="text" required autofocus />
+            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
             <flux:input wire:model="slug" :label="__('Slug')" type="text" required />
 
             <div class="flex items-center gap-4">

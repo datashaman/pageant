@@ -13,14 +13,14 @@ it('can be created via factory', function () {
 
     expect($organization)->toBeInstanceOf(Organization::class)
         ->and($organization->id)->not->toBeNull()
-        ->and($organization->title)->not->toBeEmpty()
+        ->and($organization->name)->not->toBeEmpty()
         ->and($organization->slug)->not->toBeEmpty();
 });
 
 it('enforces unique title', function () {
-    Organization::factory()->create(['title' => 'Acme Corp']);
+    Organization::factory()->create(['name' => 'Acme Corp']);
 
-    Organization::factory()->create(['title' => 'Acme Corp']);
+    Organization::factory()->create(['name' => 'Acme Corp']);
 })->throws(\Illuminate\Database\QueryException::class);
 
 it('enforces unique slug', function () {

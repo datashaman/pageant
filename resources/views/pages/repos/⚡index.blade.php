@@ -200,7 +200,7 @@ new #[Title('Repos')] class extends Component {
                                 {{ $repo->source_reference }}
                             @endif
                         </flux:table.cell>
-                        <flux:table.cell>{{ $repo->organization->title }}</flux:table.cell>
+                        <flux:table.cell>{{ $repo->organization->name }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">
                                 <flux:button size="sm" href="{{ route('repos.edit', $repo) }}" wire:navigate>

@@ -17,11 +17,11 @@ class OrganizationFactory extends Factory
      */
     public function definition(): array
     {
-        $title = fake()->unique()->company();
+        $name = fake()->unique()->company();
 
         return [
-            'title' => $title,
-            'slug' => Str::slug($title),
+            'name' => $name,
+            'slug' => Str::slug($name),
         ];
     }
 }

@@ -224,7 +224,7 @@ new #[Title('Work Items')] class extends Component {
                                 &mdash;
                             @endif
                         </flux:table.cell>
-                        <flux:table.cell>{{ $workItem->organization->title }}</flux:table.cell>
+                        <flux:table.cell>{{ $workItem->organization->name }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">
                                 <flux:button size="sm" href="{{ route('work-items.edit', $workItem) }}" wire:navigate>

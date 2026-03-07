@@ -15,7 +15,7 @@ class Organization extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
-        'title',
+        'name',
         'slug',
     ];
 

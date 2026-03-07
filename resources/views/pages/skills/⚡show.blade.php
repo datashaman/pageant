@@ -53,7 +53,7 @@ new #[Title('View Skill')] class extends Component {
         <div class="max-w-xl space-y-4">
             <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Organization') }}</flux:heading>
-                <flux:text>{{ $skill->organization->title }}</flux:text>
+                <flux:text>{{ $skill->organization->name }}</flux:text>
             </div>
 
             @if ($skill->description)

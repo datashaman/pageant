@@ -98,7 +98,7 @@ new #[Title('Skills')] class extends Component {
                                 {{ $skill->enabled ? __('Yes') : __('No') }}
                             </flux:badge>
                         </flux:table.cell>
-                        <flux:table.cell>{{ $skill->organization->title }}</flux:table.cell>
+                        <flux:table.cell>{{ $skill->organization->name }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">
                                 <flux:button size="sm" href="{{ route('skills.edit', $skill) }}" wire:navigate>

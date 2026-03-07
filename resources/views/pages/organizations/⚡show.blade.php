@@ -34,7 +34,7 @@ new #[Title('Organization')] class extends Component {
                 <flux:button href="{{ route('organizations.index') }}" wire:navigate>
                     {{ __('Back') }}
                 </flux:button>
-                <flux:heading size="xl">{{ $organization->title }}</flux:heading>
+                <flux:heading size="xl">{{ $organization->name }}</flux:heading>
             </div>
             <div class="flex items-center gap-2">
                 <flux:button href="{{ route('organizations.edit', $organization) }}" wire:navigate>
@@ -48,8 +48,8 @@ new #[Title('Organization')] class extends Component {
 
         <div class="max-w-xl space-y-4">
             <div>
-                <flux:label>{{ __('Title') }}</flux:label>
-                <flux:text>{{ $organization->title }}</flux:text>
+                <flux:label>{{ __('Name') }}</flux:label>
+                <flux:text>{{ $organization->name }}</flux:text>
             </div>
 
             <div>
@@ -105,7 +105,7 @@ new #[Title('Organization')] class extends Component {
         <flux:modal name="confirm-delete">
             <div class="space-y-6">
                 <flux:heading size="lg">{{ __('Delete Organization') }}</flux:heading>
-                <flux:text>{{ __('Are you sure you want to delete ":title"? This action cannot be undone.', ['title' => $organization->title]) }}</flux:text>
+                <flux:text>{{ __('Are you sure you want to delete ":title"? This action cannot be undone.', ['title' => $organization->name]) }}</flux:text>
                 <div class="flex justify-end gap-3">
                     <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
                     <flux:button variant="danger" wire:click="delete">{{ __('Delete') }}</flux:button>

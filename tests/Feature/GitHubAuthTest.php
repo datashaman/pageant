@@ -148,7 +148,7 @@ it('creates organizations from github callback', function () {
 
 it('attaches user to existing organization by slug', function () {
     $existingOrg = Organization::factory()->create([
-        'title' => 'Existing Org',
+        'name' => 'Existing Org',
         'slug' => 'existing-org',
     ]);
 

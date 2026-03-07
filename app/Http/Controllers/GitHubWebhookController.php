@@ -66,7 +66,7 @@ class GitHubWebhookController extends Controller
 
         $organization = Organization::firstOrCreate(
             ['slug' => Str::slug($login)],
-            ['title' => $login],
+            ['name' => $login],
         );
 
         GithubInstallation::updateOrCreate(

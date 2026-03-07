@@ -160,7 +160,7 @@ new #[Title('Edit Skill')] class extends Component {
             <flux:select wire:model.live="organization_id" :label="__('Organization')" required>
                 <option value="">{{ __('Select Organization') }}</option>
                 @foreach ($this->organizations as $organization)
-                    <option value="{{ $organization->id }}">{{ $organization->title }}</option>
+                    <option value="{{ $organization->id }}">{{ $organization->name }}</option>
                 @endforeach
             </flux:select>
 

@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $organization = Organization::factory()->create([
-            'title' => 'Test Organization',
+            'name' => 'Test Organization',
             'slug' => 'test-organization',
         ]);
 

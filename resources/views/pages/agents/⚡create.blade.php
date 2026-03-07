@@ -91,7 +91,7 @@ new #[Title('Create Agent')] class extends Component {
             <flux:select wire:model="organization_id" :label="__('Organization')" required>
                 <option value="">{{ __('Select Organization') }}</option>
                 @foreach ($this->organizations as $organization)
-                    <option value="{{ $organization->id }}">{{ $organization->title }}</option>
+                    <option value="{{ $organization->id }}">{{ $organization->name }}</option>
                 @endforeach
             </flux:select>
 
