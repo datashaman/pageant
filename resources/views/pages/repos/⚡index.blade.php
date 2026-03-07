@@ -231,7 +231,7 @@ new #[Title('Repos')] class extends Component {
         </flux:table>
     </div>
 
-    <flux:modal wire:model="showImportModal" variant="flyout" class="max-w-lg">
+    <flux:modal wire:model="showImportModal" variant="flyout" class="w-[32rem]">
         <div class="space-y-6">
             <flux:heading size="lg">{{ __('Add Repos from GitHub') }}</flux:heading>
 
