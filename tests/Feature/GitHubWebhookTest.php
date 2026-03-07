@@ -46,8 +46,6 @@ it('accepts requests with valid signature', function () {
 });
 
 it('creates github installation on installation created event', function () {
-    $organization = Organization::factory()->create();
-
     $payload = json_encode([
         'action' => 'created',
         'installation' => [
@@ -59,15 +57,6 @@ it('creates github installation on installation created event', function () {
             'permissions' => ['issues' => 'write'],
             'events' => ['issues'],
         ],
-    ]);
-
-    // Pre-create the installation with the org link since the webhook
-    // controller doesn't know which org to associate with
-    GithubInstallation::create([
-        'organization_id' => $organization->id,
-        'installation_id' => 12345,
-        'account_login' => 'test-org',
-        'account_type' => 'Organization',
     ]);
 
     $response = $this->call(
@@ -92,6 +81,11 @@ it('creates github installation on installation created event', function () {
         ->and($installation->account_login)->toBe('test-org')
         ->and($installation->permissions)->toBe(['issues' => 'write'])
         ->and($installation->events)->toBe(['issues']);
+
+    $organization = Organization::query()->where('slug', 'test-org')->first();
+
+    expect($organization)->not->toBeNull()
+        ->and($installation->organization_id)->toBe($organization->id);
 });
 
 it('deletes github installation on installation deleted event', function () {

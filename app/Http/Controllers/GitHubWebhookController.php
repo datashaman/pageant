@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\GithubInstallation;
+use App\Models\Organization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class GitHubWebhookController extends Controller
 {
@@ -60,10 +62,18 @@ class GitHubWebhookController extends Controller
 
     private function installationCreated(array $installation): JsonResponse
     {
+        $login = $installation['account']['login'];
+
+        $organization = Organization::firstOrCreate(
+            ['slug' => Str::slug($login)],
+            ['title' => $login],
+        );
+
         GithubInstallation::updateOrCreate(
             ['installation_id' => $installation['id']],
             [
-                'account_login' => $installation['account']['login'],
+                'organization_id' => $organization->id,
+                'account_login' => $login,
                 'account_type' => $installation['account']['type'],
                 'permissions' => $installation['permissions'] ?? [],
                 'events' => $installation['events'] ?? [],
