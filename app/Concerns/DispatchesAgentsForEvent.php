@@ -2,6 +2,7 @@
 
 namespace App\Concerns;
 
+use App\Ai\EventSubscription;
 use App\Jobs\RunWebhookAgent;
 use App\Models\Repo;
 
@@ -12,8 +13,18 @@ trait DispatchesAgentsForEvent
     // (create_or_update_file, delete_file, merge_pull_request) could be manipulated via
     // prompt injection in these fields. Consider restricting webhook-triggered agents to
     // read-only tools, or adding human approval before executing write operations.
-    protected function dispatchAgentsForRepo(string $repoFullName, string $eventName, string $eventContext, ?int $issueNumber = null): void
-    {
+
+    /**
+     * @param  array<string, mixed>  $filterContext
+     */
+    protected function dispatchAgentsForRepo(
+        string $repoFullName,
+        string $eventType,
+        ?string $action,
+        array $filterContext,
+        string $eventContext,
+        ?int $issueNumber = null,
+    ): void {
         $repo = Repo::where('source', 'github')
             ->where('source_reference', $repoFullName)
             ->first();
@@ -24,11 +35,23 @@ trait DispatchesAgentsForEvent
 
         $agents = $repo->agents()
             ->where('enabled', true)
-            ->whereJsonContains('events', $eventName)
+            ->where('events', 'like', "%{$eventType}%")
             ->get();
 
         foreach ($agents as $agent) {
-            RunWebhookAgent::dispatch($agent, $eventContext, $repoFullName, $issueNumber);
+            $subscriptions = collect($agent->events)->map(function ($entry) {
+                if (is_string($entry)) {
+                    return EventSubscription::fromArray(['event' => $entry, 'filters' => []]);
+                }
+
+                return EventSubscription::fromArray($entry);
+            });
+
+            $matches = $subscriptions->contains(fn (EventSubscription $sub) => $sub->matches($eventType, $action, $filterContext));
+
+            if ($matches) {
+                RunWebhookAgent::dispatch($agent, $eventContext, $repoFullName, $issueNumber);
+            }
         }
     }
 }

@@ -30,7 +30,7 @@ it('can create an agent', function () {
         ->set('max_turns', 10)
         ->set('background', false)
         ->set('selectedTools', ['read', 'write', 'edit'])
-        ->set('selectedEvents', ['push', 'issues'])
+        ->set('selectedEventKeys', ['push', 'issues.opened'])
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect();
@@ -39,7 +39,10 @@ it('can create an agent', function () {
     expect($agent)->not->toBeNull()
         ->and($agent->organization_id)->toBe($this->organization->id)
         ->and($agent->tools)->toBe(['read', 'write', 'edit'])
-        ->and($agent->events)->toBe(['push', 'issues']);
+        ->and($agent->events)->toBe([
+            ['event' => 'push', 'filters' => []],
+            ['event' => 'issues.opened', 'filters' => []],
+        ]);
 });
 
 it('validates required fields on create', function () {
@@ -62,7 +65,7 @@ it('can update an agent', function () {
         ->test('pages::agents.edit', ['agent' => $this->agent])
         ->set('name', 'updated-agent')
         ->set('selectedTools', ['grep', 'glob'])
-        ->set('selectedEvents', ['pull_request', 'push'])
+        ->set('selectedEventKeys', ['pull_request.opened', 'push'])
         ->call('update')
         ->assertHasNoErrors()
         ->assertRedirect();
@@ -70,7 +73,10 @@ it('can update an agent', function () {
     $fresh = $this->agent->fresh();
     expect($fresh->name)->toBe('updated-agent')
         ->and($fresh->tools)->toBe(['grep', 'glob'])
-        ->and($fresh->events)->toBe(['pull_request', 'push']);
+        ->and($fresh->events)->toBe([
+            ['event' => 'pull_request.opened', 'filters' => []],
+            ['event' => 'push', 'filters' => []],
+        ]);
 });
 
 it('can delete an agent', function () {

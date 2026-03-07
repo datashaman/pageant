@@ -26,6 +26,15 @@ class HandleGitHubComment
             "Comment:\n".($comment['body'] ?? ''),
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, 'issue_comment', $eventContext, $issue['number']);
+        $labels = array_map(fn (array $l) => $l['name'], $issue['labels'] ?? []);
+
+        $this->dispatchAgentsForRepo(
+            $repoFullName,
+            'issue_comment',
+            $event->action,
+            ['labels' => $labels],
+            $eventContext,
+            $issue['number'],
+        );
     }
 }

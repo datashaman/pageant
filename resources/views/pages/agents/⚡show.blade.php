@@ -89,6 +89,35 @@ new #[Title('View Agent')] class extends Component {
             </div>
 
             <div>
+                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Events') }}</flux:heading>
+                @if (!empty($agent->events))
+                    <div class="mt-1 space-y-2">
+                        @foreach ($agent->events as $subscription)
+                            @php
+                                $entry = is_string($subscription) ? ['event' => $subscription, 'filters' => []] : $subscription;
+                                $eventKey = $entry['event'];
+                                $filters = $entry['filters'] ?? [];
+                            @endphp
+                            <div class="flex flex-wrap items-center gap-2">
+                                <flux:badge>{{ $eventKey }}</flux:badge>
+                                @if (!empty($filters['labels']))
+                                    <flux:badge color="blue">labels: {{ implode(', ', $filters['labels']) }}</flux:badge>
+                                @endif
+                                @if (!empty($filters['base_branch']))
+                                    <flux:badge color="green">base: {{ $filters['base_branch'] }}</flux:badge>
+                                @endif
+                                @if (!empty($filters['branches']))
+                                    <flux:badge color="purple">branches: {{ implode(', ', $filters['branches']) }}</flux:badge>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <flux:text>{{ __('None') }}</flux:text>
+                @endif
+            </div>
+
+            <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Tools') }}</flux:heading>
                 @if (!empty($agent->tools))
                     <div class="flex flex-wrap gap-2 mt-1">

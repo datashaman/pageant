@@ -26,7 +26,6 @@ class CreateAgentTool extends Tool
             'tools' => 'nullable|array',
             'tools.*' => 'string|in:'.implode(',', array_keys(ToolRegistry::available())),
             'events' => 'nullable|array',
-            'events.*' => 'string|in:'.implode(',', array_keys(EventRegistry::available())),
             'provider' => 'nullable|string|in:anthropic,openai',
             'model' => 'nullable|string',
             'permission_mode' => 'nullable|string|in:full,limited',
@@ -40,12 +39,20 @@ class CreateAgentTool extends Tool
 
         $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
 
+        $events = collect($validated['events'] ?? [])->map(function ($entry) {
+            if (is_string($entry)) {
+                return ['event' => $entry, 'filters' => []];
+            }
+
+            return $entry;
+        })->values()->toArray();
+
         $data = [
             'organization_id' => $repo->organization_id,
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
             'tools' => $validated['tools'] ?? [],
-            'events' => $validated['events'] ?? [],
+            'events' => $events,
             'provider' => $validated['provider'] ?? 'anthropic',
             'model' => $validated['model'] ?? 'inherit',
             'permission_mode' => $validated['permission_mode'] ?? 'full',
@@ -94,7 +101,7 @@ class CreateAgentTool extends Tool
             'tools' => $schema->array()
                 ->description('Tool names the agent can use. Available: '.implode(', ', array_keys(ToolRegistry::available()))),
             'events' => $schema->array()
-                ->description('Events the agent subscribes to. Available: '.implode(', ', array_keys(EventRegistry::available()))),
+                ->description('Event subscriptions. Each entry is a string (e.g. "issues") or object {"event": "issues.opened", "filters": {"labels": ["bug"]}}. Available event keys: '.implode(', ', EventRegistry::allEventKeys())),
             'provider' => $schema->string()
                 ->description('AI provider: "anthropic" or "openai". Defaults to "anthropic".'),
             'model' => $schema->string()

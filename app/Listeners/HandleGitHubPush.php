@@ -28,6 +28,14 @@ class HandleGitHubPush
             "Commits:\n{$commits}",
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, 'push', $eventContext);
+        $branch = preg_replace('#^refs/heads/#', '', $event->ref);
+
+        $this->dispatchAgentsForRepo(
+            $repoFullName,
+            'push',
+            null,
+            ['branch' => $branch],
+            $eventContext,
+        );
     }
 }
