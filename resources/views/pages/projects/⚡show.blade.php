@@ -24,7 +24,7 @@ new #[Title('Project')] class extends Component {
     }
 }; ?>
 
-<div>name">
+<div class="w-full">
     <div class="flex flex-col gap-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ $project->name }}</flux:heading>

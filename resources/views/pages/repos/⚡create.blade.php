@@ -96,7 +96,7 @@ new #[Title('Create Repo')] class extends Component {
     }
 }; ?>
 
-<div>
+<div class="w-full">
     <div class="space-y-6">
         <div class="flex items-center gap-4">
             <flux:button href="{{ route('repos.index') }}" wire:navigate>

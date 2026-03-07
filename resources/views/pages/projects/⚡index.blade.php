@@ -51,7 +51,7 @@ new #[Title('Projects')] class extends Component {
     }
 }; ?>
 
-<div>
+<div class="w-full">
     <div class="flex flex-col gap-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Projects') }}</flux:heading>
@@ -69,7 +69,7 @@ new #[Title('Projects')] class extends Component {
                     {{ __('Name') }}
                 </flux:table.column>
                 <flux:table.column>{{ __('Organization') }}</flux:table.column>
-                <flux:table.column>{{ __('Actions') }}</flux:table.column>
+                <flux:table.column align="end">{{ __('Actions') }}</flux:table.column>
             </flux:table.columns>
 
             <flux:table.rows>
@@ -81,8 +81,8 @@ new #[Title('Projects')] class extends Component {
                             </a>
                         </flux:table.cell>
                         <flux:table.cell>{{ $project->organization->name }}</flux:table.cell>
-                        <flux:table.cell>
-                            <div class="flex items-center gap-2">
+                        <flux:table.cell align="end">
+                            <div class="flex items-center justify-end gap-2">
                                 <flux:button href="{{ route('projects.edit', $project) }}" wire:navigate size="sm" variant="ghost">
                                     {{ __('Edit') }}
                                 </flux:button>

@@ -78,7 +78,7 @@ new #[Title('Create Agent')] class extends Component {
     }
 }; ?>
 
-<div>
+<div class="w-full">
     <div class="space-y-6">
         <div class="flex items-center gap-4">
             <flux:button href="{{ route('agents.index') }}" wire:navigate>

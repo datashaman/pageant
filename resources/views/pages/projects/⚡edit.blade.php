@@ -76,7 +76,7 @@ new #[Title('Edit Project')] class extends Component {
     }
 }; ?>
 
-<div>
+<div class="w-full">
     <div class="flex flex-col gap-6">
         <flux:heading size="xl">{{ __('Edit Project') }}</flux:heading>
 

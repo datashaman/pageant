@@ -28,7 +28,7 @@ new #[Title('View Repo')] class extends Component {
     }
 }; ?>
 
-<div>name">
+<div class="w-full">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">

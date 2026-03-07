@@ -27,7 +27,7 @@ new #[Title('Organization')] class extends Component {
     }
 }; ?>
 
-<div>title">
+<div class="w-full">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">

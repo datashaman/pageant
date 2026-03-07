@@ -54,7 +54,7 @@ new #[Title('Agents')] class extends Component {
     }
 }; ?>
 
-<div>
+<div class="w-full">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Agents') }}</flux:heading>
@@ -79,7 +79,7 @@ new #[Title('Agents')] class extends Component {
                 <flux:table.column>
                     {{ __('Organization') }}
                 </flux:table.column>
-                <flux:table.column>
+                <flux:table.column align="end">
                     {{ __('Actions') }}
                 </flux:table.column>
             </flux:table.columns>
@@ -95,8 +95,8 @@ new #[Title('Agents')] class extends Component {
                         <flux:table.cell>{{ $agent->provider }}</flux:table.cell>
                         <flux:table.cell>{{ $agent->model }}</flux:table.cell>
                         <flux:table.cell>{{ $agent->organization->title }}</flux:table.cell>
-                        <flux:table.cell>
-                            <div class="flex items-center gap-2">
+                        <flux:table.cell align="end">
+                            <div class="flex items-center justify-end gap-2">
                                 <flux:button size="sm" href="{{ route('agents.edit', $agent) }}" wire:navigate>
                                     {{ __('Edit') }}
                                 </flux:button>
