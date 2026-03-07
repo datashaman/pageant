@@ -75,6 +75,41 @@ class GitHubService
         return $repositories;
     }
 
+    /**
+     * @return array<int, array{number: int, title: string, html_url: string, state: string, labels: array, user: array, created_at: string}>
+     */
+    public function listIssues(GithubInstallation $installation, string $repo, int $perPage = 100): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+        $issues = [];
+        $page = 1;
+
+        do {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/vnd.github+json',
+            ])->get(self::API_BASE."/repos/{$repo}/issues", [
+                'state' => 'open',
+                'per_page' => $perPage,
+                'page' => $page,
+            ]);
+
+            $response->throw();
+
+            $data = $response->json();
+
+            if (empty($data)) {
+                break;
+            }
+
+            $issues = array_merge($issues, $data);
+            $page++;
+        } while (count($data) === $perPage);
+
+        // Filter out pull requests (GitHub API returns PRs as issues)
+        return array_values(array_filter($issues, fn ($issue) => ! isset($issue['pull_request'])));
+    }
+
     public function createIssue(GithubInstallation $installation, string $repo, array $data): array
     {
         $token = $this->getInstallationToken($installation->installation_id);

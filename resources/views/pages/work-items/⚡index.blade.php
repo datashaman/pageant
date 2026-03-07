@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\GithubInstallation;
+use App\Models\Repo;
 use App\Models\WorkItem;
+use App\Services\GitHubService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -13,6 +16,10 @@ new #[Title('Work Items')] class extends Component {
     public string $search = '';
     public string $sortField = 'title';
     public string $sortDirection = 'asc';
+
+    public bool $showImportModal = false;
+    public string $selectedRepoId = '';
+    public bool $issuesLoaded = false;
 
     public function updatedSearch(): void
     {
@@ -40,6 +47,113 @@ new #[Title('Work Items')] class extends Component {
             ->paginate(10);
     }
 
+    #[Computed]
+    public function trackedRepos(): \Illuminate\Database\Eloquent\Collection
+    {
+        return Repo::query()
+            ->forUser()
+            ->where('source', 'github')
+            ->with('organization')
+            ->orderBy('name')
+            ->get();
+    }
+
+    #[Computed]
+    public function trackedIssueKeys(): array
+    {
+        return WorkItem::query()
+            ->forUser()
+            ->where('source', 'github')
+            ->pluck('source_reference')
+            ->toArray();
+    }
+
+    #[Computed]
+    public function githubIssues(): array
+    {
+        if (! $this->issuesLoaded || ! $this->selectedRepoId) {
+            return [];
+        }
+
+        return cache()->remember(
+            'github_issues_' . $this->selectedRepoId,
+            now()->addMinutes(5),
+            function () {
+                $repo = $this->trackedRepos->firstWhere('id', $this->selectedRepoId);
+
+                if (! $repo || ! $repo->source_reference) {
+                    return [];
+                }
+
+                $installation = GithubInstallation::query()
+                    ->where('organization_id', $repo->organization_id)
+                    ->first();
+
+                if (! $installation) {
+                    return [];
+                }
+
+                return app(GitHubService::class)->listIssues($installation, $repo->source_reference);
+            }
+        );
+    }
+
+    public function openImportModal(): void
+    {
+        $this->showImportModal = true;
+        $this->issuesLoaded = false;
+
+        if ($this->trackedRepos->count() === 1) {
+            $this->selectedRepoId = (string) $this->trackedRepos->first()->id;
+            $this->issuesLoaded = true;
+        } else {
+            $this->selectedRepoId = '';
+        }
+    }
+
+    public function updatedSelectedRepoId(): void
+    {
+        $this->issuesLoaded = (bool) $this->selectedRepoId;
+    }
+
+    public function trackIssue(int $number, string $title, string $htmlUrl): void
+    {
+        $repo = $this->trackedRepos->firstWhere('id', $this->selectedRepoId);
+
+        if (! $repo) {
+            return;
+        }
+
+        $sourceReference = $repo->source_reference . '#' . $number;
+
+        WorkItem::query()->firstOrCreate(
+            [
+                'organization_id' => $repo->organization_id,
+                'source' => 'github',
+                'source_reference' => $sourceReference,
+            ],
+            [
+                'title' => $title,
+                'source_url' => $htmlUrl,
+                'description' => '',
+                'board_id' => '',
+            ]
+        );
+
+        unset($this->trackedIssueKeys);
+    }
+
+    public function untrackIssue(string $sourceReference): void
+    {
+        WorkItem::query()
+            ->forUser()
+            ->where('source', 'github')
+            ->where('source_reference', $sourceReference)
+            ->delete();
+
+        unset($this->trackedIssueKeys);
+    }
+
     public function confirmDelete(string $id): void
     {
         $this->dispatch('open-modal', id: 'confirm-delete-' . $id);
@@ -58,8 +172,8 @@ new #[Title('Work Items')] class extends Component {
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Work Items') }}</flux:heading>
-            <flux:button variant="primary" href="{{ route('work-items.create') }}" wire:navigate>
-                {{ __('New Work Item') }}
+            <flux:button variant="primary" wire:click="openImportModal">
+                {{ __('Import Issues') }}
             </flux:button>
         </div>
 
@@ -71,10 +185,10 @@ new #[Title('Work Items')] class extends Component {
                     {{ __('Title') }}
                 </flux:table.column>
                 <flux:table.column>
-                    {{ __('Project') }}
+                    {{ __('Issue') }}
                 </flux:table.column>
-                <flux:table.column sortable :sorted="$sortField === 'source'" :direction="$sortDirection" wire:click="sortBy('source')">
-                    {{ __('Source') }}
+                <flux:table.column>
+                    {{ __('Project') }}
                 </flux:table.column>
                 <flux:table.column>
                     {{ __('Organization') }}
@@ -93,6 +207,15 @@ new #[Title('Work Items')] class extends Component {
                             </flux:link>
                         </flux:table.cell>
                         <flux:table.cell>
+                            @if ($workItem->source_url)
+                                <flux:link href="{{ $workItem->source_url }}" target="_blank">
+                                    {{ $workItem->source_reference }}
+                                </flux:link>
+                            @else
+                                {{ $workItem->source_reference }}
+                            @endif
+                        </flux:table.cell>
+                        <flux:table.cell>
                             @if ($workItem->project)
                                 <flux:link href="{{ route('projects.show', $workItem->project) }}" wire:navigate>
                                     {{ $workItem->project->name }}
@@ -101,7 +224,6 @@ new #[Title('Work Items')] class extends Component {
                                 &mdash;
                             @endif
                         </flux:table.cell>
-                        <flux:table.cell>{{ $workItem->source }}</flux:table.cell>
                         <flux:table.cell>{{ $workItem->organization->title }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">
@@ -135,4 +257,101 @@ new #[Title('Work Items')] class extends Component {
             </flux:table.rows>
         </flux:table>
     </div>
+
+    <flux:modal wire:model="showImportModal" variant="flyout" class="w-[32rem]">
+        <div class="space-y-6">
+            <flux:heading size="lg">{{ __('Import Issues from GitHub') }}</flux:heading>
+
+            @if ($this->trackedRepos->isEmpty())
+                <flux:text>{{ __('No tracked repos found. Track repos from the Repos page first.') }}</flux:text>
+            @else
+                @if ($this->trackedRepos->count() > 1)
+                    <flux:select wire:model.live="selectedRepoId" :label="__('Repository')">
+                        <flux:select.option value="">{{ __('Select repository...') }}</flux:select.option>
+                        @foreach ($this->trackedRepos as $repo)
+                            <flux:select.option :value="$repo->id">
+                                {{ $repo->source_reference }}
+                            </flux:select.option>
+                        @endforeach
+                    </flux:select>
+                @endif
+
+                @if ($selectedRepoId && count($this->githubIssues) > 0)
+                    @php
+                        $selectedRepo = $this->trackedRepos->firstWhere('id', $selectedRepoId);
+                        $repoRef = $selectedRepo?->source_reference ?? '';
+                    @endphp
+                    <div x-data="{
+                        filter: '',
+                        issues: @js($this->githubIssues),
+                        tracked: @js($this->trackedIssueKeys),
+                        repoRef: @js($repoRef),
+                        visibleCount: 30,
+                        issueKey(issue) {
+                            return this.repoRef + '#' + issue.number;
+                        },
+                        get filtered() {
+                            if (!this.filter) return this.issues;
+                            const q = this.filter.toLowerCase();
+                            return this.issues.filter(i =>
+                                i.title.toLowerCase().includes(q) ||
+                                String(i.number).includes(q)
+                            );
+                        },
+                        get visible() {
+                            return this.filtered.slice(0, this.visibleCount);
+                        },
+                        get hasMore() {
+                            return this.visibleCount < this.filtered.length;
+                        },
+                        loadMore() {
+                            this.visibleCount += 30;
+                        },
+                    }"
+                         x-on:issue-tracked.window="tracked = [...tracked, $event.detail.sourceReference]"
+                         x-on:issue-untracked.window="tracked = tracked.filter(r => r !== $event.detail.sourceReference)">
+                        <flux:input x-model="filter" x-on:input="visibleCount = 30" placeholder="{{ __('Filter issues...') }}" icon="magnifying-glass" />
+
+                        <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-2" x-text="filtered.length + ' issues'"></div>
+
+                        <div class="mt-2 max-h-[70vh] space-y-1 overflow-y-auto">
+                            <template x-for="issue in visible" :key="issue.number">
+                                <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-700">
+                                    <div class="min-w-0 flex-1">
+                                        <div class="truncate text-sm font-medium">
+                                            <span class="text-zinc-400 dark:text-zinc-500" x-text="'#' + issue.number"></span>
+                                            <span x-text="issue.title"></span>
+                                        </div>
+                                        <div class="flex gap-1 mt-1" x-show="issue.labels && issue.labels.length">
+                                            <template x-for="label in issue.labels" :key="label.id">
+                                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :style="'background-color: #' + label.color + '30; color: #' + label.color" x-text="label.name"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3 shrink-0">
+                                        <template x-if="tracked.includes(issueKey(issue))">
+                                            <flux:button size="sm" variant="danger" x-on:click="$wire.untrackIssue(issueKey(issue)); $dispatch('issue-untracked', { sourceReference: issueKey(issue) })">
+                                                {{ __('Remove') }}
+                                            </flux:button>
+                                        </template>
+                                        <template x-if="!tracked.includes(issueKey(issue))">
+                                            <flux:button size="sm" variant="primary" x-on:click="$wire.trackIssue(issue.number, issue.title, issue.html_url); $dispatch('issue-tracked', { sourceReference: issueKey(issue) })">
+                                                {{ __('Track') }}
+                                            </flux:button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div x-show="hasMore" x-intersect="loadMore()" class="py-2 text-center">
+                                <flux:text class="text-xs">{{ __('Loading more...') }}</flux:text>
+                            </div>
+                        </div>
+                    </div>
+                @elseif ($selectedRepoId && count($this->githubIssues) === 0)
+                    <flux:text>{{ __('No open issues found for this repository.') }}</flux:text>
+                @endif
+            @endif
+        </div>
+    </flux:modal>
 </div>
