@@ -30,16 +30,14 @@ it('can create an agent', function () {
         ->set('max_turns', 10)
         ->set('background', false)
         ->set('isolation', 'false')
-        ->set('toolsText', 'read, write, edit')
-        ->set('disallowedToolsText', 'bash')
+        ->set('selectedTools', ['read', 'write', 'edit'])
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect();
 
     $agent = Agent::where('name', 'test-agent')->first();
     expect($agent)->not->toBeNull()
-        ->and($agent->tools)->toBe(['read', 'write', 'edit'])
-        ->and($agent->disallowed_tools)->toBe(['bash']);
+        ->and($agent->tools)->toBe(['read', 'write', 'edit']);
 });
 
 it('validates required fields on create', function () {
@@ -62,7 +60,7 @@ it('can update an agent', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::agents.edit', ['agent' => $this->agent])
         ->set('name', 'updated-agent')
-        ->set('toolsText', 'grep, glob')
+        ->set('selectedTools', ['grep', 'glob'])
         ->call('update')
         ->assertHasNoErrors()
         ->assertRedirect();

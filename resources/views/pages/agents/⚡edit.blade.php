@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\ToolRegistry;
 use App\Models\Agent;
 use App\Models\Repo;
 use App\Models\Skill;
@@ -14,8 +15,7 @@ new #[Title('Edit Agent')] class extends Component {
     public string $organization_id = '';
     public string $name = '';
     public ?string $description = '';
-    public string $toolsText = '';
-    public string $disallowedToolsText = '';
+    public array $selectedTools = [];
     public ?string $provider = '';
     public ?string $model = '';
     public ?string $permission_mode = '';
@@ -34,8 +34,7 @@ new #[Title('Edit Agent')] class extends Component {
         $this->organization_id = $agent->organization_id;
         $this->name = $agent->name;
         $this->description = $agent->description ?? '';
-        $this->toolsText = implode(', ', $agent->tools ?? []);
-        $this->disallowedToolsText = implode(', ', $agent->disallowed_tools ?? []);
+        $this->selectedTools = $agent->tools ?? [];
         $this->provider = $agent->provider ?? '';
         $this->model = $agent->model ?? '';
         $this->permission_mode = $agent->permission_mode ?? '';
@@ -44,6 +43,12 @@ new #[Title('Edit Agent')] class extends Component {
         $this->isolation = $agent->isolation ?? '';
         $this->selectedSkills = $agent->skills->pluck('id')->toArray();
         $this->selectedRepos = $agent->repos->pluck('id')->toArray();
+    }
+
+    #[Computed]
+    public function availableTools(): array
+    {
+        return array_keys(ToolRegistry::available());
     }
 
     #[Computed]
@@ -62,6 +67,16 @@ new #[Title('Edit Agent')] class extends Component {
     public function repos(): Collection
     {
         return Repo::query()->forUser()->orderBy('name')->get();
+    }
+
+    public function selectAllTools(): void
+    {
+        $this->selectedTools = $this->availableTools;
+    }
+
+    public function deselectAllTools(): void
+    {
+        $this->selectedTools = [];
     }
 
     public function update(): void
@@ -84,8 +99,7 @@ new #[Title('Edit Agent')] class extends Component {
             'organization_id' => $this->organization_id,
             'name' => $this->name,
             'description' => $this->description ?: null,
-            'tools' => array_filter(array_map('trim', explode(',', $this->toolsText))),
-            'disallowed_tools' => array_filter(array_map('trim', explode(',', $this->disallowedToolsText))),
+            'tools' => $this->selectedTools,
             'provider' => $this->provider ?: null,
             'model' => $this->model ?: null,
             'permission_mode' => $this->permission_mode ?: null,
@@ -146,9 +160,18 @@ new #[Title('Edit Agent')] class extends Component {
                 <option value="true">{{ __('True') }}</option>
             </flux:select>
 
-            <flux:textarea wire:model="toolsText" :label="__('Tools')" :description="__('Comma-separated list of tools')" />
-
-            <flux:textarea wire:model="disallowedToolsText" :label="__('Disallowed Tools')" :description="__('Comma-separated list of disallowed tools')" />
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <flux:heading size="sm">{{ __('Tools') }}</flux:heading>
+                    <flux:button size="xs" wire:click="selectAllTools">{{ __('Check all') }}</flux:button>
+                    <flux:button size="xs" wire:click="deselectAllTools">{{ __('Uncheck all') }}</flux:button>
+                </div>
+                <flux:checkbox.group wire:model="selectedTools">
+                    @foreach ($this->availableTools as $tool)
+                        <flux:checkbox :label="$tool" :value="$tool" />
+                    @endforeach
+                </flux:checkbox.group>
+            </div>
 
             @if ($this->skills->isNotEmpty())
                 <flux:checkbox.group wire:model="selectedSkills" :label="__('Skills')">

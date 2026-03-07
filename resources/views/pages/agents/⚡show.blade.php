@@ -102,19 +102,6 @@ new #[Title('View Agent')] class extends Component {
             </div>
 
             <div>
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Disallowed Tools') }}</flux:heading>
-                @if (!empty($agent->disallowed_tools))
-                    <div class="flex flex-wrap gap-2 mt-1">
-                        @foreach ($agent->disallowed_tools as $tool)
-                            <flux:badge variant="danger">{{ $tool }}</flux:badge>
-                        @endforeach
-                    </div>
-                @else
-                    <flux:text>{{ __('None') }}</flux:text>
-                @endif
-            </div>
-
-            <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Skills') }}</flux:heading>
                 @if ($agent->skills->isNotEmpty())
                     <div class="flex flex-wrap gap-2 mt-1">

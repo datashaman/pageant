@@ -23,7 +23,6 @@ class AgentFactory extends Factory
             'enabled' => true,
             'description' => fake()->sentence(),
             'tools' => [],
-            'disallowed_tools' => [],
             'events' => [],
             'provider' => fake()->randomElement(['anthropic', 'openai']),
             'model' => 'inherit',
