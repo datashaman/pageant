@@ -4,11 +4,13 @@ namespace App\Mcp\Servers;
 
 use App\Mcp\Tools\AddLabelsToIssueTool;
 use App\Mcp\Tools\CloseIssueTool;
+use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
 use App\Mcp\Tools\CreatePullRequestTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\ListBranchesTool;
 use App\Mcp\Tools\ListIssueLabelsTool;
 use App\Mcp\Tools\ListLabelsTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
@@ -21,7 +23,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('GitHub Server')]
 #[Version('0.0.1')]
-#[Instructions('Manage GitHub issues, pull requests, and labels on tracked repositories.')]
+#[Instructions('Manage GitHub issues, pull requests, branches, and labels on tracked repositories.')]
 class GitHubServer extends Server
 {
     protected array $tools = [
@@ -31,6 +33,8 @@ class GitHubServer extends Server
         CreateCommentTool::class,
         CreatePullRequestTool::class,
         UpdatePullRequestTool::class,
+        ListBranchesTool::class,
+        CreateBranchTool::class,
         ListLabelsTool::class,
         ListIssueLabelsTool::class,
         AddLabelsToIssueTool::class,

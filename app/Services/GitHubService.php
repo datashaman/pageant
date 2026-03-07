@@ -301,4 +301,57 @@ class GitHubService
 
         $response->throw();
     }
+
+    /**
+     * @return array<int, array{name: string, commit: array{sha: string}, protected: bool}>
+     */
+    public function listBranches(GithubInstallation $installation, string $repo): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+        $branches = [];
+        $page = 1;
+
+        do {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/vnd.github+json',
+            ])->get(self::API_BASE."/repos/{$repo}/branches", [
+                'per_page' => 100,
+                'page' => $page,
+            ]);
+
+            $response->throw();
+
+            $data = $response->json();
+
+            if (empty($data)) {
+                break;
+            }
+
+            $branches = array_merge($branches, $data);
+            $page++;
+        } while (count($data) === 100);
+
+        return $branches;
+    }
+
+    /**
+     * @return array{ref: string, object: array{sha: string, type: string}}
+     */
+    public function createBranch(GithubInstallation $installation, string $repo, string $branchName, string $sha): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->post(self::API_BASE."/repos/{$repo}/git/refs", [
+            'ref' => "refs/heads/{$branchName}",
+            'sha' => $sha,
+        ]);
+
+        $response->throw();
+
+        return $response->json();
+    }
 }

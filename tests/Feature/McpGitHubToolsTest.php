@@ -3,11 +3,13 @@
 use App\Mcp\Servers\GitHubServer;
 use App\Mcp\Tools\AddLabelsToIssueTool;
 use App\Mcp\Tools\CloseIssueTool;
+use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
 use App\Mcp\Tools\CreatePullRequestTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\ListBranchesTool;
 use App\Mcp\Tools\ListIssueLabelsTool;
 use App\Mcp\Tools\ListLabelsTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
@@ -319,6 +321,51 @@ it('creates a comment on an issue or pull request', function () {
     $response->assertOk()
         ->assertSee('This looks good!')
         ->assertSee('555');
+});
+
+it('lists branches on a repository', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listBranches')
+            ->once()
+            ->andReturn([
+                ['name' => 'main', 'commit' => ['sha' => 'abc123'], 'protected' => true],
+                ['name' => 'develop', 'commit' => ['sha' => 'def456'], 'protected' => false],
+            ]);
+    });
+
+    $response = GitHubServer::tool(ListBranchesTool::class, [
+        'repo' => 'acme/widgets',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('main')
+        ->assertSee('develop');
+});
+
+it('creates a branch on a repository', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('createBranch')
+            ->once()
+            ->withArgs(function ($installation, $repo, $branch, $sha) {
+                return $repo === 'acme/widgets'
+                    && $branch === 'feature/new-thing'
+                    && $sha === 'abc123def456abc123def456abc123def456abc1';
+            })
+            ->andReturn([
+                'ref' => 'refs/heads/feature/new-thing',
+                'object' => ['sha' => 'abc123def456abc123def456abc123def456abc1', 'type' => 'commit'],
+            ]);
+    });
+
+    $response = GitHubServer::tool(CreateBranchTool::class, [
+        'repo' => 'acme/widgets',
+        'branch' => 'feature/new-thing',
+        'sha' => 'abc123def456abc123def456abc123def456abc1',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('feature')
+        ->assertSee('new-thing');
 });
 
 it('fails when repo is not tracked', function () {
