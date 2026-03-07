@@ -8,11 +8,22 @@ use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
+use App\Mcp\Tools\CreateOrUpdateFileTool;
 use App\Mcp\Tools\CreatePullRequestTool;
+use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\GetFileContentsTool;
+use App\Mcp\Tools\GetIssueTool;
+use App\Mcp\Tools\GetPullRequestTool;
+use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
+use App\Mcp\Tools\ListCommentsTool;
 use App\Mcp\Tools\ListIssueLabelsTool;
+use App\Mcp\Tools\ListIssuesTool;
 use App\Mcp\Tools\ListLabelsTool;
+use App\Mcp\Tools\ListPullRequestFilesTool;
+use App\Mcp\Tools\ListPullRequestsTool;
+use App\Mcp\Tools\MergePullRequestTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
 use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
@@ -23,18 +34,40 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('GitHub Server')]
 #[Version('0.0.1')]
-#[Instructions('Manage GitHub issues, pull requests, branches, and labels on tracked repositories.')]
+#[Instructions('Manage GitHub repositories: read/write files, issues, pull requests, branches, labels, and comments on tracked repositories.')]
 class GitHubServer extends Server
 {
     protected array $tools = [
+        // Issues
+        GetIssueTool::class,
+        ListIssuesTool::class,
         CreateIssueTool::class,
         UpdateIssueTool::class,
         CloseIssueTool::class,
+
+        // Comments
+        ListCommentsTool::class,
         CreateCommentTool::class,
+
+        // Pull Requests
+        GetPullRequestTool::class,
+        ListPullRequestsTool::class,
         CreatePullRequestTool::class,
         UpdatePullRequestTool::class,
+        MergePullRequestTool::class,
+        ListPullRequestFilesTool::class,
+
+        // Branches
         ListBranchesTool::class,
         CreateBranchTool::class,
+
+        // Files
+        GetFileContentsTool::class,
+        GetRepositoryTreeTool::class,
+        CreateOrUpdateFileTool::class,
+        DeleteFileTool::class,
+
+        // Labels
         ListLabelsTool::class,
         ListIssueLabelsTool::class,
         AddLabelsToIssueTool::class,

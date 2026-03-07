@@ -7,11 +7,22 @@ use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
+use App\Mcp\Tools\CreateOrUpdateFileTool;
 use App\Mcp\Tools\CreatePullRequestTool;
+use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\GetFileContentsTool;
+use App\Mcp\Tools\GetIssueTool;
+use App\Mcp\Tools\GetPullRequestTool;
+use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
+use App\Mcp\Tools\ListCommentsTool;
 use App\Mcp\Tools\ListIssueLabelsTool;
+use App\Mcp\Tools\ListIssuesTool;
 use App\Mcp\Tools\ListLabelsTool;
+use App\Mcp\Tools\ListPullRequestFilesTool;
+use App\Mcp\Tools\ListPullRequestsTool;
+use App\Mcp\Tools\MergePullRequestTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
 use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
@@ -366,6 +377,247 @@ it('creates a branch on a repository', function () {
     $response->assertOk()
         ->assertSee('feature')
         ->assertSee('new-thing');
+});
+
+it('gets a single issue', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getIssue')
+            ->once()
+            ->andReturn([
+                'number' => 42,
+                'title' => 'Fix the widget',
+                'body' => 'It is broken',
+                'state' => 'open',
+                'labels' => [['name' => 'bug']],
+            ]);
+    });
+
+    $response = GitHubServer::tool(GetIssueTool::class, [
+        'repo' => 'acme/widgets',
+        'issue_number' => 42,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('Fix the widget')
+        ->assertSee('42');
+});
+
+it('lists open issues', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listIssues')
+            ->once()
+            ->andReturn([
+                ['number' => 1, 'title' => 'First issue', 'state' => 'open'],
+                ['number' => 2, 'title' => 'Second issue', 'state' => 'open'],
+            ]);
+    });
+
+    $response = GitHubServer::tool(ListIssuesTool::class, [
+        'repo' => 'acme/widgets',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('First issue')
+        ->assertSee('Second issue');
+});
+
+it('gets a single pull request', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getPullRequest')
+            ->once()
+            ->andReturn([
+                'number' => 10,
+                'title' => 'Add feature',
+                'state' => 'open',
+                'mergeable' => true,
+                'head' => ['ref' => 'feature-branch'],
+                'base' => ['ref' => 'main'],
+            ]);
+    });
+
+    $response = GitHubServer::tool(GetPullRequestTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('Add feature')
+        ->assertSee('mergeable');
+});
+
+it('lists pull requests', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listPullRequests')
+            ->once()
+            ->andReturn([
+                ['number' => 10, 'title' => 'Feature A', 'state' => 'open'],
+                ['number' => 11, 'title' => 'Feature B', 'state' => 'open'],
+            ]);
+    });
+
+    $response = GitHubServer::tool(ListPullRequestsTool::class, [
+        'repo' => 'acme/widgets',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('Feature A')
+        ->assertSee('Feature B');
+});
+
+it('lists comments on an issue', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listComments')
+            ->once()
+            ->andReturn([
+                ['id' => 1, 'body' => 'First comment', 'user' => ['login' => 'alice']],
+                ['id' => 2, 'body' => 'Second comment', 'user' => ['login' => 'bob']],
+            ]);
+    });
+
+    $response = GitHubServer::tool(ListCommentsTool::class, [
+        'repo' => 'acme/widgets',
+        'issue_number' => 42,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('First comment')
+        ->assertSee('Second comment');
+});
+
+it('gets file contents from a repository', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getFileContents')
+            ->once()
+            ->andReturn([
+                'name' => 'README.md',
+                'path' => 'README.md',
+                'sha' => 'abc123',
+                'content' => base64_encode('# Hello World'),
+                'encoding' => 'base64',
+            ]);
+    });
+
+    $response = GitHubServer::tool(GetFileContentsTool::class, [
+        'repo' => 'acme/widgets',
+        'path' => 'README.md',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('# Hello World')
+        ->assertSee('abc123');
+});
+
+it('gets repository tree', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getRepositoryTree')
+            ->once()
+            ->andReturn([
+                'sha' => 'tree-sha',
+                'tree' => [
+                    ['path' => 'src', 'type' => 'tree', 'sha' => 'aaa'],
+                    ['path' => 'README.md', 'type' => 'blob', 'sha' => 'bbb'],
+                ],
+            ]);
+    });
+
+    $response = GitHubServer::tool(GetRepositoryTreeTool::class, [
+        'repo' => 'acme/widgets',
+        'tree_sha' => 'main',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('README.md')
+        ->assertSee('src');
+});
+
+it('creates or updates a file', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('createOrUpdateFile')
+            ->once()
+            ->withArgs(function ($installation, $repo, $path, $content, $message, $branch, $sha) {
+                return $repo === 'acme/widgets'
+                    && $path === 'src/hello.js'
+                    && $content === 'console.log("hello");'
+                    && $branch === 'feature-branch';
+            })
+            ->andReturn([
+                'content' => ['path' => 'src/hello.js', 'sha' => 'new-sha'],
+                'commit' => ['sha' => 'commit-sha', 'message' => 'Add hello.js'],
+            ]);
+    });
+
+    $response = GitHubServer::tool(CreateOrUpdateFileTool::class, [
+        'repo' => 'acme/widgets',
+        'path' => 'src/hello.js',
+        'content' => 'console.log("hello");',
+        'message' => 'Add hello.js',
+        'branch' => 'feature-branch',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('new-sha');
+});
+
+it('deletes a file', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('deleteFile')
+            ->once()
+            ->andReturn([
+                'commit' => ['sha' => 'commit-sha', 'message' => 'Remove old file'],
+            ]);
+    });
+
+    $response = GitHubServer::tool(DeleteFileTool::class, [
+        'repo' => 'acme/widgets',
+        'path' => 'old-file.txt',
+        'message' => 'Remove old file',
+        'branch' => 'main',
+        'sha' => 'file-sha-123',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('commit-sha');
+});
+
+it('merges a pull request', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('mergePullRequest')
+            ->once()
+            ->andReturn([
+                'sha' => 'merge-sha',
+                'merged' => true,
+                'message' => 'Pull Request successfully merged',
+            ]);
+    });
+
+    $response = GitHubServer::tool(MergePullRequestTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+        'merge_method' => 'squash',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('merged');
+});
+
+it('lists pull request files', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listPullRequestFiles')
+            ->once()
+            ->andReturn([
+                ['filename' => 'src/index.js', 'status' => 'modified', 'additions' => 5, 'deletions' => 2],
+                ['filename' => 'tests/test.js', 'status' => 'added', 'additions' => 20, 'deletions' => 0],
+            ]);
+    });
+
+    $response = GitHubServer::tool(ListPullRequestFilesTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('index.js')
+        ->assertSee('test.js');
 });
 
 it('fails when repo is not tracked', function () {
