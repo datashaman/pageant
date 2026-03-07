@@ -92,6 +92,29 @@ it('does not allow email/password login for github-only users', function () {
     $this->assertGuest();
 });
 
+it('fetches primary email from github api when email is private', function () {
+    Http::fake([
+        'https://api.github.com/user/emails' => Http::response([
+            ['email' => 'secondary@example.com', 'primary' => false, 'verified' => true],
+            ['email' => 'primary@example.com', 'primary' => true, 'verified' => true],
+        ]),
+        'https://api.github.com/user/orgs' => Http::response([]),
+    ]);
+
+    $socialiteUser = createSocialiteUser(email: null);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn(mockSocialiteDriver($socialiteUser));
+
+    $this->get(route('auth.github.callback'));
+
+    $user = User::query()->where('github_id', 123456)->first();
+
+    expect($user)->not->toBeNull()
+        ->and($user->email)->toBe('primary@example.com');
+});
+
 it('creates organizations from github callback', function () {
     Http::fake([
         'https://api.github.com/user/orgs' => Http::response([
@@ -142,12 +165,12 @@ it('attaches user to existing organization by slug', function () {
     expect($user->organizations->first()->id)->toBe($existingOrg->id);
 });
 
-function createSocialiteUser(): SocialiteUser
+function createSocialiteUser(?string $email = 'test@example.com'): SocialiteUser
 {
     $socialiteUser = new SocialiteUser;
     $socialiteUser->id = 123456;
     $socialiteUser->name = 'Test User';
-    $socialiteUser->email = 'test@example.com';
+    $socialiteUser->email = $email;
     $socialiteUser->avatar = 'https://avatars.githubusercontent.com/u/123456';
     $socialiteUser->token = 'github-token';
     $socialiteUser->refreshToken = 'github-refresh-token';
