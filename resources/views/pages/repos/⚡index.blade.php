@@ -19,8 +19,7 @@ new #[Title('Repos')] class extends Component {
 
     public bool $showImportModal = false;
     public string $selectedInstallationId = '';
-    public array $githubRepos = [];
-    public bool $loadingRepos = false;
+    public bool $reposLoaded = false;
 
     public function updatedSearch(): void
     {
@@ -69,14 +68,36 @@ new #[Title('Repos')] class extends Component {
             ->toArray();
     }
 
+    #[Computed]
+    public function githubRepos(): array
+    {
+        if (! $this->reposLoaded || ! $this->selectedInstallationId) {
+            return [];
+        }
+
+        return cache()->remember(
+            'github_repos_' . $this->selectedInstallationId,
+            now()->addMinutes(5),
+            function () {
+                $installation = $this->installations->firstWhere('id', $this->selectedInstallationId);
+
+                if (! $installation) {
+                    return [];
+                }
+
+                return app(GitHubService::class)->listRepositories($installation);
+            }
+        );
+    }
+
     public function openImportModal(): void
     {
         $this->showImportModal = true;
-        $this->githubRepos = [];
+        $this->reposLoaded = false;
 
         if ($this->installations->count() === 1) {
             $this->selectedInstallationId = (string) $this->installations->first()->id;
-            $this->loadGithubRepos();
+            $this->reposLoaded = true;
         } else {
             $this->selectedInstallationId = '';
         }
@@ -84,25 +105,7 @@ new #[Title('Repos')] class extends Component {
 
     public function updatedSelectedInstallationId(): void
     {
-        $this->loadGithubRepos();
-    }
-
-    public function loadGithubRepos(): void
-    {
-        if (! $this->selectedInstallationId) {
-            $this->githubRepos = [];
-
-            return;
-        }
-
-        $installation = $this->installations->firstWhere('id', $this->selectedInstallationId);
-
-        if (! $installation) {
-            return;
-        }
-
-        $github = app(GitHubService::class);
-        $this->githubRepos = $github->listRepositories($installation);
+        $this->reposLoaded = (bool) $this->selectedInstallationId;
     }
 
     public function trackRepo(string $fullName, string $htmlUrl): void
@@ -249,10 +252,10 @@ new #[Title('Repos')] class extends Component {
                     </flux:select>
                 @endif
 
-                @if ($selectedInstallationId && count($githubRepos) > 0)
+                @if ($selectedInstallationId && count($this->githubRepos) > 0)
                     <div x-data="{
                         filter: '',
-                        repos: @js($githubRepos),
+                        repos: @js($this->githubRepos),
                         tracked: @js($this->trackedRepoKeys),
                         visibleCount: 30,
                         get filtered() {
@@ -306,7 +309,7 @@ new #[Title('Repos')] class extends Component {
                             </div>
                         </div>
                     </div>
-                @elseif ($selectedInstallationId && count($githubRepos) === 0)
+                @elseif ($selectedInstallationId && count($this->githubRepos) === 0)
                     <flux:text>{{ __('No repositories found for this installation.') }}</flux:text>
                 @endif
             @endif
