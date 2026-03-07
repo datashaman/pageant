@@ -6,7 +6,6 @@ use App\Models\GithubInstallation;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class GitHubService
 {
@@ -70,12 +69,6 @@ class GitHubService
 
             $data = $response->json();
             $repositories = array_merge($repositories, $data['repositories'] ?? []);
-            Log::info('GitHub listRepositories', [
-                'page' => $page,
-                'total_count' => $data['total_count'] ?? null,
-                'fetched_this_page' => count($data['repositories'] ?? []),
-                'total_fetched' => count($repositories),
-            ]);
             $page++;
         } while (count($repositories) < ($data['total_count'] ?? 0));
 
