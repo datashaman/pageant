@@ -14,8 +14,8 @@ class GitHubService
     public function generateJwt(): string
     {
         $appId = config('services.github.app_id');
-        $keyPath = config('services.github.private_key_path');
-        $privateKey = file_get_contents($keyPath);
+        $key = config('services.github.private_key_path');
+        $privateKey = str_starts_with($key, '-----BEGIN') ? $key : file_get_contents($key);
 
         $now = time();
         $payload = [
