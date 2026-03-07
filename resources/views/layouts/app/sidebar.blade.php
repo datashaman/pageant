@@ -41,6 +41,10 @@
             <flux:spacer />
 
             <flux:sidebar.nav>
+                <flux:sidebar.item icon="chat-bubble-left-right" x-data @click.prevent="$dispatch('toggle-chat-panel')" class="cursor-pointer">
+                    {{ __('Assistant') }}
+                </flux:sidebar.item>
+
                 <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
                     {{ __('Repository') }}
                 </flux:sidebar.item>
@@ -109,6 +113,8 @@
         </flux:header>
 
         {{ $slot }}
+
+        <livewire:chat-panel />
 
         @fluxScripts
     </body>
