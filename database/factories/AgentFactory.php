@@ -29,7 +29,6 @@ class AgentFactory extends Factory
             'permission_mode' => fake()->randomElement(['full', 'limited']),
             'max_turns' => fake()->numberBetween(1, 100),
             'background' => false,
-            'isolation' => 'false',
         ];
     }
 }

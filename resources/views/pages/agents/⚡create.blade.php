@@ -1,5 +1,6 @@
 <?php
 
+use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
 use App\Models\Repo;
@@ -13,6 +14,7 @@ new #[Title('Create Agent')] class extends Component {
     public string $name = '';
     public ?string $description = '';
     public array $selectedTools = [];
+    public array $selectedEvents = [];
     public ?string $provider = '';
     public ?string $model = '';
     public ?string $permission_mode = '';
@@ -23,9 +25,15 @@ new #[Title('Create Agent')] class extends Component {
     public array $selectedRepos = [];
 
     #[Computed]
-    public function availableTools(): array
+    public function groupedTools(): array
     {
-        return array_keys(ToolRegistry::available());
+        return ToolRegistry::grouped();
+    }
+
+    #[Computed]
+    public function groupedEvents(): array
+    {
+        return EventRegistry::grouped();
     }
 
     #[Computed]
@@ -42,12 +50,22 @@ new #[Title('Create Agent')] class extends Component {
 
     public function selectAllTools(): void
     {
-        $this->selectedTools = $this->availableTools;
+        $this->selectedTools = array_keys(ToolRegistry::available());
     }
 
     public function deselectAllTools(): void
     {
         $this->selectedTools = [];
+    }
+
+    public function selectAllEvents(): void
+    {
+        $this->selectedEvents = array_keys(EventRegistry::available());
+    }
+
+    public function deselectAllEvents(): void
+    {
+        $this->selectedEvents = [];
     }
 
     public function save(): void
@@ -65,18 +83,24 @@ new #[Title('Create Agent')] class extends Component {
         $organizationId = auth()->user()->currentOrganizationId();
         abort_unless($organizationId, 403);
 
-        $agent = Agent::query()->create([
+        $data = [
             'organization_id' => $organizationId,
             'name' => $this->name,
             'description' => $this->description ?: null,
             'tools' => $this->selectedTools,
+            'events' => $this->selectedEvents,
             'provider' => $this->provider ?: null,
             'model' => $this->model ?: null,
             'permission_mode' => $this->permission_mode ?: null,
             'max_turns' => $this->max_turns,
             'background' => $this->background,
-            'isolation' => $this->isolation ?: null,
-        ]);
+        ];
+
+        if (! empty($this->isolation)) {
+            $data['isolation'] = $this->isolation;
+        }
+
+        $agent = Agent::query()->create($data);
 
         $agent->skills()->sync($this->selectedSkills);
         $agent->repos()->sync($this->selectedRepos);
@@ -94,7 +118,7 @@ new #[Title('Create Agent')] class extends Component {
             <flux:heading size="xl">{{ __('Create Agent') }}</flux:heading>
         </div>
 
-        <form wire:submit="save" class="max-w-xl space-y-6">
+        <form wire:submit="save" class="max-w-2xl space-y-6">
             <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus />
 
             <flux:textarea wire:model="description" :label="__('Description')" />
@@ -118,9 +142,8 @@ new #[Title('Create Agent')] class extends Component {
             <flux:checkbox wire:model="background" :label="__('Background')" />
 
             <flux:select wire:model="isolation" :label="__('Isolation')">
-                <option value="">{{ __('Select Isolation') }}</option>
-                <option value="false">{{ __('False') }}</option>
-                <option value="true">{{ __('True') }}</option>
+                <option value="">{{ __('None') }}</option>
+                <option value="worktree">{{ __('Worktree') }}</option>
             </flux:select>
 
             <div>
@@ -130,8 +153,35 @@ new #[Title('Create Agent')] class extends Component {
                     <flux:button size="xs" wire:click="deselectAllTools">{{ __('Uncheck all') }}</flux:button>
                 </div>
                 <flux:checkbox.group wire:model="selectedTools">
-                    @foreach ($this->availableTools as $tool)
-                        <flux:checkbox :label="$tool" :value="$tool" />
+                    @foreach ($this->groupedTools as $group => $tools)
+                        <div class="mb-4">
+                            <flux:heading size="xs" class="mb-2">{{ $group }}</flux:heading>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach ($tools as $name => $description)
+                                    <flux:checkbox :label="$description" :value="$name" />
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </flux:checkbox.group>
+            </div>
+
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <flux:heading size="sm">{{ __('Events') }}</flux:heading>
+                    <flux:button size="xs" wire:click="selectAllEvents">{{ __('Check all') }}</flux:button>
+                    <flux:button size="xs" wire:click="deselectAllEvents">{{ __('Uncheck all') }}</flux:button>
+                </div>
+                <flux:checkbox.group wire:model="selectedEvents">
+                    @foreach ($this->groupedEvents as $group => $events)
+                        <div class="mb-4">
+                            <flux:heading size="xs" class="mb-2">{{ $group }}</flux:heading>
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach ($events as $name => $description)
+                                    <flux:checkbox :label="$description" :value="$name" />
+                                @endforeach
+                            </div>
+                        </div>
                     @endforeach
                 </flux:checkbox.group>
             </div>

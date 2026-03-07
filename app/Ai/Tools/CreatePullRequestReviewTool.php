@@ -18,7 +18,7 @@ class CreatePullRequestReviewTool implements Tool
 
     public function description(): string
     {
-        return 'Submit a review on a pull request: approve, request changes, or comment.';
+        return 'Submit a review on a pull request with optional line-level comments: approve, request changes, or comment.';
     }
 
     public function handle(Request $request): string
@@ -29,6 +29,7 @@ class CreatePullRequestReviewTool implements Tool
             (int) $request['pull_number'],
             $request['event'],
             $request['body'] ?? null,
+            $request['comments'] ?? [],
         );
 
         return json_encode($review, JSON_PRETTY_PRINT);
@@ -46,6 +47,8 @@ class CreatePullRequestReviewTool implements Tool
                 ->required(),
             'body' => $schema->string()
                 ->description('Review comment body. Required for REQUEST_CHANGES and COMMENT.'),
+            'comments' => $schema->array()
+                ->description('Line-level review comments. Each object: {path: string, body: string, line: int, side?: "LEFT"|"RIGHT", start_line?: int, start_side?: "LEFT"|"RIGHT"}. "line" is the line in the diff to comment on. Use start_line for multi-line comments.'),
         ];
     }
 }

@@ -614,13 +614,19 @@ class GitHubService
         return $response->json();
     }
 
-    public function createPullRequestReview(GithubInstallation $installation, string $repo, int $pullNumber, string $event, ?string $body = null): array
+    /**
+     * @param  array<int, array{path: string, body: string, line?: int, side?: string, start_line?: int, start_side?: string}>  $comments
+     */
+    public function createPullRequestReview(GithubInstallation $installation, string $repo, int $pullNumber, string $event, ?string $body = null, array $comments = []): array
     {
         $token = $this->getInstallationToken($installation->installation_id);
 
         $data = ['event' => $event];
         if ($body !== null) {
             $data['body'] = $body;
+        }
+        if (! empty($comments)) {
+            $data['comments'] = $comments;
         }
 
         $response = Http::withHeaders([
@@ -631,6 +637,20 @@ class GitHubService
         $response->throw();
 
         return $response->json();
+    }
+
+    public function getPullRequestDiff(GithubInstallation $installation, string $repo, int $pullNumber): string
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github.diff',
+        ])->get(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}");
+
+        $response->throw();
+
+        return $response->body();
     }
 
     public function getCommitStatus(GithubInstallation $installation, string $repo, string $ref): array
