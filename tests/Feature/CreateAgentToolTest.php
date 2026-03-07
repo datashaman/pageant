@@ -39,10 +39,31 @@ it('creates an agent via MCP tool', function () {
     expect($agent)->not->toBeNull()
         ->and($agent->organization_id)->toBe($this->organization->id)
         ->and($agent->tools)->toBe(['create_comment', 'get_pull_request'])
-        ->and($agent->events)->toBe(['pull_request'])
+        ->and($agent->events)->toBe([['event' => 'pull_request', 'filters' => []]])
         ->and($agent->provider)->toBe('anthropic')
         ->and($agent->enabled)->toBeTrue()
         ->and($agent->repos->pluck('id'))->toContain($this->repo->id);
+});
+
+it('creates an agent with subscription objects via MCP tool', function () {
+    $response = PageantServer::tool(CreateAgentTool::class, [
+        'repo' => 'acme/widgets',
+        'name' => 'filtered-bot',
+        'events' => [
+            ['event' => 'issues.opened', 'filters' => ['labels' => ['bug']]],
+            ['event' => 'pull_request.opened', 'filters' => ['base_branch' => 'main']],
+        ],
+    ]);
+
+    $response->assertOk();
+
+    $agent = Agent::where('name', 'filtered-bot')->first();
+
+    expect($agent)->not->toBeNull()
+        ->and($agent->events)->toBe([
+            ['event' => 'issues.opened', 'filters' => ['labels' => ['bug']]],
+            ['event' => 'pull_request.opened', 'filters' => ['base_branch' => 'main']],
+        ]);
 });
 
 it('creates an agent with defaults via MCP tool', function () {

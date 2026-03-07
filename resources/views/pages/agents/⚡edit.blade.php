@@ -1,6 +1,7 @@
 <?php
 
 use App\Ai\EventRegistry;
+use App\Ai\EventSubscription;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
 use App\Models\Repo;
@@ -16,7 +17,8 @@ new #[Title('Edit Agent')] class extends Component {
     public string $name = '';
     public ?string $description = '';
     public array $selectedTools = [];
-    public array $selectedEvents = [];
+    public array $selectedEventKeys = [];
+    public array $eventFilters = [];
     public ?string $provider = '';
     public ?string $model = '';
     public ?string $permission_mode = '';
@@ -35,7 +37,7 @@ new #[Title('Edit Agent')] class extends Component {
         $this->name = $agent->name;
         $this->description = $agent->description ?? '';
         $this->selectedTools = $agent->tools ?? [];
-        $this->selectedEvents = $agent->events ?? [];
+        $this->hydrateEventSubscriptions($agent->events ?? []);
         $this->provider = $agent->provider ?? '';
         $this->model = $agent->model ?? '';
         $this->permission_mode = $agent->permission_mode ?? '';
@@ -46,16 +48,96 @@ new #[Title('Edit Agent')] class extends Component {
         $this->selectedRepos = $agent->repos->pluck('id')->toArray();
     }
 
+    protected function hydrateEventSubscriptions(array $events): void
+    {
+        $this->selectedEventKeys = [];
+        $this->eventFilters = [];
+
+        foreach ($events as $entry) {
+            if (is_string($entry)) {
+                $entry = ['event' => $entry, 'filters' => []];
+            }
+
+            $sub = EventSubscription::fromArray($entry);
+            $eventType = $sub->eventType;
+
+            if ($sub->action) {
+                $this->selectedEventKeys[] = "{$eventType}.{$sub->action}";
+            } else {
+                $actions = EventRegistry::actionsFor($eventType);
+
+                if (empty($actions)) {
+                    $this->selectedEventKeys[] = $eventType;
+                } else {
+                    foreach ($actions as $action) {
+                        $this->selectedEventKeys[] = "{$eventType}.{$action}";
+                    }
+                }
+            }
+
+            if (! empty($sub->filters)) {
+                $existing = $this->eventFilters[$eventType] ?? [];
+
+                if (! empty($sub->filters['labels'])) {
+                    $existing['labels'] = implode(', ', $sub->filters['labels']);
+                }
+
+                if (! empty($sub->filters['base_branch'])) {
+                    $existing['base_branch'] = $sub->filters['base_branch'];
+                }
+
+                if (! empty($sub->filters['branches'])) {
+                    $existing['branches'] = implode(', ', $sub->filters['branches']);
+                }
+
+                $this->eventFilters[$eventType] = $existing;
+            }
+        }
+
+        $this->selectedEventKeys = array_values(array_unique($this->selectedEventKeys));
+    }
+
     #[Computed]
     public function groupedTools(): array
     {
         return ToolRegistry::grouped();
     }
 
+    /**
+     * @return array<int, array{label: string, checkboxes: array<int, array{label: string, value: string}>, filters: array<string, string>}>
+     */
     #[Computed]
-    public function groupedEvents(): array
+    public function eventSections(): array
     {
-        return EventRegistry::grouped();
+        $sections = [];
+
+        foreach (EventRegistry::groupedWithDetails() as $group => $eventTypes) {
+            foreach ($eventTypes as $eventName => $details) {
+                $label = $details['label'];
+                if (! isset($sections[$label])) {
+                    $sections[$label] = ['label' => $label, 'checkboxes' => [], 'filters' => [], 'eventNames' => []];
+                }
+
+                $sections[$label]['eventNames'][] = $eventName;
+
+                if (empty($details['actions'])) {
+                    $sections[$label]['checkboxes'][] = ['label' => $details['description'], 'value' => $eventName];
+                } else {
+                    foreach ($details['actions'] as $action) {
+                        $sections[$label]['checkboxes'][] = [
+                            'label' => ucfirst(str_replace('_', ' ', $action)),
+                            'value' => "{$eventName}.{$action}",
+                        ];
+                    }
+                }
+
+                foreach ($details['filters'] as $filter) {
+                    $sections[$label]['filters'][$eventName][] = $filter;
+                }
+            }
+        }
+
+        return array_values($sections);
     }
 
     #[Computed]
@@ -82,12 +164,80 @@ new #[Title('Edit Agent')] class extends Component {
 
     public function selectAllEvents(): void
     {
-        $this->selectedEvents = array_keys(EventRegistry::available());
+        $this->selectedEventKeys = EventRegistry::allEventKeys();
     }
 
     public function deselectAllEvents(): void
     {
-        $this->selectedEvents = [];
+        $this->selectedEventKeys = [];
+        $this->eventFilters = [];
+    }
+
+    protected function buildEventSubscriptions(): array
+    {
+        $subscriptionsByType = [];
+
+        foreach ($this->selectedEventKeys as $key) {
+            if (str_contains($key, '.')) {
+                [$type, $action] = explode('.', $key, 2);
+            } else {
+                $type = $key;
+                $action = null;
+            }
+
+            if (! isset($subscriptionsByType[$type])) {
+                $subscriptionsByType[$type] = [];
+            }
+
+            $subscriptionsByType[$type][] = $action;
+        }
+
+        $subscriptions = [];
+
+        foreach ($subscriptionsByType as $type => $actions) {
+            $allActions = EventRegistry::actionsFor($type);
+            $nonNullActions = array_filter($actions, fn ($a) => $a !== null);
+            $hasBaseType = in_array(null, $actions, true);
+
+            if ($hasBaseType || (count($nonNullActions) === count($allActions) && count($allActions) > 0)) {
+                $event = $type;
+            } else {
+                foreach ($nonNullActions as $action) {
+                    $event = "{$type}.{$action}";
+                    $filters = $this->getFiltersForType($type);
+                    $subscriptions[] = ['event' => $event, 'filters' => $filters];
+                }
+
+                continue;
+            }
+
+            $filters = $this->getFiltersForType($type);
+            $subscriptions[] = ['event' => $event, 'filters' => $filters];
+        }
+
+        return $subscriptions;
+    }
+
+    protected function getFiltersForType(string $type): array
+    {
+        $filters = [];
+        $raw = $this->eventFilters[$type] ?? [];
+
+        if (! empty($raw['labels'])) {
+            $filters['labels'] = array_map('trim', explode(',', $raw['labels']));
+            $filters['labels'] = array_values(array_filter($filters['labels']));
+        }
+
+        if (! empty($raw['base_branch'])) {
+            $filters['base_branch'] = trim($raw['base_branch']);
+        }
+
+        if (! empty($raw['branches'])) {
+            $filters['branches'] = array_map('trim', explode(',', $raw['branches']));
+            $filters['branches'] = array_values(array_filter($filters['branches']));
+        }
+
+        return $filters;
     }
 
     public function update(): void
@@ -106,7 +256,7 @@ new #[Title('Edit Agent')] class extends Component {
             'name' => $this->name,
             'description' => $this->description ?: null,
             'tools' => $this->selectedTools,
-            'events' => $this->selectedEvents,
+            'events' => $this->buildEventSubscriptions(),
             'provider' => $this->provider ?: null,
             'model' => $this->model ?: null,
             'permission_mode' => $this->permission_mode ?: null,
@@ -205,15 +355,35 @@ new #[Title('Edit Agent')] class extends Component {
                             <flux:button size="xs" wire:click="selectAllEvents">{{ __('Check all') }}</flux:button>
                             <flux:button size="xs" wire:click="deselectAllEvents">{{ __('Uncheck all') }}</flux:button>
                         </div>
-                        <flux:checkbox.group wire:model="selectedEvents">
-                            @foreach ($this->groupedEvents as $group => $events)
+                        <flux:checkbox.group wire:model="selectedEventKeys">
+                            @foreach ($this->eventSections as $section)
                                 <div class="mb-4">
-                                    <flux:heading size="xs" class="mb-2">{{ $group }}</flux:heading>
+                                    <flux:heading size="xs" class="mb-2">{{ $section['label'] }}</flux:heading>
                                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                        @foreach ($events as $name => $description)
-                                            <flux:checkbox :label="$description" :value="$name" />
+                                        @foreach ($section['checkboxes'] as $checkbox)
+                                            <flux:checkbox :label="$checkbox['label']" :value="$checkbox['value']" :description="$checkbox['value']" />
                                         @endforeach
                                     </div>
+
+                                    @foreach ($section['filters'] as $eventName => $filterTypes)
+                                        @php
+                                            $hasSelectedAction = collect($this->selectedEventKeys)->contains(fn ($k) => $k === $eventName || str_starts_with($k, $eventName . '.'));
+                                        @endphp
+                                        @if ($hasSelectedAction)
+                                            <div class="mt-3 space-y-3 border-t border-zinc-200 pt-3 dark:border-zinc-700">
+                                                <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Filters (optional)') }}</flux:text>
+                                                @if (in_array('labels', $filterTypes))
+                                                    <flux:input wire:model="eventFilters.{{ $eventName }}.labels" :label="__('Labels')" placeholder="bug, enhancement" size="sm" />
+                                                @endif
+                                                @if (in_array('base_branch', $filterTypes))
+                                                    <flux:input wire:model="eventFilters.{{ $eventName }}.base_branch" :label="__('Base Branch')" placeholder="main" size="sm" />
+                                                @endif
+                                                @if (in_array('branches', $filterTypes))
+                                                    <flux:input wire:model="eventFilters.{{ $eventName }}.branches" :label="__('Branches')" placeholder="main, release/*" size="sm" />
+                                                @endif
+                                            </div>
+                                        @endif
+                                    @endforeach
                                 </div>
                             @endforeach
                         </flux:checkbox.group>

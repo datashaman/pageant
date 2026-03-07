@@ -29,6 +29,15 @@ class HandleGitHubIssue
 
         $eventContext = implode("\n", $lines);
 
-        $this->dispatchAgentsForRepo($repoFullName, 'issues', $eventContext, $issue['number']);
+        $labels = array_map(fn (array $l) => $l['name'], $issue['labels'] ?? []);
+
+        $this->dispatchAgentsForRepo(
+            $repoFullName,
+            'issues',
+            $event->action,
+            ['labels' => $labels],
+            $eventContext,
+            $issue['number'],
+        );
     }
 }

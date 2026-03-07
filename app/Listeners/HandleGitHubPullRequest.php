@@ -24,6 +24,18 @@ class HandleGitHubPullRequest
             "Body:\n".($pr['body'] ?? '(empty)'),
         ]);
 
-        $this->dispatchAgentsForRepo($repoFullName, 'pull_request', $eventContext, $pr['number']);
+        $labels = array_map(fn (array $l) => $l['name'], $pr['labels'] ?? []);
+
+        $this->dispatchAgentsForRepo(
+            $repoFullName,
+            'pull_request',
+            $event->action,
+            [
+                'labels' => $labels,
+                'base_branch' => $pr['base']['ref'] ?? null,
+            ],
+            $eventContext,
+            $pr['number'],
+        );
     }
 }
