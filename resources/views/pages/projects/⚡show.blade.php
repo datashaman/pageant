@@ -25,98 +25,115 @@ new #[Title('Project')] class extends Component {
 }; ?>
 
 <div class="w-full">
-    <div class="flex flex-col gap-6">
+    <div class="space-y-6">
         <div class="flex items-center justify-between">
-            <flux:heading size="xl">{{ $project->name }}</flux:heading>
-
-            <div class="flex gap-2">
-                <flux:button href="{{ route('projects.edit', $project) }}" wire:navigate variant="primary">
+            <div class="flex items-center gap-4">
+                <flux:button href="{{ route('projects.index') }}" wire:navigate>
+                    {{ __('Back') }}
+                </flux:button>
+                <flux:heading size="xl">{{ $project->name }}</flux:heading>
+            </div>
+            <div class="flex items-center gap-2">
+                <flux:button href="{{ route('projects.edit', $project) }}" wire:navigate>
                     {{ __('Edit') }}
                 </flux:button>
-
-                <flux:modal.trigger name="delete-project">
-                    <flux:button variant="danger">{{ __('Delete') }}</flux:button>
-                </flux:modal.trigger>
+                <flux:button variant="danger" wire:click="$dispatch('open-modal', { id: 'confirm-delete' })">
+                    {{ __('Delete') }}
+                </flux:button>
             </div>
         </div>
 
-        <div class="rounded-xl border border-neutral-200 p-6 dark:border-neutral-700">
-            <dl class="space-y-4">
-                <div>
-                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">{{ __('Organization') }}</dt>
-                    <dd class="mt-1">
-                        <a href="{{ route('organizations.show', $project->organization) }}" wire:navigate class="hover:underline">
-                            {{ $project->organization->name }}
-                        </a>
-                    </dd>
-                </div>
+        <div class="max-w-xl space-y-4">
+            <div>
+                <flux:label>{{ __('Organization') }}</flux:label>
+                <flux:link href="{{ route('organizations.show', $project->organization) }}" wire:navigate>
+                    {{ $project->organization->name }}
+                </flux:link>
+            </div>
 
-                <div>
-                    <dt class="text-sm font-medium text-zinc-500 dark:text-zinc-400">{{ __('Description') }}</dt>
-                    <dd class="mt-1">{{ $project->description ?: __('No description provided.') }}</dd>
-                </div>
-            </dl>
+            <div>
+                <flux:label>{{ __('Description') }}</flux:label>
+                <flux:text>{{ $project->description ?: '—' }}</flux:text>
+            </div>
+
+            <div>
+                <flux:label>{{ __('Created') }}</flux:label>
+                <flux:text>{{ $project->created_at->format('M j, Y g:i A') }}</flux:text>
+            </div>
+
+            <div>
+                <flux:label>{{ __('Updated') }}</flux:label>
+                <flux:text>{{ $project->updated_at->format('M j, Y g:i A') }}</flux:text>
+            </div>
         </div>
 
         @if ($project->repos->isNotEmpty())
-            <div>
-                <flux:heading size="lg" class="mb-3">{{ __('Repos') }}</flux:heading>
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column>{{ __('Name') }}</flux:table.column>
-                        </flux:table.columns>
-                        <flux:table.rows>
-                            @foreach ($project->repos as $repo)
-                                <flux:table.row :key="$repo->id">
-                                    <flux:table.cell>
-                                        <a href="{{ route('repos.show', $repo) }}" wire:navigate class="hover:underline">
-                                            {{ $repo->name }}
-                                        </a>
-                                    </flux:table.cell>
-                                </flux:table.row>
-                            @endforeach
-                        </flux:table.rows>
-                    </flux:table>
-                </div>
-            </div>
+            <flux:heading size="lg" class="!mt-8">{{ __('Repos') }}</flux:heading>
+            <flux:table>
+                <flux:table.columns>
+                    <flux:table.column>{{ __('Name') }}</flux:table.column>
+                    <flux:table.column>{{ __('Repository') }}</flux:table.column>
+                </flux:table.columns>
+                <flux:table.rows>
+                    @foreach ($project->repos as $repo)
+                        <flux:table.row :key="$repo->id">
+                            <flux:table.cell>
+                                <flux:link href="{{ route('repos.show', $repo) }}" wire:navigate>
+                                    {{ $repo->name }}
+                                </flux:link>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                @if ($repo->source_url)
+                                    <flux:link href="{{ $repo->source_url }}" target="_blank">
+                                        {{ $repo->source_reference }}
+                                    </flux:link>
+                                @else
+                                    {{ $repo->source_reference }}
+                                @endif
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
         @endif
 
         @if ($project->workItems->isNotEmpty())
-            <div>
-                <flux:heading size="lg" class="mb-3">{{ __('Work Items') }}</flux:heading>
-                <div class="rounded-xl border border-neutral-200 dark:border-neutral-700">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column>{{ __('Title') }}</flux:table.column>
-                        </flux:table.columns>
-                        <flux:table.rows>
-                            @foreach ($project->workItems as $workItem)
-                                <flux:table.row :key="$workItem->id">
-                                    <flux:table.cell>
-                                        <a href="{{ route('work-items.show', $workItem) }}" wire:navigate class="hover:underline">
-                                            {{ $workItem->title }}
-                                        </a>
-                                    </flux:table.cell>
-                                </flux:table.row>
-                            @endforeach
-                        </flux:table.rows>
-                    </flux:table>
-                </div>
-            </div>
+            <flux:heading size="lg" class="!mt-8">{{ __('Work Items') }}</flux:heading>
+            <flux:table>
+                <flux:table.columns>
+                    <flux:table.column>{{ __('Title') }}</flux:table.column>
+                    <flux:table.column>{{ __('Issue') }}</flux:table.column>
+                </flux:table.columns>
+                <flux:table.rows>
+                    @foreach ($project->workItems as $workItem)
+                        <flux:table.row :key="$workItem->id">
+                            <flux:table.cell>
+                                <flux:link href="{{ route('work-items.show', $workItem) }}" wire:navigate>
+                                    {{ $workItem->title }}
+                                </flux:link>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                @if ($workItem->source_url)
+                                    <flux:link href="{{ $workItem->source_url }}" target="_blank">
+                                        {{ $workItem->source_reference }}
+                                    </flux:link>
+                                @else
+                                    {{ $workItem->source_reference }}
+                                @endif
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
         @endif
 
-        <flux:modal name="delete-project">
+        <flux:modal name="confirm-delete">
             <div class="space-y-6">
                 <flux:heading size="lg">{{ __('Delete Project') }}</flux:heading>
-                <p>{{ __('Are you sure you want to delete :name? This action cannot be undone.', ['name' => $project->name]) }}</p>
-                <div class="flex gap-2">
-                    <flux:modal.close>
-                        <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
-                    </flux:modal.close>
-                    <flux:button wire:click="delete" variant="danger">
-                        {{ __('Delete') }}
-                    </flux:button>
+                <flux:text>{{ __('Are you sure you want to delete ":name"? This action cannot be undone.', ['name' => $project->name]) }}</flux:text>
+                <div class="flex justify-end gap-3">
+                    <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
+                    <flux:button variant="danger" wire:click="delete">{{ __('Delete') }}</flux:button>
                 </div>
             </div>
         </flux:modal>
