@@ -7,7 +7,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -83,17 +82,10 @@ class GitHubAuthController extends Controller
         ])->get('https://api.github.com/user/installations');
 
         if ($response->failed()) {
-            Log::warning('Failed to fetch GitHub installations for user', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
             return;
         }
 
         $installations = $response->json('installations', []);
-
-        Log::info('GitHub user installations response', ['installations' => $installations]);
 
         $orgIds = [];
 
