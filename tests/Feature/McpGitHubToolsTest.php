@@ -8,14 +8,17 @@ use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
 use App\Mcp\Tools\CreateOrUpdateFileTool;
+use App\Mcp\Tools\CreatePullRequestReviewTool;
 use App\Mcp\Tools\CreatePullRequestTool;
 use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\GetCommitStatusTool;
 use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
 use App\Mcp\Tools\GetPullRequestTool;
 use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
+use App\Mcp\Tools\ListCheckRunsTool;
 use App\Mcp\Tools\ListCommentsTool;
 use App\Mcp\Tools\ListIssueLabelsTool;
 use App\Mcp\Tools\ListIssuesTool;
@@ -24,6 +27,9 @@ use App\Mcp\Tools\ListPullRequestFilesTool;
 use App\Mcp\Tools\ListPullRequestsTool;
 use App\Mcp\Tools\MergePullRequestTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
+use App\Mcp\Tools\RequestReviewersTool;
+use App\Mcp\Tools\SearchCodeTool;
+use App\Mcp\Tools\SearchIssuesTool;
 use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
 use App\Models\GithubInstallation;
@@ -618,6 +624,144 @@ it('lists pull request files', function () {
     $response->assertOk()
         ->assertSee('index.js')
         ->assertSee('test.js');
+});
+
+it('requests reviewers on a pull request', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('requestReviewers')
+            ->once()
+            ->andReturn([
+                'number' => 10,
+                'requested_reviewers' => [['login' => 'alice']],
+                'requested_teams' => [['slug' => 'core-team']],
+            ]);
+    });
+
+    $response = GitHubServer::tool(RequestReviewersTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+        'reviewers' => ['alice'],
+        'team_reviewers' => ['core-team'],
+    ]);
+
+    $response->assertOk()
+        ->assertSee('alice')
+        ->assertSee('core-team');
+});
+
+it('creates a pull request review', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('createPullRequestReview')
+            ->once()
+            ->andReturn([
+                'id' => 1,
+                'state' => 'APPROVED',
+                'body' => 'Looks good!',
+            ]);
+    });
+
+    $response = GitHubServer::tool(CreatePullRequestReviewTool::class, [
+        'repo' => 'acme/widgets',
+        'pull_number' => 10,
+        'event' => 'APPROVE',
+        'body' => 'Looks good!',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('APPROVED');
+});
+
+it('gets commit status', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getCommitStatus')
+            ->once()
+            ->andReturn([
+                'state' => 'success',
+                'total_count' => 2,
+                'statuses' => [
+                    ['context' => 'ci/tests', 'state' => 'success'],
+                    ['context' => 'ci/lint', 'state' => 'success'],
+                ],
+            ]);
+    });
+
+    $response = GitHubServer::tool(GetCommitStatusTool::class, [
+        'repo' => 'acme/widgets',
+        'ref' => 'main',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('success');
+});
+
+it('lists check runs', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listCheckRuns')
+            ->once()
+            ->andReturn([
+                'total_count' => 1,
+                'check_runs' => [
+                    ['id' => 1, 'name' => 'test-suite', 'status' => 'completed', 'conclusion' => 'success'],
+                ],
+            ]);
+    });
+
+    $response = GitHubServer::tool(ListCheckRunsTool::class, [
+        'repo' => 'acme/widgets',
+        'ref' => 'main',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('test-suite')
+        ->assertSee('completed');
+});
+
+it('searches code in a repository', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('searchCode')
+            ->once()
+            ->withArgs(function ($installation, $query) {
+                return str_contains($query, 'className') && str_contains($query, 'repo:acme/widgets');
+            })
+            ->andReturn([
+                'total_count' => 1,
+                'items' => [
+                    ['name' => 'Widget.php', 'path' => 'src/Widget.php'],
+                ],
+            ]);
+    });
+
+    $response = GitHubServer::tool(SearchCodeTool::class, [
+        'repo' => 'acme/widgets',
+        'query' => 'className',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('Widget.php');
+});
+
+it('searches issues in a repository', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('searchIssues')
+            ->once()
+            ->withArgs(function ($installation, $query) {
+                return str_contains($query, 'is:open label:bug') && str_contains($query, 'repo:acme/widgets');
+            })
+            ->andReturn([
+                'total_count' => 1,
+                'items' => [
+                    ['number' => 42, 'title' => 'Widget broken'],
+                ],
+            ]);
+    });
+
+    $response = GitHubServer::tool(SearchIssuesTool::class, [
+        'repo' => 'acme/widgets',
+        'query' => 'is:open label:bug',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('Widget broken');
 });
 
 it('fails when repo is not tracked', function () {

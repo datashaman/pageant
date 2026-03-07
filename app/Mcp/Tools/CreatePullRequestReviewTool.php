@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Mcp\Tools;
+
+use App\Models\GithubInstallation;
+use App\Models\Repo;
+use App\Services\GitHubService;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Attributes\Description;
+use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
+
+#[Description('Submit a review on a pull request: approve, request changes, or comment.')]
+#[IsOpenWorld]
+class CreatePullRequestReviewTool extends Tool
+{
+    public function __construct(
+        protected GitHubService $github,
+    ) {}
+
+    public function handle(Request $request): Response
+    {
+        $validated = $request->validate([
+            'repo' => 'required|string',
+            'pull_number' => 'required|integer|min:1',
+            'event' => 'required|string|in:APPROVE,REQUEST_CHANGES,COMMENT',
+            'body' => 'nullable|string',
+        ]);
+
+        $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
+        $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+
+        $review = $this->github->createPullRequestReview(
+            $installation,
+            $validated['repo'],
+            $validated['pull_number'],
+            $validated['event'],
+            $validated['body'] ?? null,
+        );
+
+        return Response::text(json_encode($review, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * @return array<string, \Illuminate\Contracts\JsonSchema\JsonSchema>
+     */
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'repo' => $schema->string()
+                ->description('The repository in owner/repo format.')
+                ->required(),
+            'pull_number' => $schema->integer()
+                ->description('The pull request number.')
+                ->required(),
+            'event' => $schema->string()
+                ->enum(['APPROVE', 'REQUEST_CHANGES', 'COMMENT'])
+                ->description('The review action to perform.')
+                ->required(),
+            'body' => $schema->string()
+                ->description('Review comment body. Required for REQUEST_CHANGES and COMMENT.'),
+        ];
+    }
+}

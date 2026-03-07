@@ -1,6 +1,9 @@
 <?php
 
 use App\Events\GitHubCommentReceived;
+use App\Events\GitHubPullRequestReceived;
+use App\Events\GitHubPullRequestReviewReceived;
+use App\Events\GitHubPushReceived;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use Illuminate\Support\Facades\Event;
@@ -214,5 +217,139 @@ it('dispatches event on pull request comment webhook', function () {
         return $event->action === 'created'
             && $event->comment['id'] === 456
             && $event->issue['pull_request'] !== null;
+    });
+});
+
+it('dispatches event on pull_request webhook', function () {
+    Event::fake([GitHubPullRequestReceived::class]);
+
+    $payload = json_encode([
+        'action' => 'opened',
+        'pull_request' => [
+            'number' => 10,
+            'title' => 'Add feature',
+            'state' => 'open',
+            'head' => ['ref' => 'feature-branch'],
+            'base' => ['ref' => 'main'],
+        ],
+        'repository' => [
+            'full_name' => 'acme/widgets',
+        ],
+        'installation' => [
+            'id' => 77777,
+        ],
+    ]);
+
+    $response = $this->call(
+        'POST',
+        route('webhooks.github'),
+        [],
+        [],
+        [],
+        [
+            'HTTP_X_GITHUB_EVENT' => 'pull_request',
+            'HTTP_X_HUB_SIGNATURE_256' => 'sha256='.hash_hmac('sha256', $payload, 'test-secret'),
+            'CONTENT_TYPE' => 'application/json',
+        ],
+        $payload,
+    );
+
+    $response->assertOk();
+
+    Event::assertDispatched(GitHubPullRequestReceived::class, function ($event) {
+        return $event->action === 'opened'
+            && $event->pullRequest['number'] === 10
+            && $event->repository['full_name'] === 'acme/widgets'
+            && $event->installationId === 77777;
+    });
+});
+
+it('dispatches event on pull_request_review webhook', function () {
+    Event::fake([GitHubPullRequestReviewReceived::class]);
+
+    $payload = json_encode([
+        'action' => 'submitted',
+        'review' => [
+            'id' => 1,
+            'state' => 'approved',
+            'body' => 'LGTM',
+            'user' => ['login' => 'reviewer'],
+        ],
+        'pull_request' => [
+            'number' => 10,
+            'title' => 'Add feature',
+        ],
+        'repository' => [
+            'full_name' => 'acme/widgets',
+        ],
+        'installation' => [
+            'id' => 77777,
+        ],
+    ]);
+
+    $response = $this->call(
+        'POST',
+        route('webhooks.github'),
+        [],
+        [],
+        [],
+        [
+            'HTTP_X_GITHUB_EVENT' => 'pull_request_review',
+            'HTTP_X_HUB_SIGNATURE_256' => 'sha256='.hash_hmac('sha256', $payload, 'test-secret'),
+            'CONTENT_TYPE' => 'application/json',
+        ],
+        $payload,
+    );
+
+    $response->assertOk();
+
+    Event::assertDispatched(GitHubPullRequestReviewReceived::class, function ($event) {
+        return $event->action === 'submitted'
+            && $event->review['state'] === 'approved'
+            && $event->pullRequest['number'] === 10
+            && $event->installationId === 77777;
+    });
+});
+
+it('dispatches event on push webhook', function () {
+    Event::fake([GitHubPushReceived::class]);
+
+    $payload = json_encode([
+        'ref' => 'refs/heads/main',
+        'before' => 'aaa111',
+        'after' => 'bbb222',
+        'commits' => [
+            ['id' => 'bbb222', 'message' => 'Fix bug', 'author' => ['name' => 'dev']],
+        ],
+        'repository' => [
+            'full_name' => 'acme/widgets',
+        ],
+        'installation' => [
+            'id' => 77777,
+        ],
+    ]);
+
+    $response = $this->call(
+        'POST',
+        route('webhooks.github'),
+        [],
+        [],
+        [],
+        [
+            'HTTP_X_GITHUB_EVENT' => 'push',
+            'HTTP_X_HUB_SIGNATURE_256' => 'sha256='.hash_hmac('sha256', $payload, 'test-secret'),
+            'CONTENT_TYPE' => 'application/json',
+        ],
+        $payload,
+    );
+
+    $response->assertOk();
+
+    Event::assertDispatched(GitHubPushReceived::class, function ($event) {
+        return $event->ref === 'refs/heads/main'
+            && $event->before === 'aaa111'
+            && $event->after === 'bbb222'
+            && count($event->commits) === 1
+            && $event->installationId === 77777;
     });
 });

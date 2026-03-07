@@ -587,4 +587,120 @@ class GitHubService
 
         return $files;
     }
+
+    /**
+     * @param  array<int, string>  $reviewers
+     * @param  array<int, string>  $teamReviewers
+     */
+    public function requestReviewers(GithubInstallation $installation, string $repo, int $pullNumber, array $reviewers = [], array $teamReviewers = []): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $data = [];
+        if (! empty($reviewers)) {
+            $data['reviewers'] = $reviewers;
+        }
+        if (! empty($teamReviewers)) {
+            $data['team_reviewers'] = $teamReviewers;
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->post(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/requested_reviewers", $data);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function createPullRequestReview(GithubInstallation $installation, string $repo, int $pullNumber, string $event, ?string $body = null): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $data = ['event' => $event];
+        if ($body !== null) {
+            $data['body'] = $body;
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->post(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/reviews", $data);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function getCommitStatus(GithubInstallation $installation, string $repo, string $ref): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->get(self::API_BASE."/repos/{$repo}/commits/{$ref}/status");
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, status: string, conclusion: ?string, html_url: string}>
+     */
+    public function listCheckRuns(GithubInstallation $installation, string $repo, string $ref): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->get(self::API_BASE."/repos/{$repo}/commits/{$ref}/check-runs");
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * @return array{total_count: int, items: array}
+     */
+    public function searchCode(GithubInstallation $installation, string $query): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->get(self::API_BASE.'/search/code', [
+            'q' => $query,
+            'per_page' => 30,
+        ]);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * @return array{total_count: int, items: array}
+     */
+    public function searchIssues(GithubInstallation $installation, string $query): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->get(self::API_BASE.'/search/issues', [
+            'q' => $query,
+            'per_page' => 30,
+        ]);
+
+        $response->throw();
+
+        return $response->json();
+    }
 }

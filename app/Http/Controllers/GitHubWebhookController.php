@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Events\GitHubCommentReceived;
+use App\Events\GitHubPullRequestReceived;
+use App\Events\GitHubPullRequestReviewReceived;
+use App\Events\GitHubPushReceived;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +26,9 @@ class GitHubWebhookController extends Controller
             'installation' => $this->handleInstallation($payload),
             'installation_repositories' => $this->handleInstallationRepositories($payload),
             'issue_comment' => $this->handleIssueComment($payload),
+            'pull_request' => $this->handlePullRequest($payload),
+            'pull_request_review' => $this->handlePullRequestReview($payload),
+            'push' => $this->handlePush($payload),
             default => $this->handleDefault($event, $payload),
         };
     }
@@ -123,6 +129,45 @@ class GitHubWebhookController extends Controller
         );
 
         return response()->json(['message' => 'Issue comment event received.']);
+    }
+
+    private function handlePullRequest(array $payload): JsonResponse
+    {
+        GitHubPullRequestReceived::dispatch(
+            $payload['action'],
+            $payload['pull_request'],
+            $payload['repository'],
+            $payload['installation']['id'],
+        );
+
+        return response()->json(['message' => 'Pull request event received.']);
+    }
+
+    private function handlePullRequestReview(array $payload): JsonResponse
+    {
+        GitHubPullRequestReviewReceived::dispatch(
+            $payload['action'],
+            $payload['review'],
+            $payload['pull_request'],
+            $payload['repository'],
+            $payload['installation']['id'],
+        );
+
+        return response()->json(['message' => 'Pull request review event received.']);
+    }
+
+    private function handlePush(array $payload): JsonResponse
+    {
+        GitHubPushReceived::dispatch(
+            $payload['ref'],
+            $payload['before'] ?? null,
+            $payload['after'] ?? null,
+            $payload['commits'] ?? [],
+            $payload['repository'],
+            $payload['installation']['id'],
+        );
+
+        return response()->json(['message' => 'Push event received.']);
     }
 
     private function handleInstallationRepositories(array $payload): JsonResponse

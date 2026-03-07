@@ -9,14 +9,17 @@ use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
 use App\Mcp\Tools\CreateOrUpdateFileTool;
+use App\Mcp\Tools\CreatePullRequestReviewTool;
 use App\Mcp\Tools\CreatePullRequestTool;
 use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
+use App\Mcp\Tools\GetCommitStatusTool;
 use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
 use App\Mcp\Tools\GetPullRequestTool;
 use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
+use App\Mcp\Tools\ListCheckRunsTool;
 use App\Mcp\Tools\ListCommentsTool;
 use App\Mcp\Tools\ListIssueLabelsTool;
 use App\Mcp\Tools\ListIssuesTool;
@@ -25,6 +28,9 @@ use App\Mcp\Tools\ListPullRequestFilesTool;
 use App\Mcp\Tools\ListPullRequestsTool;
 use App\Mcp\Tools\MergePullRequestTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
+use App\Mcp\Tools\RequestReviewersTool;
+use App\Mcp\Tools\SearchCodeTool;
+use App\Mcp\Tools\SearchIssuesTool;
 use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
 use Laravel\Mcp\Server;
@@ -34,7 +40,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('GitHub Server')]
 #[Version('0.0.1')]
-#[Instructions('Manage GitHub repositories: read/write files, issues, pull requests, branches, labels, and comments on tracked repositories.')]
+#[Instructions('Manage GitHub repositories: read/write files, issues, pull requests, branches, labels, comments, reviews, CI status, and search on tracked repositories.')]
 class GitHubServer extends Server
 {
     protected array $tools = [
@@ -56,6 +62,12 @@ class GitHubServer extends Server
         UpdatePullRequestTool::class,
         MergePullRequestTool::class,
         ListPullRequestFilesTool::class,
+        RequestReviewersTool::class,
+        CreatePullRequestReviewTool::class,
+
+        // CI / Status
+        GetCommitStatusTool::class,
+        ListCheckRunsTool::class,
 
         // Branches
         ListBranchesTool::class,
@@ -66,6 +78,10 @@ class GitHubServer extends Server
         GetRepositoryTreeTool::class,
         CreateOrUpdateFileTool::class,
         DeleteFileTool::class,
+
+        // Search
+        SearchCodeTool::class,
+        SearchIssuesTool::class,
 
         // Labels
         ListLabelsTool::class,
