@@ -124,6 +124,20 @@ class GitHubService
         return $response->json();
     }
 
+    public function updateIssue(GithubInstallation $installation, string $repo, int $issueNumber, array $data): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->patch(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}", $data);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
     public function createComment(GithubInstallation $installation, string $repo, int $issueNumber, string $body): array
     {
         $token = $this->getInstallationToken($installation->installation_id);
@@ -152,5 +166,139 @@ class GitHubService
         $response->throw();
 
         return $response->json();
+    }
+
+    public function updatePullRequest(GithubInstallation $installation, string $repo, int $pullNumber, array $data): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->patch(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}", $data);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, color: string, description: ?string}>
+     */
+    public function listLabels(GithubInstallation $installation, string $repo): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+        $labels = [];
+        $page = 1;
+
+        do {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$token}",
+                'Accept' => 'application/vnd.github+json',
+            ])->get(self::API_BASE."/repos/{$repo}/labels", [
+                'per_page' => 100,
+                'page' => $page,
+            ]);
+
+            $response->throw();
+
+            $data = $response->json();
+
+            if (empty($data)) {
+                break;
+            }
+
+            $labels = array_merge($labels, $data);
+            $page++;
+        } while (count($data) === 100);
+
+        return $labels;
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, color: string, description: ?string}>
+     */
+    public function listIssueLabels(GithubInstallation $installation, string $repo, int $issueNumber): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->get(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}/labels");
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * @param  array<int, string>  $labels
+     * @return array<int, array{id: int, name: string, color: string, description: ?string}>
+     */
+    public function addLabelsToIssue(GithubInstallation $installation, string $repo, int $issueNumber, array $labels): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->post(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}/labels", [
+            'labels' => $labels,
+        ]);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function removeLabelFromIssue(GithubInstallation $installation, string $repo, int $issueNumber, string $label): void
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->delete(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}/labels/{$label}");
+
+        $response->throw();
+    }
+
+    /**
+     * @return array{id: int, name: string, color: string, description: ?string}
+     */
+    public function createLabel(GithubInstallation $installation, string $repo, string $name, string $color, ?string $description = null): array
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $data = [
+            'name' => $name,
+            'color' => $color,
+        ];
+
+        if ($description !== null) {
+            $data['description'] = $description;
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->post(self::API_BASE."/repos/{$repo}/labels", $data);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    public function deleteLabel(GithubInstallation $installation, string $repo, string $name): void
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->delete(self::API_BASE."/repos/{$repo}/labels/{$name}");
+
+        $response->throw();
     }
 }

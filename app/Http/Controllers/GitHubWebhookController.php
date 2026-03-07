@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GitHubCommentReceived;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,7 @@ class GitHubWebhookController extends Controller
         return match ($event) {
             'installation' => $this->handleInstallation($payload),
             'installation_repositories' => $this->handleInstallationRepositories($payload),
+            'issue_comment' => $this->handleIssueComment($payload),
             default => $this->handleDefault($event, $payload),
         };
     }
@@ -108,6 +110,19 @@ class GitHubWebhookController extends Controller
             ->update(['suspended_at' => null]);
 
         return response()->json(['message' => 'Installation unsuspended.']);
+    }
+
+    private function handleIssueComment(array $payload): JsonResponse
+    {
+        GitHubCommentReceived::dispatch(
+            $payload['action'],
+            $payload['comment'],
+            $payload['issue'],
+            $payload['repository'],
+            $payload['installation']['id'],
+        );
+
+        return response()->json(['message' => 'Issue comment event received.']);
     }
 
     private function handleInstallationRepositories(array $payload): JsonResponse
