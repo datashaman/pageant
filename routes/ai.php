@@ -5,7 +5,7 @@ use Laravel\Mcp\Facades\Mcp;
 
 Mcp::oauthRoutes();
 
-Mcp::web('/mcp/github', GitHubServer::class)
+Mcp::web('/mcp', GitHubServer::class)
     ->middleware('auth:api');
 
 Mcp::local('github', GitHubServer::class);
