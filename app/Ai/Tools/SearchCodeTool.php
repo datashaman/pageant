@@ -18,7 +18,7 @@ class SearchCodeTool implements Tool
 
     public function description(): string
     {
-        return 'Search for code in a GitHub repository. Use GitHub search syntax, e.g. "className repo:owner/repo".';
+        return 'Search for code in the current GitHub repository. Use GitHub search syntax, e.g. "className", "extension:js".';
     }
 
     public function handle(Request $request): string

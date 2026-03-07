@@ -5,13 +5,14 @@ namespace App\Jobs;
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\WorkItem;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Laravel\Ai\Ai;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Prompts\AgentPrompt;
 
-class RunWebhookAgent implements ShouldQueue
+class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 
