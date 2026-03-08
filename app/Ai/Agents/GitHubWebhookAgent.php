@@ -54,7 +54,11 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 
     protected function loadRepoInstructions(): string
     {
-        return app(RepoInstructionsService::class)->loadForRepo($this->repoFullName);
+        try {
+            return app(RepoInstructionsService::class)->loadForRepo($this->repoFullName);
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     public function messages(): iterable
