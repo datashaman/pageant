@@ -89,6 +89,22 @@ it('can delete an agent', function () {
     ]);
 });
 
+it('shows Default label for inherited model on index page', function () {
+    $this->agent->update(['model' => 'inherit']);
+
+    $this->actingAs($this->user)
+        ->get(route('agents.index'))
+        ->assertSee('Default');
+});
+
+it('shows actual model name on index page when set', function () {
+    $agent = Agent::factory()->for($this->organization)->create(['model' => 'claude-sonnet-4-6']);
+
+    $this->actingAs($this->user)
+        ->get(route('agents.index'))
+        ->assertSee('claude-sonnet-4-6');
+});
+
 it('prevents access to agents from other organizations', function () {
     $otherOrg = Organization::factory()->create();
     $otherAgent = Agent::factory()->for($otherOrg)->create();

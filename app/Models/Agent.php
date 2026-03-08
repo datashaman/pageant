@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToUserOrganization;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -37,6 +38,14 @@ class Agent extends Model
             'events' => 'array',
             'background' => 'boolean',
         ];
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function modelDisplayName(): Attribute
+    {
+        return Attribute::get(fn (): string => $this->model === 'inherit' ? 'Default' : $this->model);
     }
 
     public function organization(): BelongsTo

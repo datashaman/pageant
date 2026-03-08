@@ -116,7 +116,7 @@ new #[Title('Work Item')] class extends Component {
                     {{ __('Edit') }}
                 </flux:button>
                 @if ($workItem->isOpen())
-                    <flux:button variant="danger" wire:click="confirmClose">
+                    <flux:button variant="ghost" wire:click="confirmClose">
                         {{ __('Close') }}
                     </flux:button>
                 @else
@@ -127,58 +127,55 @@ new #[Title('Work Item')] class extends Component {
             </div>
         </div>
 
-        <div class="max-w-xl space-y-4">
-            <div>
-                <flux:label>{{ __('Title') }}</flux:label>
-                <flux:text>{{ $workItem->title }}</flux:text>
-            </div>
-
+        @if ($workItem->description)
             <div>
                 <flux:label>{{ __('Description') }}</flux:label>
-                <flux:text>{{ $workItem->description ?: '—' }}</flux:text>
+                <flux:text>{{ $workItem->description }}</flux:text>
             </div>
+        @endif
 
+        <div class="max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <flux:label>{{ __('Organization') }}</flux:label>
                 <flux:text>{{ $workItem->organization->name }}</flux:text>
             </div>
 
-            <div>
-                <flux:label>{{ __('Project') }}</flux:label>
-                @if ($workItem->project)
+            @if ($workItem->project)
+                <div>
+                    <flux:label>{{ __('Project') }}</flux:label>
                     <flux:link href="{{ route('projects.show', $workItem->project) }}" wire:navigate>
                         {{ $workItem->project->name }}
                     </flux:link>
-                @else
-                    <flux:text>{{ __('—') }}</flux:text>
-                @endif
-            </div>
+                </div>
+            @endif
 
-            <div>
-                <flux:label>{{ __('Board ID') }}</flux:label>
-                <flux:text>{{ $workItem->board_id ?: '—' }}</flux:text>
-            </div>
+            @if ($workItem->board_id)
+                <div>
+                    <flux:label>{{ __('Board ID') }}</flux:label>
+                    <flux:text>{{ $workItem->board_id }}</flux:text>
+                </div>
+            @endif
 
             <div>
                 <flux:label>{{ __('Source') }}</flux:label>
                 <flux:text>{{ $workItem->source }}</flux:text>
             </div>
 
-            <div>
-                <flux:label>{{ __('Source Reference') }}</flux:label>
-                <flux:text>{{ $workItem->source_reference ?: '—' }}</flux:text>
-            </div>
+            @if ($workItem->source_reference)
+                <div>
+                    <flux:label>{{ __('Source Reference') }}</flux:label>
+                    <flux:text>{{ $workItem->source_reference }}</flux:text>
+                </div>
+            @endif
 
-            <div>
-                <flux:label>{{ __('Source URL') }}</flux:label>
-                @if ($workItem->source_url)
+            @if ($workItem->source_url)
+                <div>
+                    <flux:label>{{ __('Source URL') }}</flux:label>
                     <flux:link href="{{ $workItem->source_url }}" target="_blank">
                         {{ $workItem->source_url }}
                     </flux:link>
-                @else
-                    <flux:text>{{ __('—') }}</flux:text>
-                @endif
-            </div>
+                </div>
+            @endif
 
             <div>
                 <flux:label>{{ __('Created') }}</flux:label>
@@ -221,21 +218,21 @@ new #[Title('Work Item')] class extends Component {
                                 <flux:button size="sm" variant="primary" wire:click="approvePlan('{{ $plan->id }}')">
                                     {{ __('Approve') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @elseif ($plan->isRunning())
                                 <flux:button size="sm" wire:click="pausePlan('{{ $plan->id }}')">
                                     {{ __('Pause') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @elseif ($plan->isPaused())
                                 <flux:button size="sm" variant="primary" wire:click="resumePlan('{{ $plan->id }}')">
                                     {{ __('Resume') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @endif
