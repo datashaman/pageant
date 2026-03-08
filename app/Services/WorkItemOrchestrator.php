@@ -209,7 +209,7 @@ class WorkItemOrchestrator
 
         foreach (array_reverse($formattedLines) as $line) {
             if ($totalLength + strlen($line) > static::PRIOR_CONTEXT_BUDGET) {
-                break;
+                continue;
             }
 
             array_unshift($selected, $line);

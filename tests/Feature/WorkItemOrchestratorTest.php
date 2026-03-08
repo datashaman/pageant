@@ -257,6 +257,58 @@ describe('WorkItemOrchestrator::buildPriorStepsContext', function () {
             ->and($context)->not->toContain('Step 1 ');
     });
 
+    it('skips an oversized older step while keeping newer steps that fit', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+        ]);
+
+        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
+
+        PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 1,
+            'status' => 'completed',
+            'description' => 'Small oldest step',
+            'result' => 'done',
+        ]);
+
+        PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 2,
+            'status' => 'completed',
+            'description' => str_repeat('x', 1900),
+            'result' => str_repeat('y', 200),
+        ]);
+
+        PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 3,
+            'status' => 'completed',
+            'description' => 'Small newest step',
+            'result' => 'done',
+        ]);
+
+        $currentStep = PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 4,
+            'status' => 'pending',
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'buildPriorStepsContext');
+
+        $context = $method->invoke($orchestrator, $currentStep);
+
+        expect($context)->toContain('Small newest step')
+            ->and($context)->toContain('Small oldest step')
+            ->and($context)->not->toContain(str_repeat('x', 1900));
+    });
+
     it('returns null when all steps exceed the budget individually', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
