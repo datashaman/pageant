@@ -14,8 +14,8 @@ class DeleteWorkItemTool implements Tool
 {
     public function __construct(
         protected GitHubService $github,
-        protected GithubInstallation $installation,
-        protected string $repoFullName,
+        protected ?GithubInstallation $installation = null,
+        protected ?string $repoFullName = null,
     ) {}
 
     public function description(): string
@@ -25,11 +25,13 @@ class DeleteWorkItemTool implements Tool
 
     public function handle(Request $request): string
     {
+        $repoFullName = $this->repoFullName ?? $request['repo'];
+
         $repo = Repo::where('source', 'github')
-            ->where('source_reference', $this->repoFullName)
+            ->where('source_reference', $repoFullName)
             ->firstOrFail();
 
-        $sourceReference = $this->repoFullName.'#'.$request['issue_number'];
+        $sourceReference = $repoFullName.'#'.$request['issue_number'];
 
         $workItem = WorkItem::where('organization_id', $repo->organization_id)
             ->where('source', 'github')
@@ -43,10 +45,18 @@ class DeleteWorkItemTool implements Tool
 
     public function schema(JsonSchema $schema): array
     {
-        return [
+        $fields = [];
+
+        if (! $this->repoFullName) {
+            $fields['repo'] = $schema->string()
+                ->description('The repository in owner/repo format.')
+                ->required();
+        }
+
+        return array_merge($fields, [
             'issue_number' => $schema->integer()
                 ->description('The GitHub issue number of the work item to delete.')
                 ->required(),
-        ];
+        ]);
     }
 }
