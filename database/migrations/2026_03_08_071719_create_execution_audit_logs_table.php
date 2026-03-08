@@ -20,6 +20,9 @@ return new class extends Migration
             $table->text('detail');
             $table->integer('exit_code')->nullable();
             $table->timestamps();
+
+            $table->index('created_at');
+            $table->index('organization_id');
         });
     }
 

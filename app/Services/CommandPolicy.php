@@ -15,13 +15,36 @@ class CommandPolicy
         protected array $deniedPatterns = [],
     ) {}
 
+    /**
+     * Determine if a command is allowed to execute.
+     *
+     * When both allowlist and denylist are configured, a command must match
+     * the allowlist AND not match the denylist. This ensures the denylist
+     * can carve out exceptions from broad allowlist patterns.
+     *
+     * Precedence rules:
+     * 1. If an allowlist is set, the command must match it (otherwise denied).
+     * 2. If a denylist is set, the command must NOT match it (otherwise denied).
+     * 3. If neither list is set, all commands are allowed.
+     */
     public function isAllowed(string $command): bool
     {
         $baseCommand = $this->extractBaseCommand($command);
 
         if ($this->allowedPatterns !== []) {
-            return $this->matchesAny($baseCommand, $this->allowedPatterns)
+            $matchesAllowlist = $this->matchesAny($baseCommand, $this->allowedPatterns)
                 || $this->matchesAny($command, $this->allowedPatterns);
+
+            if (! $matchesAllowlist) {
+                return false;
+            }
+
+            if ($this->deniedPatterns !== []) {
+                return ! $this->matchesAny($baseCommand, $this->deniedPatterns)
+                    && ! $this->matchesAny($command, $this->deniedPatterns);
+            }
+
+            return true;
         }
 
         if ($this->deniedPatterns !== []) {

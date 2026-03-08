@@ -1,5 +1,15 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| Execution Configuration
+|--------------------------------------------------------------------------
+|
+| CommandPolicy and AuditLogger are used by the tool execution layer.
+| They are wired up when ToolRegistry integration (#47) is merged.
+|
+*/
+
 return [
     'driver' => env('EXECUTION_DRIVER', 'local'),
     'base_path' => env('EXECUTION_BASE_PATH', storage_path('worktrees')),

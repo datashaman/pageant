@@ -41,13 +41,15 @@ describe('CommandPolicy', function () {
         expect($policy->isAllowed('wget https://evil.com'))->toBeFalse();
     });
 
-    it('prioritizes allowlist over denylist when both are set', function () {
+    it('requires allowlist match AND no denylist match when both are set', function () {
         $policy = new CommandPolicy(
-            allowedPatterns: ['php artisan *'],
-            deniedPatterns: ['rm -rf *'],
+            allowedPatterns: ['php artisan *', 'composer *'],
+            deniedPatterns: ['php artisan db:*'],
         );
 
         expect($policy->isAllowed('php artisan migrate'))->toBeTrue();
+        expect($policy->isAllowed('composer install'))->toBeTrue();
+        expect($policy->isAllowed('php artisan db:seed'))->toBeFalse();
         expect($policy->isAllowed('rm -rf /'))->toBeFalse();
         expect($policy->isAllowed('ls -la'))->toBeFalse();
     });
@@ -245,6 +247,24 @@ describe('audit:cleanup command', function () {
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('execution_audit_logs', ['id' => $old->id]);
+    });
+
+    it('rejects invalid --days option', function () {
+        $this->artisan('audit:cleanup', ['--days' => 0])
+            ->expectsOutputToContain('positive integer')
+            ->assertExitCode(1);
+    });
+
+    it('rejects negative --days option', function () {
+        $this->artisan('audit:cleanup', ['--days' => -5])
+            ->expectsOutputToContain('positive integer')
+            ->assertExitCode(1);
+    });
+
+    it('rejects non-numeric --days option', function () {
+        $this->artisan('audit:cleanup', ['--days' => 'abc'])
+            ->expectsOutputToContain('positive integer')
+            ->assertExitCode(1);
     });
 
     it('reports when no entries to clean', function () {

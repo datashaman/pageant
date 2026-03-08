@@ -18,4 +18,14 @@ class ExecutionAuditLog extends Model
         'detail',
         'exit_code',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'exit_code' => 'integer',
+        ];
+    }
 }

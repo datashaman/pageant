@@ -15,7 +15,15 @@ class AuditCleanupCommand extends Command
 
     public function handle(): int
     {
-        $days = (int) ($this->option('days') ?? config('execution.audit_retention_days', 30));
+        $daysOption = $this->option('days');
+
+        if ($daysOption !== null && (! ctype_digit((string) $daysOption) || (int) $daysOption < 1)) {
+            $this->error('The --days option must be a positive integer (>= 1).');
+
+            return self::FAILURE;
+        }
+
+        $days = (int) ($daysOption ?? config('execution.audit_retention_days', 30));
         $isDryRun = $this->option('dry-run');
 
         $cutoff = now()->subDays($days);
