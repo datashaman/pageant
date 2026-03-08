@@ -128,7 +128,12 @@ new class extends Component
             this.streaming = true;
             this.streamedContent = '';
 
-            this.$nextTick(() => this.scrollToBottom());
+            this.$nextTick(() => {
+                this.scrollToBottom();
+                const ref = this.$refs.chatInput;
+                const input = ref?.tagName === 'INPUT' ? ref : ref?.querySelector('input');
+                input?.focus();
+            });
 
             try {
                 const response = await fetch('{{ route('chat.stream') }}', {
@@ -193,6 +198,11 @@ new class extends Component
                 this.messages.push({ role: 'assistant', content: 'Failed to connect. Please try again.' });
             } finally {
                 this.streaming = false;
+                this.$nextTick(() => {
+                    const ref = this.$refs.chatInput;
+                    const input = ref?.tagName === 'INPUT' ? ref : ref?.querySelector('input');
+                    input?.focus();
+                });
             }
         },
 
@@ -321,6 +331,7 @@ new class extends Component
     <div class="border-t border-zinc-200 p-4 dark:border-zinc-700">
         <form @submit.prevent="sendMessage()" class="flex gap-2">
             <flux:input
+                x-ref="chatInput"
                 x-model="currentMessage"
                 placeholder="{{ __('Type a message...') }}"
                 x-bind:disabled="streaming"
