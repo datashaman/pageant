@@ -28,13 +28,17 @@ class CreateWorkItemTool extends Tool
             'repo' => 'required|string',
             'issue_number' => 'required|integer|min:1',
             'board_id' => 'nullable|string',
-            'project_id' => 'nullable|string',
+            'project_id' => 'nullable|uuid',
         ]);
 
         $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
         $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
 
         $issue = $this->github->getIssue($installation, $validated['repo'], $validated['issue_number']);
+
+        $projectId = filled($validated['project_id'] ?? null)
+            ? $validated['project_id']
+            : $repo->inferProjectId();
 
         $workItem = WorkItem::firstOrCreate(
             [
@@ -43,7 +47,7 @@ class CreateWorkItemTool extends Tool
                 'source_reference' => $validated['repo'].'#'.$validated['issue_number'],
             ],
             [
-                'project_id' => $validated['project_id'] ?? null,
+                'project_id' => $projectId,
                 'title' => $issue['title'],
                 'description' => $issue['body'] ?? '',
                 'board_id' => $validated['board_id'] ?? null,

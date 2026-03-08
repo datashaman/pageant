@@ -27,12 +27,10 @@ class CreateWorkItemTool implements Tool
     public function handle(Request $request): string
     {
         $repoFullName = $this->repoFullName ?? $request['repo'];
-        $installation = $this->installation;
 
-        if (! $installation) {
-            $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
-            $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
-        }
+        $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
+        $installation = $this->installation
+            ?? GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
 
         $issue = $this->github->getIssue(
             $installation,
@@ -40,9 +38,9 @@ class CreateWorkItemTool implements Tool
             (int) $request['issue_number'],
         );
 
-        $repo = Repo::where('source', 'github')
-            ->where('source_reference', $repoFullName)
-            ->firstOrFail();
+        $projectId = filled($request['project_id'] ?? null)
+            ? $request['project_id']
+            : $repo->inferProjectId();
 
         $workItem = WorkItem::firstOrCreate(
             [
@@ -51,7 +49,7 @@ class CreateWorkItemTool implements Tool
                 'source_reference' => $repoFullName.'#'.$request['issue_number'],
             ],
             [
-                'project_id' => $request['project_id'] ?? null,
+                'project_id' => $projectId,
                 'title' => $issue['title'],
                 'description' => $issue['body'] ?? '',
                 'board_id' => $request['board_id'] ?? null,
