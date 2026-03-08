@@ -387,6 +387,138 @@ it('resolves repo from page context in stream request', function () {
     });
 });
 
+it('eagerly stores the user message before streaming begins', function () {
+    PageantAssistant::fake(['Hello!']);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'My important question',
+        ]);
+
+    $response->assertOk();
+
+    $content = $response->streamedContent();
+    preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
+    $conversationId = $matches[1];
+
+    $userMessages = DB::table('agent_conversation_messages')
+        ->where('conversation_id', $conversationId)
+        ->where('role', 'user')
+        ->get();
+
+    expect($userMessages)->toHaveCount(1);
+    expect($userMessages->first()->content)->toBe('My important question');
+});
+
+it('stores the assistant response after streaming completes', function () {
+    PageantAssistant::fake(['Here is my answer.']);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Tell me something',
+        ]);
+
+    $response->assertOk();
+
+    $content = $response->streamedContent();
+    preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
+    $conversationId = $matches[1];
+
+    $assistantMessages = DB::table('agent_conversation_messages')
+        ->where('conversation_id', $conversationId)
+        ->where('role', 'assistant')
+        ->get();
+
+    expect($assistantMessages)->toHaveCount(1);
+    expect($assistantMessages->first()->content)->not->toBeEmpty();
+});
+
+it('creates the conversation eagerly so it exists even without streaming', function () {
+    PageantAssistant::fake(['Response']);
+
+    $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Hello world',
+        ]);
+
+    $conversation = DB::table('agent_conversations')
+        ->where('user_id', $this->user->id)
+        ->latest('created_at')
+        ->first();
+
+    expect($conversation)->not->toBeNull();
+    expect($conversation->title)->toContain('Hello world');
+});
+
+it('resumes a conversation without duplicating user messages', function () {
+    PageantAssistant::fake(['First reply.', 'Second reply.']);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'First message',
+        ]);
+
+    $content = $response->streamedContent();
+    preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
+    $conversationId = $matches[1];
+
+    $response2 = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Second message',
+            'conversation_id' => $conversationId,
+        ]);
+
+    $response2->assertOk();
+    $response2->streamedContent();
+
+    $messages = DB::table('agent_conversation_messages')
+        ->where('conversation_id', $conversationId)
+        ->orderBy('created_at')
+        ->get();
+
+    $userMessages = $messages->where('role', 'user');
+    $assistantMessages = $messages->where('role', 'assistant');
+
+    expect($userMessages)->toHaveCount(2);
+    expect($assistantMessages)->toHaveCount(2);
+    expect($userMessages->first()->content)->toBe('First message');
+    expect($userMessages->last()->content)->toBe('Second message');
+});
+
+it('sets conversation ID without enabling conversation middleware via resumeConversation', function () {
+    $assistant = new PageantAssistant(
+        user: $this->user,
+        repoFullName: 'acme/widgets',
+    );
+
+    expect($assistant->currentConversation())->toBeNull();
+    expect($assistant->hasConversationParticipant())->toBeFalse();
+
+    $assistant->resumeConversation('test-conversation-id');
+
+    expect($assistant->currentConversation())->toBe('test-conversation-id');
+    expect($assistant->hasConversationParticipant())->toBeFalse();
+});
+
+it('rejects resuming a conversation owned by another user', function () {
+    $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
+    $conversationId = $store->storeConversation($this->user->id, 'My chat');
+
+    PageantAssistant::fake(['Nope']);
+
+    $otherUser = User::factory()->create();
+
+    $this->actingAs($otherUser)
+        ->post(route('chat.stream'), [
+            'message' => 'Sneaky message',
+            'conversation_id' => $conversationId,
+        ])
+        ->assertForbidden();
+});
+
 it('does not return conversation messages for another user', function () {
     $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
     $conversationId = $store->storeConversation($this->user->id, 'Test chat');
