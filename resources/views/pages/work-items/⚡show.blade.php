@@ -127,58 +127,55 @@ new #[Title('Work Item')] class extends Component {
             </div>
         </div>
 
-        <div class="max-w-xl space-y-4">
-            <div>
-                <flux:label>{{ __('Title') }}</flux:label>
-                <flux:text>{{ $workItem->title }}</flux:text>
-            </div>
-
+        @if ($workItem->description)
             <div>
                 <flux:label>{{ __('Description') }}</flux:label>
-                <flux:text>{{ $workItem->description ?: '—' }}</flux:text>
+                <flux:text>{{ $workItem->description }}</flux:text>
             </div>
+        @endif
 
+        <div class="max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <flux:label>{{ __('Organization') }}</flux:label>
                 <flux:text>{{ $workItem->organization->name }}</flux:text>
             </div>
 
-            <div>
-                <flux:label>{{ __('Project') }}</flux:label>
-                @if ($workItem->project)
+            @if ($workItem->project)
+                <div>
+                    <flux:label>{{ __('Project') }}</flux:label>
                     <flux:link href="{{ route('projects.show', $workItem->project) }}" wire:navigate>
                         {{ $workItem->project->name }}
                     </flux:link>
-                @else
-                    <flux:text>{{ __('—') }}</flux:text>
-                @endif
-            </div>
+                </div>
+            @endif
 
-            <div>
-                <flux:label>{{ __('Board ID') }}</flux:label>
-                <flux:text>{{ $workItem->board_id ?: '—' }}</flux:text>
-            </div>
+            @if ($workItem->board_id)
+                <div>
+                    <flux:label>{{ __('Board ID') }}</flux:label>
+                    <flux:text>{{ $workItem->board_id }}</flux:text>
+                </div>
+            @endif
 
             <div>
                 <flux:label>{{ __('Source') }}</flux:label>
                 <flux:text>{{ $workItem->source }}</flux:text>
             </div>
 
-            <div>
-                <flux:label>{{ __('Source Reference') }}</flux:label>
-                <flux:text>{{ $workItem->source_reference ?: '—' }}</flux:text>
-            </div>
+            @if ($workItem->source_reference)
+                <div>
+                    <flux:label>{{ __('Source Reference') }}</flux:label>
+                    <flux:text>{{ $workItem->source_reference }}</flux:text>
+                </div>
+            @endif
 
-            <div>
-                <flux:label>{{ __('Source URL') }}</flux:label>
-                @if ($workItem->source_url)
+            @if ($workItem->source_url)
+                <div>
+                    <flux:label>{{ __('Source URL') }}</flux:label>
                     <flux:link href="{{ $workItem->source_url }}" target="_blank">
                         {{ $workItem->source_url }}
                     </flux:link>
-                @else
-                    <flux:text>{{ __('—') }}</flux:text>
-                @endif
-            </div>
+                </div>
+            @endif
 
             <div>
                 <flux:label>{{ __('Created') }}</flux:label>
