@@ -399,6 +399,7 @@ it('eagerly stores the user message before streaming begins', function () {
 
     $content = $response->streamedContent();
     preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
     $conversationId = $matches[1];
 
     $userMessages = DB::table('agent_conversation_messages')
@@ -422,6 +423,7 @@ it('stores the assistant response after streaming completes', function () {
 
     $content = $response->streamedContent();
     preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
     $conversationId = $matches[1];
 
     $assistantMessages = DB::table('agent_conversation_messages')
@@ -460,6 +462,7 @@ it('resumes a conversation without duplicating user messages', function () {
 
     $content = $response->streamedContent();
     preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
     $conversationId = $matches[1];
 
     $response2 = $this->actingAs($this->user)
@@ -498,6 +501,22 @@ it('sets conversation ID without enabling conversation middleware via resumeConv
 
     expect($assistant->currentConversation())->toBe('test-conversation-id');
     expect($assistant->hasConversationParticipant())->toBeFalse();
+});
+
+it('rejects resuming a conversation owned by another user', function () {
+    $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
+    $conversationId = $store->storeConversation($this->user->id, 'My chat');
+
+    PageantAssistant::fake(['Nope']);
+
+    $otherUser = User::factory()->create();
+
+    $this->actingAs($otherUser)
+        ->post(route('chat.stream'), [
+            'message' => 'Sneaky message',
+            'conversation_id' => $conversationId,
+        ])
+        ->assertForbidden();
 });
 
 it('does not return conversation messages for another user', function () {

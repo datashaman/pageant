@@ -32,6 +32,15 @@ class ChatController extends Controller
         );
 
         if ($conversationId = $request->input('conversation_id')) {
+            $ownsConversation = DB::table('agent_conversations')
+                ->where('id', $conversationId)
+                ->where('user_id', $user->id)
+                ->exists();
+
+            if (! $ownsConversation) {
+                abort(403, 'You are not allowed to access this conversation.');
+            }
+
             $assistant->resumeConversation($conversationId);
         }
 
@@ -96,9 +105,11 @@ class ChatController extends Controller
             $assistant->resumeConversation($conversationId);
         }
 
+        $conversationId = $assistant->currentConversation();
+
         DB::table('agent_conversation_messages')->insert([
             'id' => Str::uuid7()->toString(),
-            'conversation_id' => $assistant->currentConversation(),
+            'conversation_id' => $conversationId,
             'user_id' => $user->id,
             'agent' => PageantAssistant::class,
             'role' => 'user',
@@ -111,6 +122,10 @@ class ChatController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->update(['updated_at' => now()]);
     }
 
     /**
@@ -135,6 +150,10 @@ class ChatController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->update(['updated_at' => now()]);
     }
 
     /**
