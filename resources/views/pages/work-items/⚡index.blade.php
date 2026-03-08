@@ -294,7 +294,7 @@ new #[Title('Work Items')] class extends Component {
                                     {{ __('Edit') }}
                                 </flux:button>
                                 @if ($workItem->isOpen())
-                                    <flux:button size="sm" variant="danger" wire:click="confirmClose('{{ $workItem->id }}')">
+                                    <flux:button size="sm" variant="ghost" wire:click="confirmClose('{{ $workItem->id }}')">
                                         {{ __('Close') }}
                                     </flux:button>
                                 @else
@@ -399,7 +399,7 @@ new #[Title('Work Items')] class extends Component {
                                     </div>
                                     <div class="ml-3 shrink-0">
                                         <template x-if="tracked.includes(issueKey(issue))">
-                                            <flux:button size="sm" variant="danger" x-on:click="$wire.untrackIssue(issueKey(issue)); $dispatch('issue-untracked', { sourceReference: issueKey(issue) })">
+                                            <flux:button size="sm" variant="ghost" x-on:click="$wire.untrackIssue(issueKey(issue)); $dispatch('issue-untracked', { sourceReference: issueKey(issue) })">
                                                 {{ __('Remove') }}
                                             </flux:button>
                                         </template>

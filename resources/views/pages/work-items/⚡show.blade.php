@@ -116,7 +116,7 @@ new #[Title('Work Item')] class extends Component {
                     {{ __('Edit') }}
                 </flux:button>
                 @if ($workItem->isOpen())
-                    <flux:button variant="danger" wire:click="confirmClose">
+                    <flux:button variant="ghost" wire:click="confirmClose">
                         {{ __('Close') }}
                     </flux:button>
                 @else
@@ -221,21 +221,21 @@ new #[Title('Work Item')] class extends Component {
                                 <flux:button size="sm" variant="primary" wire:click="approvePlan('{{ $plan->id }}')">
                                     {{ __('Approve') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @elseif ($plan->isRunning())
                                 <flux:button size="sm" wire:click="pausePlan('{{ $plan->id }}')">
                                     {{ __('Pause') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @elseif ($plan->isPaused())
                                 <flux:button size="sm" variant="primary" wire:click="resumePlan('{{ $plan->id }}')">
                                     {{ __('Resume') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @endif
