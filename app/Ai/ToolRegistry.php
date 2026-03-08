@@ -206,4 +206,23 @@ class ToolRegistry
 
         return $groups;
     }
+
+    /**
+     * @return array{github: array<string, array<string, string>>, pageant: array<string, array<string, string>>}
+     */
+    public static function groupedByCategory(): array
+    {
+        $github = [];
+        $pageant = [];
+
+        foreach (self::TOOL_MAP as $name => $entry) {
+            if (! empty($entry['local'])) {
+                $pageant[$entry['group']][$name] = $entry['description'];
+            } else {
+                $github[$entry['group']][$name] = $entry['description'];
+            }
+        }
+
+        return ['github' => $github, 'pageant' => $pageant];
+    }
 }
