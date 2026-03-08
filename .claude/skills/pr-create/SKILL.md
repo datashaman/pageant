@@ -511,7 +511,14 @@ for tid in PRRT_id1 PRRT_id2 PRRT_id3; do
 done
 ```
 
-**After making code fixes:**
+**After making code fixes, check if the PR is still open before pushing:**
+
+```bash
+# Check PR state before pushing
+gh pr view <pr-number> --json state --jq '.state'
+```
+
+#### If PR is still OPEN:
 
 ```bash
 git add <specific-files>
@@ -523,6 +530,47 @@ EOF
 )"
 git push
 ```
+
+#### If PR is MERGED or CLOSED (branch may be deleted):
+
+The user merged or closed the PR while Copilot review was being addressed. The fix commits need to go into a new branch and PR:
+
+1. **Switch to the base branch and pull latest:**
+   ```bash
+   git fetch origin
+   git checkout <base-branch>
+   git pull origin <base-branch>
+   ```
+
+2. **Create a new branch for the review fixes:**
+   ```bash
+   git checkout -b fix/copilot-review-pr-<original-pr-number>
+   ```
+
+3. **Apply the fixes** (the code changes you already made are in your working tree or can be re-applied). Stage and commit:
+   ```bash
+   git add <specific-files>
+   git commit -m "$(cat <<'EOF'
+   fix: address Copilot review feedback from PR #<original-pr-number>
+
+   <brief description of changes>
+   EOF
+   )"
+   ```
+
+4. **Push and create a new draft PR:**
+   ```bash
+   git push -u origin fix/copilot-review-pr-<original-pr-number>
+   gh pr create --draft --title "Fix: address Copilot review from #<original-pr-number>" --body "$(cat <<'EOF'
+   Follow-up fixes from Copilot code review on #<original-pr-number>.
+
+   ## Changes
+   <description of fixes applied>
+   EOF
+   )"
+   ```
+
+5. **Update task metadata** with the new PR number and URL, then return to **Step 9** to monitor CI on the new PR.
 
 ### Step 13: Re-monitor CI After Review Fixes
 
