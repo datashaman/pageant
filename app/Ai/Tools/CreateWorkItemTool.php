@@ -15,8 +15,8 @@ class CreateWorkItemTool implements Tool
 {
     public function __construct(
         protected GitHubService $github,
-        protected GithubInstallation $installation,
-        protected string $repoFullName,
+        protected ?GithubInstallation $installation = null,
+        protected ?string $repoFullName = null,
     ) {}
 
     public function description(): string
@@ -26,21 +26,29 @@ class CreateWorkItemTool implements Tool
 
     public function handle(Request $request): string
     {
+        $repoFullName = $this->repoFullName ?? $request['repo'];
+        $installation = $this->installation;
+
+        if (! $installation) {
+            $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
+            $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+        }
+
         $issue = $this->github->getIssue(
-            $this->installation,
-            $this->repoFullName,
+            $installation,
+            $repoFullName,
             (int) $request['issue_number'],
         );
 
         $repo = Repo::where('source', 'github')
-            ->where('source_reference', $this->repoFullName)
+            ->where('source_reference', $repoFullName)
             ->firstOrFail();
 
         $workItem = WorkItem::firstOrCreate(
             [
                 'organization_id' => $repo->organization_id,
                 'source' => 'github',
-                'source_reference' => $this->repoFullName.'#'.$request['issue_number'],
+                'source_reference' => $repoFullName.'#'.$request['issue_number'],
             ],
             [
                 'project_id' => $request['project_id'] ?? null,
@@ -52,7 +60,7 @@ class CreateWorkItemTool implements Tool
         );
 
         if ($workItem->wasRecentlyCreated) {
-            WorkItemCreated::dispatch($workItem, $this->repoFullName, $this->installation->installation_id);
+            WorkItemCreated::dispatch($workItem, $repoFullName, $installation->installation_id);
         }
 
         return json_encode($workItem->toArray(), JSON_PRETTY_PRINT);
@@ -60,7 +68,15 @@ class CreateWorkItemTool implements Tool
 
     public function schema(JsonSchema $schema): array
     {
-        return [
+        $fields = [];
+
+        if (! $this->repoFullName) {
+            $fields['repo'] = $schema->string()
+                ->description('The repository in owner/repo format.')
+                ->required();
+        }
+
+        return array_merge($fields, [
             'issue_number' => $schema->integer()
                 ->description('The GitHub issue number to create a work item from.')
                 ->required(),
@@ -69,6 +85,6 @@ class CreateWorkItemTool implements Tool
                 ->required(),
             'project_id' => $schema->string()
                 ->description('Optional project ID to associate the work item with.'),
-        ];
+        ]);
     }
 }

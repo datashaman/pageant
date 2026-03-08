@@ -5,7 +5,6 @@ namespace App\Ai\Tools;
 use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
-use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -16,8 +15,8 @@ class CreateAgentTool implements Tool
 {
     public function __construct(
         protected GitHubService $github,
-        protected GithubInstallation $installation,
-        protected string $repoFullName,
+        protected ?object $installation = null,
+        protected ?string $repoFullName = null,
     ) {}
 
     public function description(): string
@@ -27,8 +26,10 @@ class CreateAgentTool implements Tool
 
     public function handle(Request $request): string
     {
+        $repoFullName = $this->repoFullName ?? $request['repo'];
+
         $repo = Repo::where('source', 'github')
-            ->where('source_reference', $this->repoFullName)
+            ->where('source_reference', $repoFullName)
             ->firstOrFail();
 
         $data = [
@@ -70,7 +71,15 @@ class CreateAgentTool implements Tool
 
     public function schema(JsonSchema $schema): array
     {
-        return [
+        $fields = [];
+
+        if (! $this->repoFullName) {
+            $fields['repo'] = $schema->string()
+                ->description('The repository in owner/repo format.')
+                ->required();
+        }
+
+        return array_merge($fields, [
             'name' => $schema->string()
                 ->description('The name of the agent.')
                 ->required(),
@@ -96,6 +105,6 @@ class CreateAgentTool implements Tool
                 ->description('Whether the agent is enabled. Defaults to true.'),
             'repo_names' => $schema->array()
                 ->description('Repository full names (owner/repo) to attach the agent to.'),
-        ];
+        ]);
     }
 }

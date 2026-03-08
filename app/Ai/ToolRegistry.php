@@ -105,11 +105,11 @@ class ToolRegistry
         'list_check_runs' => ['class' => ListCheckRunsTool::class, 'description' => 'List check runs', 'group' => 'CI / Status'],
 
         // Work Items
-        'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items', 'category' => 'pageant'],
-        'delete_work_item' => ['class' => DeleteWorkItemTool::class, 'description' => 'Delete a work item', 'group' => 'Work Items', 'category' => 'pageant'],
+        'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
+        'delete_work_item' => ['class' => DeleteWorkItemTool::class, 'description' => 'Delete a work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
 
         // Agents
-        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant'],
+        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant', 'flexible' => true],
 
         // Repos (organization-scoped, no GitHub API needed)
         'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Repos', 'local' => true],
