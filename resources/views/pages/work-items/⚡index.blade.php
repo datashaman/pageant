@@ -329,7 +329,7 @@ new #[Title('Work Items')] class extends Component {
                     @empty
                         <flux:table.row>
                             <flux:table.cell colspan="6" class="text-center">
-                                {{ __('No work items found.') }}
+                                {{ __('No work items match your search.') }}
                             </flux:table.cell>
                         </flux:table.row>
                     @endforelse
