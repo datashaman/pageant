@@ -60,6 +60,13 @@ it('can update a project', function () {
     expect($this->project->fresh()->name)->toBe('Updated Project');
 });
 
+it('shows project name as a clickable link on the index page', function () {
+    $this->actingAs($this->user)
+        ->get(route('projects.index'))
+        ->assertOk()
+        ->assertSeeHtml(route('projects.show', $this->project));
+});
+
 it('can delete a project', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::projects.index')
