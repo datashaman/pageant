@@ -93,7 +93,7 @@ new #[Title('Agents')] class extends Component {
                             </flux:link>
                         </flux:table.cell>
                         <flux:table.cell>{{ $agent->provider }}</flux:table.cell>
-                        <flux:table.cell>{{ $agent->model }}</flux:table.cell>
+                        <flux:table.cell>{{ $agent->model_display_name }}</flux:table.cell>
                         <flux:table.cell>{{ $agent->organization->name }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">

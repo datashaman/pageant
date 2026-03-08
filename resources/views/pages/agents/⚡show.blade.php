@@ -65,7 +65,7 @@ new #[Title('View Agent')] class extends Component {
 
             <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Model') }}</flux:heading>
-                <flux:text>{{ $agent->model ?: __('None') }}</flux:text>
+                <flux:text>{{ $agent->model_display_name }}</flux:text>
             </div>
 
             <div>
