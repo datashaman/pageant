@@ -46,6 +46,65 @@ it('accepts same-org project_id when editing work items', function () {
         ->call('save')
         ->assertHasNoErrors()
         ->assertRedirect();
+
+    expect($workItem->fresh()->project_id)->toBe($sameProject->id);
+});
+
+it('accepts same-org skills and repos when editing agents', function () {
+    $agent = Agent::factory()->for($this->organization)->create();
+    $sameSkill = Skill::factory()->for($this->organization)->create();
+    $sameRepo = Repo::factory()->for($this->organization)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.edit', ['agent' => $agent])
+        ->set('name', $agent->name)
+        ->set('selectedSkills', [$sameSkill->id])
+        ->set('selectedRepos', [$sameRepo->id])
+        ->call('update')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    expect($agent->fresh()->skills->pluck('id')->toArray())->toBe([$sameSkill->id])
+        ->and($agent->fresh()->repos->pluck('id')->toArray())->toBe([$sameRepo->id]);
+});
+
+it('accepts same-org agents and repos when editing skills', function () {
+    $skill = Skill::factory()->for($this->organization)->create();
+    $sameAgent = Agent::factory()->for($this->organization)->create();
+    $sameRepo = Repo::factory()->for($this->organization)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::skills.edit', ['skill' => $skill])
+        ->set('name', $skill->name)
+        ->set('selectedAgents', [$sameAgent->id])
+        ->set('selectedRepos', [$sameRepo->id])
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    expect($skill->fresh()->agents->pluck('id')->toArray())->toBe([$sameAgent->id])
+        ->and($skill->fresh()->repos->pluck('id')->toArray())->toBe([$sameRepo->id]);
+});
+
+it('accepts same-org skills, agents, and projects when editing repos', function () {
+    $repo = Repo::factory()->for($this->organization)->create();
+    $sameSkill = Skill::factory()->for($this->organization)->create();
+    $sameAgent = Agent::factory()->for($this->organization)->create();
+    $sameProject = Project::factory()->for($this->organization)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::repos.edit', ['repo' => $repo])
+        ->set('name', $repo->name)
+        ->set('selectedSkills', [$sameSkill->id])
+        ->set('selectedAgents', [$sameAgent->id])
+        ->set('selectedProjects', [$sameProject->id])
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+
+    expect($repo->fresh()->skills->pluck('id')->toArray())->toBe([$sameSkill->id])
+        ->and($repo->fresh()->agents->pluck('id')->toArray())->toBe([$sameAgent->id])
+        ->and($repo->fresh()->projects->pluck('id')->toArray())->toBe([$sameProject->id]);
 });
 
 it('rejects cross-org skills when editing agents', function () {
