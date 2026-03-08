@@ -5,6 +5,7 @@ namespace App\Ai\Agents;
 use App\Ai\ToolRegistry;
 use App\Contracts\ExecutionDriver;
 use App\Models\Agent;
+use App\Services\RepoInstructionsService;
 use Laravel\Ai\Contracts\Agent as AgentContract;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\ConversationStore;
@@ -40,10 +41,25 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
             $parts[] = "## Skills\n\n".$skillContexts->implode("\n\n---\n\n");
         }
 
+        $repoInstructions = $this->loadRepoInstructions();
+
+        if ($repoInstructions !== '') {
+            $parts[] = $repoInstructions;
+        }
+
         return implode("\n\n", $parts);
     }
 
     protected const MAX_CONVERSATION_MESSAGES = 20;
+
+    protected function loadRepoInstructions(): string
+    {
+        try {
+            return app(RepoInstructionsService::class)->loadForRepo($this->repoFullName);
+        } catch (\Throwable) {
+            return '';
+        }
+    }
 
     public function messages(): iterable
     {
