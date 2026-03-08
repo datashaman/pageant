@@ -188,6 +188,8 @@ php artisan passport:keys
 
 - Use `php artisan make:` commands to scaffold new files; pass `--no-interaction`.
 - Middleware is configured in `bootstrap/app.php` (not in `Kernel.php` — that file does not exist in Laravel 12).
+- **Event listeners are auto-discovered** via the `handle()` method type-hint — no `EventServiceProvider` or `Event::listen()` registration needed. A listener class with `public function handle(SomeEvent $event)` is automatically wired up.
+- **Console commands** in `app/Console/Commands/` are auto-registered — no Kernel or manual registration.
 - Prefer Eloquent relationships and eager loading; avoid `DB::` raw queries.
 - Use Laravel's validation helpers (e.g. `$request->validate([...])`) for request validation; introduce Form Request classes only when they provide clear reuse or complexity benefits.
 - Use named routes and the `route()` helper for URL generation.
@@ -252,9 +254,10 @@ Both workflows trigger on PRs to `main`:
 ### GitHub Server (`/mcp/github`) — 32 tools
 Requires `repo` parameter as `owner/repo`. Groups: Issues, Pull Requests, Comments, Branches, Files, Labels, CI/CD Status, Search.
 
-### Pageant Server (`/mcp/pageant`) — 3 tools
+### Pageant Server (`/mcp/pageant`)
 - `create-work-item`: Bridge a GitHub issue to an internal WorkItem
-- `delete-work-item`: Remove a WorkItem
+- `close-work-item`: Close a WorkItem (soft-close, preserves history)
+- `reopen-work-item`: Reopen a closed WorkItem
 - `create-agent`: Create a new AI Agent
 
 ---

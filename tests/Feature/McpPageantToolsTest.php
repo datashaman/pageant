@@ -1,17 +1,22 @@
 <?php
 
 use App\Mcp\Servers\PageantServer;
+use App\Mcp\Tools\CloseWorkItemTool;
 use App\Mcp\Tools\CreateWorkItemTool;
-use App\Mcp\Tools\DeleteWorkItemTool;
+use App\Mcp\Tools\ReopenWorkItemTool;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
+use App\Models\User;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Mockery\MockInterface;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
+    $this->user = User::factory()->create();
+    $this->user->organizations()->attach($this->organization);
+    $this->actingAs($this->user);
     $this->installation = GithubInstallation::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
@@ -86,21 +91,45 @@ it('creates a work item without board_id', function () {
         ->and($workItem->board_id)->toBeNull();
 });
 
-it('deletes a work item by repo and issue number', function () {
+it('closes a work item by repo and issue number', function () {
     WorkItem::factory()->create([
+        'organization_id' => $this->organization->id,
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#42',
+        'board_id' => 'backlog',
+        'status' => 'open',
+    ]);
+
+    $response = PageantServer::tool(CloseWorkItemTool::class, [
+        'repo' => 'acme/widgets',
+        'issue_number' => 42,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('closed successfully');
+
+    $workItem = WorkItem::where('source_reference', 'acme/widgets#42')->first();
+    expect($workItem)->not->toBeNull()
+        ->and($workItem->status)->toBe('closed');
+});
+
+it('reopens a closed work item by repo and issue number', function () {
+    WorkItem::factory()->closed()->create([
         'organization_id' => $this->organization->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets#42',
         'board_id' => 'backlog',
     ]);
 
-    $response = PageantServer::tool(DeleteWorkItemTool::class, [
+    $response = PageantServer::tool(ReopenWorkItemTool::class, [
         'repo' => 'acme/widgets',
         'issue_number' => 42,
     ]);
 
     $response->assertOk()
-        ->assertSee('deleted successfully');
+        ->assertSee('reopened successfully');
 
-    expect(WorkItem::where('source_reference', 'acme/widgets#42')->exists())->toBeFalse();
+    $workItem = WorkItem::where('source_reference', 'acme/widgets#42')->first();
+    expect($workItem)->not->toBeNull()
+        ->and($workItem->status)->toBe('open');
 });
