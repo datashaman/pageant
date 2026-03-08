@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Concerns\BelongsToUserOrganization;
 use App\Concerns\HasSource;
+use App\Events\WorkItemDeleted;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,11 @@ class WorkItem extends Model
 {
     /** @use HasFactory<\Database\Factories\WorkItemFactory> */
     use BelongsToUserOrganization, HasFactory, HasSource, HasUuids;
+
+    /** @var array<string, class-string> */
+    protected $dispatchesEvents = [
+        'deleting' => WorkItemDeleted::class,
+    ];
 
     protected $fillable = [
         'organization_id',
@@ -24,6 +30,8 @@ class WorkItem extends Model
         'source_reference',
         'source_url',
         'conversation_id',
+        'worktree_path',
+        'worktree_branch',
     ];
 
     public function organization(): BelongsTo
