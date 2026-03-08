@@ -210,13 +210,27 @@ new class extends Component
         </template>
 
         <template x-for="(msg, index) in messages" :key="index">
-            <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+            <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'" class="group relative">
                 <div
                     :class="msg.role === 'user'
                         ? 'max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-4 py-2 text-sm text-white dark:bg-zinc-200 dark:text-zinc-900'
                         : 'chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'"
                     x-html="msg.role === 'user' ? msg.content : window.renderMarkdown(msg.content)"
                 ></div>
+                <button
+                    class="absolute -bottom-2 opacity-0 transition-opacity group-hover:opacity-100"
+                    :class="msg.role === 'user' ? 'right-0' : 'left-0'"
+                    x-data="{ copied: false }"
+                    @click="navigator.clipboard.writeText(msg.content).then(() => { copied = true; setTimeout(() => copied = false, 1500) })"
+                    :title="copied ? '{{ __('Copied!') }}' : '{{ __('Copy message') }}'"
+                >
+                    <template x-if="!copied">
+                        <flux:icon.clipboard class="size-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+                    </template>
+                    <template x-if="copied">
+                        <flux:icon.check class="size-3.5 text-green-500" />
+                    </template>
+                </button>
             </div>
         </template>
 
