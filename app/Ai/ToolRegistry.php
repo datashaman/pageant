@@ -4,6 +4,7 @@ namespace App\Ai;
 
 use App\Ai\Tools\AddLabelsToIssueTool;
 use App\Ai\Tools\AttachRepoToProjectTool;
+use App\Ai\Tools\BashTool;
 use App\Ai\Tools\CloseIssueTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateBranchTool;
@@ -30,6 +31,11 @@ use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
 use App\Ai\Tools\GetRepositoryTreeTool;
 use App\Ai\Tools\GetRepoTool;
+use App\Ai\Tools\GitCommitTool;
+use App\Ai\Tools\GitDiffTool;
+use App\Ai\Tools\GitLogTool;
+use App\Ai\Tools\GitPushTool;
+use App\Ai\Tools\GitStatusTool;
 use App\Ai\Tools\GlobTool;
 use App\Ai\Tools\GrepTool;
 use App\Ai\Tools\ListBranchesTool;
@@ -133,13 +139,23 @@ class ToolRegistry
         'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Projects', 'local' => true],
         'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Projects', 'local' => true],
 
-        // Worktree File Tools
-        'read_file' => ['class' => ReadFileTool::class, 'description' => 'Read file contents from the worktree', 'group' => 'Worktree Files', 'worktree' => true],
-        'write_file' => ['class' => WriteFileTool::class, 'description' => 'Create or overwrite a file in the worktree', 'group' => 'Worktree Files', 'worktree' => true],
-        'edit_file' => ['class' => EditFileTool::class, 'description' => 'Perform exact string replacement in a file', 'group' => 'Worktree Files', 'worktree' => true],
-        'glob' => ['class' => GlobTool::class, 'description' => 'Find files by glob pattern', 'group' => 'Worktree Files', 'worktree' => true],
-        'grep' => ['class' => GrepTool::class, 'description' => 'Search file contents with regex', 'group' => 'Worktree Files', 'worktree' => true],
-        'list_directory' => ['class' => ListDirectoryTool::class, 'description' => 'List files and directories', 'group' => 'Worktree Files', 'worktree' => true],
+        // Worktree - File Tools
+        'read_file' => ['class' => ReadFileTool::class, 'description' => 'Read file contents from the worktree', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+        'write_file' => ['class' => WriteFileTool::class, 'description' => 'Create or overwrite a file in the worktree', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+        'edit_file' => ['class' => EditFileTool::class, 'description' => 'Edit a file using exact string replacement', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+        'glob' => ['class' => GlobTool::class, 'description' => 'Find files by glob pattern', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+        'grep' => ['class' => GrepTool::class, 'description' => 'Search file contents with regex', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+        'list_directory' => ['class' => ListDirectoryTool::class, 'description' => 'List files and directories', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+
+        // Worktree - Command
+        'bash' => ['class' => BashTool::class, 'description' => 'Execute a shell command in the worktree', 'group' => 'Worktree Commands', 'worktree' => true, 'category' => 'worktree'],
+
+        // Worktree - Git
+        'git_status' => ['class' => GitStatusTool::class, 'description' => 'Show working tree status', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_diff' => ['class' => GitDiffTool::class, 'description' => 'Show changes in the worktree', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_commit' => ['class' => GitCommitTool::class, 'description' => 'Stage and commit changes', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_push' => ['class' => GitPushTool::class, 'description' => 'Push commits to remote', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_log' => ['class' => GitLogTool::class, 'description' => 'View commit history', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
     ];
 
     /**
@@ -201,14 +217,16 @@ class ToolRegistry
     /**
      * @return array<string, string>
      */
-    public static function availableForContext(?string $repoFullName = null): array
+    public static function availableForContext(?string $repoFullName = null, bool $hasWorktree = false): array
     {
         return array_filter(
             self::available(),
-            fn (string $description, string $name) => ! empty(self::TOOL_MAP[$name]['local'])
-                || ! empty(self::TOOL_MAP[$name]['flexible'])
-                || ! empty(self::TOOL_MAP[$name]['worktree'])
-                || $repoFullName !== null,
+            fn (string $description, string $name) => match (true) {
+                ! empty(self::TOOL_MAP[$name]['worktree']) => $hasWorktree,
+                ! empty(self::TOOL_MAP[$name]['local']),
+                ! empty(self::TOOL_MAP[$name]['flexible']) => true,
+                default => $repoFullName !== null,
+            },
             ARRAY_FILTER_USE_BOTH,
         );
     }
@@ -228,7 +246,7 @@ class ToolRegistry
     {
         return array_keys(array_filter(
             self::TOOL_MAP,
-            fn (array $entry) => empty($entry['local']) && ($entry['category'] ?? null) !== 'pageant',
+            fn (array $entry) => empty($entry['local']) && ($entry['category'] ?? null) !== 'pageant' && empty($entry['worktree']),
         ));
     }
 
@@ -269,21 +287,24 @@ class ToolRegistry
     }
 
     /**
-     * @return array{github: array<string, array<string, string>>, pageant: array<string, array<string, string>>}
+     * @return array{github: array<string, array<string, string>>, pageant: array<string, array<string, string>>, worktree: array<string, array<string, string>>}
      */
     public static function groupedByCategory(): array
     {
         $github = [];
         $pageant = [];
+        $worktree = [];
 
         foreach (self::TOOL_MAP as $name => $entry) {
-            if (! empty($entry['local']) || ($entry['category'] ?? null) === 'pageant') {
+            if (! empty($entry['worktree'])) {
+                $worktree[$entry['group']][$name] = $entry['description'];
+            } elseif (! empty($entry['local']) || ($entry['category'] ?? null) === 'pageant') {
                 $pageant[$entry['group']][$name] = $entry['description'];
             } else {
                 $github[$entry['group']][$name] = $entry['description'];
             }
         }
 
-        return ['github' => $github, 'pageant' => $pageant];
+        return ['github' => $github, 'pageant' => $pageant, 'worktree' => $worktree];
     }
 }
