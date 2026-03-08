@@ -64,7 +64,7 @@ it('shows project name as a clickable link on the index page', function () {
     $this->actingAs($this->user)
         ->get(route('projects.index'))
         ->assertOk()
-        ->assertSeeHtml('href="' . route('projects.show', $this->project) . '"');
+        ->assertSeeHtml('href="'.route('projects.show', $this->project).'"');
 });
 
 it('can delete a project', function () {
