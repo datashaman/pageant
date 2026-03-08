@@ -8,10 +8,10 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
+use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
 #[Description('Stage files and create a git commit.')]
-#[IsIdempotent]
+#[IsOpenWorld]
 class GitCommitTool extends Tool
 {
     public function __construct(protected ExecutionDriver $driver) {}

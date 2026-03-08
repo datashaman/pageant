@@ -8,8 +8,10 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
 #[Description('Execute a shell command in the worktree directory. Returns stdout, stderr, and exit code.')]
+#[IsOpenWorld]
 class BashTool extends Tool
 {
     public function __construct(
