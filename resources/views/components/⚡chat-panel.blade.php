@@ -108,50 +108,13 @@ new class extends Component
 
             if (el) {
                 try {
-                    const ctx = JSON.parse(el.dataset.chatContext);
-                    const parts = [];
-
-                    const page = ctx.page || '';
-                    const [resource, action] = page.split('.');
-                    const singular = resource ? resource.replace(/-/g, ' ').replace(/s$/, '') : '';
-
-                    if (action === 'show' || action === 'edit') {
-                        const verb = action === 'show' ? 'viewing' : 'editing';
-                        parts.push(`User is ${verb} a ${singular}`);
-
-                        Object.entries(ctx).forEach(([key, value]) => {
-                            if (key !== 'page' && value) {
-                                const label = key.replace(/_/g, ' ');
-                                parts.push(`${label}: ${value}`);
-                            }
-                        });
-                    } else if (action === 'create') {
-                        parts.push(`User is on the ${singular} creation page`);
-                    } else if (action === 'index') {
-                        parts.push(`User is on the ${resource.replace(/-/g, ' ')} list page`);
-                    } else {
-                        parts.push(`User is on the ${page || 'dashboard'}`);
-                    }
-
-                    return parts.join('. ');
+                    return el.dataset.chatContext;
                 } catch (e) {
                     // Fall through to URL-based detection
                 }
             }
 
-            const path = window.location.pathname;
-            const urlParts = path.split('/').filter(Boolean);
-
-            if (urlParts.length === 0) return 'User is on the dashboard';
-
-            const resource = urlParts[0];
-            const action = urlParts.length > 1 ? urlParts[urlParts.length - 1] : 'index';
-
-            if (action === 'create') return `User is on the ${resource} create page`;
-            if (action === 'edit') return `User is editing a ${resource.replace(/s$/, '')}`;
-            if (urlParts.length > 1 && action !== 'index') return `User is viewing a ${resource.replace(/s$/, '')}`;
-
-            return `User is on the ${resource} index page`;
+            return JSON.stringify({ page: window.location.pathname });
         },
 
         async sendMessage() {
