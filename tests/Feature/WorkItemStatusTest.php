@@ -1,6 +1,7 @@
 <?php
 
 use App\Events\GitHubIssueReceived;
+use App\Jobs\ReconcileWorkItemStatuses;
 use App\Listeners\SyncWorkItemStatus;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
@@ -126,6 +127,48 @@ describe('work-items:reconcile command', function () {
         $this->artisan('work-items:reconcile')
             ->expectsOutput('No GitHub-linked work items found.')
             ->assertSuccessful();
+    });
+});
+
+describe('ReconcileWorkItemStatuses job', function () {
+    it('reconciles statuses for a specific organization', function () {
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $this->organization->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#42',
+            'status' => 'open',
+        ]);
+
+        $this->mock(GitHubService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('getIssue')
+                ->once()
+                ->andReturn([
+                    'number' => 42,
+                    'state' => 'closed',
+                ]);
+        });
+
+        ReconcileWorkItemStatuses::dispatchSync($this->organization);
+
+        expect($workItem->fresh()->status)->toBe('closed');
+    });
+
+    it('skips work items from other organizations', function () {
+        $otherOrg = Organization::factory()->create();
+        $otherWorkItem = WorkItem::factory()->create([
+            'organization_id' => $otherOrg->id,
+            'source' => 'github',
+            'source_reference' => 'other/repo#10',
+            'status' => 'open',
+        ]);
+
+        $this->mock(GitHubService::class, function (MockInterface $mock) {
+            $mock->shouldNotReceive('getIssue');
+        });
+
+        ReconcileWorkItemStatuses::dispatchSync($this->organization);
+
+        expect($otherWorkItem->fresh()->status)->toBe('open');
     });
 });
 
