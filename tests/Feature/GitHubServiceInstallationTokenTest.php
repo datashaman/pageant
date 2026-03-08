@@ -5,12 +5,17 @@ use App\Models\Organization;
 use App\Services\GitHubService;
 use Illuminate\Support\Facades\Http;
 
-it('listAppInstallations uses JWT auth, not user tokens', function () {
+beforeEach(function () {
+    $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+    openssl_pkey_export($key, $this->privateKeyPem);
+
     config([
         'services.github.app_id' => '12345',
-        'services.github.private_key_path' => base_path('tests/fixtures/fake-private-key.pem'),
+        'services.github.private_key_path' => $this->privateKeyPem,
     ]);
+});
 
+it('listAppInstallations uses JWT auth, not user tokens', function () {
     Http::fake([
         'https://api.github.com/app/installations*' => Http::response([
             ['id' => 1001, 'account' => ['login' => 'acme', 'type' => 'Organization'], 'permissions' => [], 'events' => []],
@@ -31,11 +36,6 @@ it('listAppInstallations uses JWT auth, not user tokens', function () {
 });
 
 it('getInstallationToken uses JWT auth, not user tokens', function () {
-    config([
-        'services.github.app_id' => '12345',
-        'services.github.private_key_path' => base_path('tests/fixtures/fake-private-key.pem'),
-    ]);
-
     Http::fake([
         'https://api.github.com/app/installations/999/access_tokens' => Http::response([
             'token' => 'ghs_installation_token_abc123',
@@ -59,11 +59,6 @@ it('uses installation tokens for all repo API calls', function () {
     $installation = GithubInstallation::factory()->create([
         'organization_id' => $organization->id,
         'installation_id' => 555,
-    ]);
-
-    config([
-        'services.github.app_id' => '12345',
-        'services.github.private_key_path' => base_path('tests/fixtures/fake-private-key.pem'),
     ]);
 
     Http::fake([
