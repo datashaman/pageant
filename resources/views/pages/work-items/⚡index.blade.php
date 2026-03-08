@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ReconcileWorkItemStatuses;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Models\WorkItem;
@@ -21,6 +22,30 @@ new #[Title('Work Items')] class extends Component {
     public bool $showImportModal = false;
     public string $selectedRepoId = '';
     public bool $issuesLoaded = false;
+    public bool $syncing = false;
+
+    public function mount(): void
+    {
+        $org = auth()->user()->currentOrganization;
+
+        if ($org) {
+            ReconcileWorkItemStatuses::dispatch($org);
+        }
+    }
+
+    public function syncStatuses(): void
+    {
+        $this->syncing = true;
+
+        $org = auth()->user()->currentOrganization;
+
+        if ($org) {
+            ReconcileWorkItemStatuses::dispatchSync($org);
+        }
+
+        unset($this->workItems);
+        $this->syncing = false;
+    }
 
     public function updatedSearch(): void
     {
@@ -185,9 +210,17 @@ new #[Title('Work Items')] class extends Component {
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Work Items') }}</flux:heading>
-            <flux:button variant="primary" wire:click="openImportModal">
-                {{ __('Import Issues') }}
-            </flux:button>
+            <div class="flex items-center gap-2">
+                <flux:button wire:click="syncStatuses" wire:loading.attr="disabled" wire:target="syncStatuses">
+                    <div class="flex items-center gap-1.5">
+                        <flux:icon.arrow-path class="size-4" wire:loading.class="animate-spin" wire:target="syncStatuses" />
+                        {{ __('Sync') }}
+                    </div>
+                </flux:button>
+                <flux:button variant="primary" wire:click="openImportModal">
+                    {{ __('Import Issues') }}
+                </flux:button>
+            </div>
         </div>
 
         <div class="flex items-center gap-4">
