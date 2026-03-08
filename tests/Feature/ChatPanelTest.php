@@ -1,6 +1,7 @@
 <?php
 
 use App\Ai\Agents\PageantAssistant;
+use App\Http\Controllers\ChatController;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
@@ -79,7 +80,13 @@ it('streams a response via SSE', function () {
     $response = $this->actingAs($this->user)
         ->post(route('chat.stream'), [
             'message' => 'Hello',
-            'repo_full_name' => 'acme/widgets',
+            'page_context' => json_encode([
+                'page' => 'repos.show',
+                'repo_id' => $this->repo->id,
+                'repo_name' => $this->repo->name,
+                'repo_source' => 'github',
+                'repo_source_reference' => 'acme/widgets',
+            ]),
         ]);
 
     $response->assertOk();
@@ -132,7 +139,14 @@ it('includes rich page context in assistant instructions', function () {
 it('sends page context to the stream endpoint and includes it in assistant instructions', function () {
     PageantAssistant::fake(['Got it, you are viewing a work item.']);
 
-    $pageContext = 'User is viewing a work item. work item id: abc-123. work item title: Fix login bug';
+    $pageContext = json_encode([
+        'page' => 'work-items.show',
+        'work_item_id' => 'abc-123',
+        'work_item_title' => 'Fix login bug',
+        'project' => 'My Project',
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#42',
+    ]);
 
     $response = $this->actingAs($this->user)
         ->post(route('chat.stream'), [
@@ -143,8 +157,11 @@ it('sends page context to the stream endpoint and includes it in assistant instr
     $response->assertOk();
     $response->assertHeader('content-type', 'text/event-stream; charset=utf-8');
 
-    PageantAssistant::assertPrompted(function ($prompt) use ($pageContext) {
-        return str_contains($prompt->agent->instructions(), $pageContext);
+    PageantAssistant::assertPrompted(function ($prompt) {
+        $instructions = $prompt->agent->instructions();
+
+        return str_contains($instructions, 'Fix login bug')
+            && str_contains($instructions, 'acme/widgets');
     });
 });
 
@@ -247,6 +264,95 @@ it('maintains conversation context across messages', function () {
     // Verify the second response also emits the same conversation_id
     $content = $response->streamedContent();
     expect($content)->toContain('"conversation_id":"'.$conversationId.'"');
+});
+
+it('resolves repo full name from repo page context', function () {
+    $context = [
+        'page' => 'repos.show',
+        'repo_id' => 'abc-123',
+        'repo_name' => 'widgets',
+        'repo_source' => 'github',
+        'repo_source_reference' => 'acme/widgets',
+    ];
+
+    expect(ChatController::resolveRepoFullName($context))->toBe('acme/widgets');
+});
+
+it('resolves repo full name from work item page context', function () {
+    $context = [
+        'page' => 'work-items.show',
+        'work_item_id' => 'abc-123',
+        'work_item_title' => 'Fix login bug',
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#42',
+    ];
+
+    expect(ChatController::resolveRepoFullName($context))->toBe('acme/widgets');
+});
+
+it('returns null repo for non-github sources', function () {
+    $context = [
+        'page' => 'repos.show',
+        'repo_source' => 'gitlab',
+        'repo_source_reference' => 'acme/widgets',
+    ];
+
+    expect(ChatController::resolveRepoFullName($context))->toBeNull();
+});
+
+it('returns null repo for pages without repo context', function () {
+    expect(ChatController::resolveRepoFullName(['page' => 'dashboard']))->toBeNull();
+    expect(ChatController::resolveRepoFullName(['page' => 'agents.index']))->toBeNull();
+    expect(ChatController::resolveRepoFullName([]))->toBeNull();
+});
+
+it('formats page context for show pages', function () {
+    $context = [
+        'page' => 'repos.show',
+        'repo_id' => 'abc-123',
+        'repo_name' => 'widgets',
+        'repo_source' => 'github',
+        'repo_source_reference' => 'acme/widgets',
+    ];
+
+    $formatted = ChatController::formatPageContext($context);
+
+    expect($formatted)
+        ->toContain('User is viewing a repo')
+        ->toContain('repo name: widgets')
+        ->toContain('repo source reference: acme/widgets');
+});
+
+it('formats page context for index pages', function () {
+    expect(ChatController::formatPageContext(['page' => 'work-items.index']))
+        ->toBe('User is on the work items list page');
+});
+
+it('formats page context for create pages', function () {
+    expect(ChatController::formatPageContext(['page' => 'projects.create']))
+        ->toBe('User is on the project creation page');
+});
+
+it('resolves repo from page context in stream request', function () {
+    PageantAssistant::fake(['I can see the acme/widgets repo.']);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'What repo am I on?',
+            'page_context' => json_encode([
+                'page' => 'repos.show',
+                'repo_id' => $this->repo->id,
+                'repo_name' => $this->repo->name,
+                'repo_source' => 'github',
+                'repo_source_reference' => 'acme/widgets',
+            ]),
+        ]);
+
+    $response->assertOk();
+
+    PageantAssistant::assertPrompted(function ($prompt) {
+        return str_contains($prompt->agent->instructions(), 'acme/widgets');
+    });
 });
 
 it('does not return conversation messages for another user', function () {

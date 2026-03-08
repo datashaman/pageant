@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Ai\Agents\PageantAssistant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ChatController extends Controller
 {
@@ -13,16 +14,19 @@ class ChatController extends Controller
         $request->validate([
             'message' => ['required', 'string', 'max:10000'],
             'conversation_id' => ['nullable', 'string', 'max:36'],
-            'repo_full_name' => ['nullable', 'string'],
-            'page_context' => ['nullable', 'string', 'max:500'],
+            'page_context' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $user = $request->user();
 
+        $contextData = json_decode($request->input('page_context', '{}'), true) ?: [];
+        $repoFullName = self::resolveRepoFullName($contextData);
+        $pageContext = self::formatPageContext($contextData);
+
         $assistant = new PageantAssistant(
             user: $user,
-            repoFullName: $request->input('repo_full_name'),
-            pageContext: $request->input('page_context', ''),
+            repoFullName: $repoFullName,
+            pageContext: $pageContext,
         );
 
         $assistant->forUser($user);
@@ -54,6 +58,68 @@ class ChatController extends Controller
             echo "data: [DONE]\n\n";
             $flush();
         }, headers: ['Content-Type' => 'text/event-stream']);
+    }
+
+    /**
+     * Resolve a GitHub repo full name from the structured page context.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public static function resolveRepoFullName(array $context): ?string
+    {
+        // Repo page: repo_source_reference is the full name (e.g. "acme/widgets")
+        if (! empty($context['repo_source_reference']) && ($context['repo_source'] ?? '') === 'github') {
+            return $context['repo_source_reference'];
+        }
+
+        // Work item page: source_reference is "owner/repo#number"
+        if (! empty($context['source_reference']) && ($context['source'] ?? '') === 'github') {
+            return Str::before($context['source_reference'], '#');
+        }
+
+        return null;
+    }
+
+    /**
+     * Format structured page context into a readable string for the assistant.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public static function formatPageContext(array $context): string
+    {
+        if (empty($context)) {
+            return '';
+        }
+
+        $page = $context['page'] ?? '';
+        $parts = explode('.', $page);
+        $resource = $parts[0] ?? '';
+        $action = $parts[1] ?? '';
+        $singular = $resource ? rtrim(str_replace('-', ' ', $resource), 's') : '';
+
+        $lines = [];
+
+        if (in_array($action, ['show', 'edit'])) {
+            $verb = $action === 'show' ? 'viewing' : 'editing';
+            $lines[] = "User is {$verb} a {$singular}";
+
+            foreach ($context as $key => $value) {
+                if ($key !== 'page' && $value !== null && $value !== '') {
+                    $label = str_replace('_', ' ', $key);
+                    $lines[] = "{$label}: {$value}";
+                }
+            }
+        } elseif ($action === 'create') {
+            $lines[] = "User is on the {$singular} creation page";
+        } elseif ($action === 'index') {
+            $lines[] = 'User is on the '.str_replace('-', ' ', $resource).' list page';
+        } elseif ($page) {
+            $lines[] = "User is on the {$page}";
+        } else {
+            $lines[] = 'User is on the dashboard';
+        }
+
+        return implode('. ', $lines);
     }
 
     public function messages(Request $request)
