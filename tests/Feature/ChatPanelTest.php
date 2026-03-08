@@ -99,6 +99,22 @@ it('constructs PageantAssistant with correct instructions', function () {
         ->toContain('User is on the agents index page');
 });
 
+it('includes proactive behavior directives in instructions', function () {
+    $assistant = new PageantAssistant(
+        user: $this->user,
+        repoFullName: 'acme/widgets',
+    );
+
+    $instructions = $assistant->instructions();
+
+    expect($instructions)
+        ->toContain('Act immediately when the user\'s intent is clear')
+        ->toContain('destructive or irreversible action')
+        ->toContain('Batch related operations together')
+        ->toContain('context narrows to a single option')
+        ->toContain('genuine ambiguity');
+});
+
 it('resolves all tools for PageantAssistant', function () {
     $assistant = new PageantAssistant(
         user: $this->user,
