@@ -3,6 +3,7 @@
 namespace App\Ai;
 
 use App\Ai\Tools\AddLabelsToIssueTool;
+use App\Ai\Tools\AttachRepoToProjectTool;
 use App\Ai\Tools\CloseIssueTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateBranchTool;
@@ -10,18 +11,24 @@ use App\Ai\Tools\CreateCommentTool;
 use App\Ai\Tools\CreateIssueTool;
 use App\Ai\Tools\CreateLabelTool;
 use App\Ai\Tools\CreateOrUpdateFileTool;
+use App\Ai\Tools\CreateProjectTool;
 use App\Ai\Tools\CreatePullRequestReviewTool;
 use App\Ai\Tools\CreatePullRequestTool;
 use App\Ai\Tools\CreateWorkItemTool;
 use App\Ai\Tools\DeleteFileTool;
 use App\Ai\Tools\DeleteLabelTool;
+use App\Ai\Tools\DeleteProjectTool;
+use App\Ai\Tools\DeleteRepoTool;
 use App\Ai\Tools\DeleteWorkItemTool;
+use App\Ai\Tools\DetachRepoFromProjectTool;
 use App\Ai\Tools\GetCommitStatusTool;
 use App\Ai\Tools\GetFileContentsTool;
 use App\Ai\Tools\GetIssueTool;
+use App\Ai\Tools\GetProjectTool;
 use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
 use App\Ai\Tools\GetRepositoryTreeTool;
+use App\Ai\Tools\GetRepoTool;
 use App\Ai\Tools\ListBranchesTool;
 use App\Ai\Tools\ListCheckRunsTool;
 use App\Ai\Tools\ListCommentsTool;
@@ -38,7 +45,9 @@ use App\Ai\Tools\RequestReviewersTool;
 use App\Ai\Tools\SearchCodeTool;
 use App\Ai\Tools\SearchIssuesTool;
 use App\Ai\Tools\UpdateIssueTool;
+use App\Ai\Tools\UpdateProjectTool;
 use App\Ai\Tools\UpdatePullRequestTool;
+use App\Ai\Tools\UpdateRepoTool;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Models\User;
@@ -102,9 +111,20 @@ class ToolRegistry
         // Agents
         'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents'],
 
-        // Pageant (organization-scoped, no GitHub API needed)
-        'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Pageant', 'local' => true],
-        'list_projects' => ['class' => ListProjectsTool::class, 'description' => 'List projects in the current organization', 'group' => 'Pageant', 'local' => true],
+        // Pageant — Repos (organization-scoped, no GitHub API needed)
+        'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Pageant — Repos', 'local' => true],
+        'get_repo' => ['class' => GetRepoTool::class, 'description' => 'Get a repo by ID', 'group' => 'Pageant — Repos', 'local' => true],
+        'update_repo' => ['class' => UpdateRepoTool::class, 'description' => 'Update a repo name', 'group' => 'Pageant — Repos', 'local' => true],
+        'delete_repo' => ['class' => DeleteRepoTool::class, 'description' => 'Delete a repo', 'group' => 'Pageant — Repos', 'local' => true],
+
+        // Pageant — Projects
+        'list_projects' => ['class' => ListProjectsTool::class, 'description' => 'List projects in the current organization', 'group' => 'Pageant — Projects', 'local' => true],
+        'get_project' => ['class' => GetProjectTool::class, 'description' => 'Get a project by ID', 'group' => 'Pageant — Projects', 'local' => true],
+        'create_project' => ['class' => CreateProjectTool::class, 'description' => 'Create a project', 'group' => 'Pageant — Projects', 'local' => true],
+        'update_project' => ['class' => UpdateProjectTool::class, 'description' => 'Update a project', 'group' => 'Pageant — Projects', 'local' => true],
+        'delete_project' => ['class' => DeleteProjectTool::class, 'description' => 'Delete a project', 'group' => 'Pageant — Projects', 'local' => true],
+        'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Pageant — Projects', 'local' => true],
+        'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Pageant — Projects', 'local' => true],
     ];
 
     /**
