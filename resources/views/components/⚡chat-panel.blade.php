@@ -221,8 +221,8 @@ new class extends Component
                     <div
                         :class="msg.role === 'user'
                             ? 'max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-4 py-2 text-sm text-white dark:bg-zinc-200 dark:text-zinc-900'
-                            : 'max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'"
-                        x-text="msg.content"
+                            : 'chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'"
+                        x-html="msg.role === 'user' ? msg.content : window.renderMarkdown(msg.content)"
                     ></div>
                 </div>
             </template>
@@ -230,8 +230,8 @@ new class extends Component
             {{-- Streaming indicator --}}
             <template x-if="streaming && streamedContent">
                 <div class="flex justify-start">
-                    <div class="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                         x-text="streamedContent"></div>
+                    <div class="chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                         x-html="window.renderMarkdown(streamedContent)"></div>
                 </div>
             </template>
 
