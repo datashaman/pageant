@@ -31,7 +31,29 @@ class ChatController extends Controller
             $assistant->continue($conversationId, $user);
         }
 
-        return $assistant->stream($request->input('message'));
+        $streamable = $assistant->stream($request->input('message'));
+
+        return response()->stream(function () use ($assistant, $streamable) {
+            $flush = function () {
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            };
+
+            foreach ($streamable as $event) {
+                echo 'data: '.((string) $event)."\n\n";
+                $flush();
+            }
+
+            if ($conversationId = $assistant->currentConversation()) {
+                echo 'data: '.json_encode(['conversation_id' => $conversationId])."\n\n";
+                $flush();
+            }
+
+            echo "data: [DONE]\n\n";
+            $flush();
+        }, headers: ['Content-Type' => 'text/event-stream']);
     }
 
     public function messages(Request $request)

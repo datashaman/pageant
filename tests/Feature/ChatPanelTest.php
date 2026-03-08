@@ -137,6 +137,68 @@ it('returns conversation messages', function () {
         ->assertJsonFragment(['role' => 'user', 'content' => 'Hello']);
 });
 
+it('emits conversation_id in the SSE stream', function () {
+    PageantAssistant::fake(['Hello!']);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Hello',
+        ]);
+
+    $response->assertOk();
+
+    $content = $response->streamedContent();
+
+    expect($content)->toContain('conversation_id');
+
+    // Extract the conversation_id from the SSE data
+    preg_match('/data: (\{"conversation_id":"[^"]+"\})/', $content, $matches);
+    expect($matches)->not->toBeEmpty();
+
+    $data = json_decode($matches[1], true);
+    expect($data['conversation_id'])->not->toBeNull();
+
+    // Verify the conversation was stored in the database
+    $this->assertDatabaseHas('agent_conversations', [
+        'id' => $data['conversation_id'],
+    ]);
+});
+
+it('maintains conversation context across messages', function () {
+    PageantAssistant::fake(['First response.', 'Second response with context.']);
+
+    // First message - no conversation_id
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Hello',
+        ]);
+
+    $content = $response->streamedContent();
+    preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    $conversationId = $matches[1];
+
+    // Second message - with conversation_id
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Follow up',
+            'conversation_id' => $conversationId,
+        ]);
+
+    $response->assertOk();
+
+    // All messages should be stored in the same conversation
+    $messageCount = DB::table('agent_conversation_messages')
+        ->where('conversation_id', $conversationId)
+        ->count();
+
+    // At least the first pair + second pair should share the same conversation
+    expect($messageCount)->toBeGreaterThanOrEqual(2);
+
+    // Verify the second response also emits the same conversation_id
+    $content = $response->streamedContent();
+    expect($content)->toContain('"conversation_id":"'.$conversationId.'"');
+});
+
 it('does not return conversation messages for another user', function () {
     $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
     $conversationId = $store->storeConversation($this->user->id, 'Test chat');
