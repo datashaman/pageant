@@ -73,7 +73,7 @@ new class extends Component
 
 <div
     x-data="{
-        open: false,
+        open: JSON.parse(localStorage.getItem('chat-panel-open') || 'false'),
         currentMessage: '',
         streaming: false,
         streamedContent: '',
@@ -82,6 +82,7 @@ new class extends Component
 
         toggle() {
             this.open = ! this.open;
+            localStorage.setItem('chat-panel-open', JSON.stringify(this.open));
             if (this.open) {
                 this.$nextTick(() => this.scrollToBottom());
             }
@@ -195,6 +196,7 @@ new class extends Component
             this.streamedContent = '';
         }
     }"
+    x-init="if (open) $nextTick(() => scrollToBottom())"
     @keydown.meta.k.window="toggle()"
     @toggle-chat-panel.window="toggle()"
 >
@@ -216,7 +218,7 @@ new class extends Component
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="translate-x-full"
         class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
-        @keydown.escape.window="open = false"
+        @keydown.escape.window="open = false; localStorage.setItem('chat-panel-open', 'false')"
     >
         {{-- Header --}}
         <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
@@ -303,6 +305,6 @@ new class extends Component
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
         class="fixed inset-0 z-40 bg-black/25"
-        @click="open = false"
+        @click="open = false; localStorage.setItem('chat-panel-open', 'false')"
     ></div>
 </div>
