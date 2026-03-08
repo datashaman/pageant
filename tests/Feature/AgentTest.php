@@ -62,3 +62,15 @@ it('allows same name in different organizations', function () {
 
     expect($agent1->id)->not->toBe($agent2->id);
 });
+
+it('returns Default for model_display_name when model is inherit', function () {
+    $agent = Agent::factory()->create(['model' => 'inherit']);
+
+    expect($agent->model_display_name)->toBe('Default');
+});
+
+it('returns the model name for model_display_name when model is not inherit', function () {
+    $agent = Agent::factory()->create(['model' => 'claude-sonnet-4-6']);
+
+    expect($agent->model_display_name)->toBe('claude-sonnet-4-6');
+});
