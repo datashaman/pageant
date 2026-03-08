@@ -28,7 +28,7 @@ new #[Title('View Skill')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'skills.show', 'skill_id' => $skill->id, 'skill_name' => $skill->name]) }}">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">

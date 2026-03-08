@@ -52,7 +52,7 @@ new #[Title('Edit Work Item')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'work-items.edit', 'work_item_id' => $workItem->id, 'work_item_title' => $workItem->title]) }}">
     <div class="space-y-6">
         <div class="flex items-center gap-4">
             <flux:button href="{{ route('work-items.show', $workItem) }}" wire:navigate>

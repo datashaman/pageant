@@ -72,7 +72,7 @@ new #[Title('Edit Repo')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'repos.edit', 'repo_id' => $repo->id, 'repo_name' => $repo->name]) }}">
     <div class="space-y-6">
         <div class="flex items-center gap-4">
             <flux:button href="{{ route('repos.show', $repo) }}" wire:navigate>

@@ -54,7 +54,7 @@ new #[Title('Agents')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'agents.index']) }}">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Agents') }}</flux:heading>

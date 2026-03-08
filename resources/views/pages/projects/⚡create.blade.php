@@ -45,7 +45,7 @@ new #[Title('Create Project')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'projects.create']) }}">
     <div class="flex flex-col gap-6">
         <flux:heading size="xl">{{ __('Create Project') }}</flux:heading>
 

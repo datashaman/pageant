@@ -24,7 +24,7 @@ new #[Title('Project')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'projects.show', 'project_id' => $project->id, 'project_name' => $project->name]) }}">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">

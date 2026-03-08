@@ -28,7 +28,7 @@ new #[Title('View Agent')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'agents.show', 'agent_id' => $agent->id, 'agent_name' => $agent->name, 'agent_description' => Str::limit($agent->description, 200)]) }}">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">

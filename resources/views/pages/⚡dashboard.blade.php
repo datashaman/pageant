@@ -41,7 +41,7 @@ new #[Title('Dashboard')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'dashboard']) }}">
     <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
         <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
 
