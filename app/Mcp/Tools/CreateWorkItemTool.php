@@ -36,6 +36,8 @@ class CreateWorkItemTool extends Tool
 
         $issue = $this->github->getIssue($installation, $validated['repo'], $validated['issue_number']);
 
+        $projectId = $validated['project_id'] ?? $repo->inferProjectId();
+
         $workItem = WorkItem::firstOrCreate(
             [
                 'organization_id' => $repo->organization_id,
@@ -43,7 +45,7 @@ class CreateWorkItemTool extends Tool
                 'source_reference' => $validated['repo'].'#'.$validated['issue_number'],
             ],
             [
-                'project_id' => $validated['project_id'] ?? null,
+                'project_id' => $projectId,
                 'title' => $issue['title'],
                 'description' => $issue['body'] ?? '',
                 'board_id' => $validated['board_id'] ?? null,

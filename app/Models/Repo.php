@@ -42,4 +42,18 @@ class Repo extends Model
     {
         return $this->belongsToMany(Project::class);
     }
+
+    /**
+     * Infer the project ID when the repo belongs to exactly one project.
+     */
+    public function inferProjectId(): ?string
+    {
+        $projects = $this->projects()->limit(2)->pluck('projects.id');
+
+        if ($projects->count() === 1) {
+            return $projects->first();
+        }
+
+        return null;
+    }
 }

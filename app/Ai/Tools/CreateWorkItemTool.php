@@ -44,6 +44,8 @@ class CreateWorkItemTool implements Tool
             ->where('source_reference', $repoFullName)
             ->firstOrFail();
 
+        $projectId = $request['project_id'] ?? $repo->inferProjectId();
+
         $workItem = WorkItem::firstOrCreate(
             [
                 'organization_id' => $repo->organization_id,
@@ -51,7 +53,7 @@ class CreateWorkItemTool implements Tool
                 'source_reference' => $repoFullName.'#'.$request['issue_number'],
             ],
             [
-                'project_id' => $request['project_id'] ?? null,
+                'project_id' => $projectId,
                 'title' => $issue['title'],
                 'description' => $issue['body'] ?? '',
                 'board_id' => $request['board_id'] ?? null,
