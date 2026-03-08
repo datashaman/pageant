@@ -211,9 +211,9 @@ Present the following before continuing:
 > 2. **Push** the branch to origin
 > 3. **Create the PR** as a draft with the approved title and body
 > 4. **Monitor CI** and fix any failures
-> 5. **Wait for Copilot review** (reviews draft PRs) and address any comments
-> 6. **Ensure branch is up to date** with the base branch (rebase if needed)
-> 7. **Publish the PR** (remove draft status) once everything is resolved
+> 5. **Publish the PR** (remove draft status) once CI passes — Copilot only reviews non-draft PRs
+> 6. **Wait for Copilot review** and address any comments
+> 7. **Ensure branch is up to date** with the base branch (rebase if needed)
 > 8. **Request a review** from `@<reviewer>` (if applicable)
 >
 > I'll auto-fix small issues (formatting, lint, type errors, test failures, Copilot suggestions). If anything bigger comes up, I'll check with you first.
@@ -344,7 +344,11 @@ TaskUpdate:
 - metadata: {"status": "passed"}
 ```
 
-**Do NOT publish the PR yet** — keep it as a draft while waiting for Copilot review. Copilot reviews draft PRs.
+**Publish the PR now** — Copilot does not review draft PRs created by automation, so the PR must be published before Copilot will review it:
+
+```bash
+gh pr ready <pr-number>
+```
 
 - Proceed to **Step 11** (Monitor Copilot Review)
 
@@ -413,7 +417,7 @@ TaskUpdate:
 
 ### Step 11: Monitor Copilot Review
 
-After CI passes and the PR is published, monitor for GitHub Copilot review comments.
+After CI passes and the PR has been published (Step 10), monitor for GitHub Copilot review comments. Copilot only reviews non-draft PRs, so the PR must be published before this step.
 
 **Create a review task:**
 ```
@@ -636,9 +640,9 @@ git push --force-with-lease
 
 Then return to **Step 9** to monitor the CI run triggered by the push. After CI passes, proceed to **Step 15**.
 
-### Step 15: Publish PR and Request Review
+### Step 15: Request Review
 
-**Publish the PR** (remove draft status) now that CI passes, Copilot review is resolved, and the branch is up to date:
+The PR was already published in Step 10 (after CI passed). If the PR was re-drafted due to review fixes, publish it again:
 ```bash
 gh pr ready <pr-number>
 ```
@@ -701,7 +705,7 @@ TaskList shows:
 ├── PR task in_progress, fix task in_progress
 │   └── Continue fixing, then push and monitor new CI run
 ├── PR task in_progress, CI passed, no review task
-│   └── Start monitoring Copilot review (Step 11)
+│   └── Publish PR (gh pr ready), then start monitoring Copilot review (Step 11)
 ├── PR task in_progress, review task in_progress
 │   └── Check for Copilot comments and address them (Step 12)
 ├── PR task in_progress, review task completed
