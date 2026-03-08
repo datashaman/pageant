@@ -104,3 +104,54 @@ select:focus[data-flux-control] {
 /* \[:where(&)\]:size-4 {
     @apply size-4;
 } */
+
+.chat-markdown p {
+    @apply my-1 first:mt-0 last:mb-0;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+    @apply my-1 ml-4 first:mt-0 last:mb-0;
+}
+
+.chat-markdown ul {
+    @apply list-disc;
+}
+
+.chat-markdown ol {
+    @apply list-decimal;
+}
+
+.chat-markdown li {
+    @apply my-0.5;
+}
+
+.chat-markdown strong {
+    @apply font-semibold;
+}
+
+.chat-markdown code {
+    @apply rounded bg-black/10 px-1 py-0.5 text-xs dark:bg-white/10;
+}
+
+.chat-markdown pre {
+    @apply my-1 overflow-x-auto rounded bg-black/10 p-2 text-xs first:mt-0 last:mb-0 dark:bg-white/10;
+}
+
+.chat-markdown pre code {
+    @apply bg-transparent p-0;
+}
+
+.chat-markdown a {
+    @apply underline;
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+    @apply my-1 font-semibold first:mt-0;
+}
+
+.chat-markdown blockquote {
+    @apply my-1 border-l-2 border-current/20 pl-3 italic first:mt-0 last:mb-0;
+}
