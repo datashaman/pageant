@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\GitHubService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -16,7 +17,7 @@ class GitHubAuthController extends Controller
     public function redirect(): RedirectResponse
     {
         return Socialite::driver('github')
-            ->scopes(['user:email', 'read:org'])
+            ->scopes(['user:email'])
             ->redirect();
     }
 
@@ -43,8 +44,6 @@ class GitHubAuthController extends Controller
         if ($user) {
             $user->update([
                 'github_id' => $githubUser->getId(),
-                'github_token' => $githubUser->token,
-                'github_refresh_token' => $githubUser->refreshToken,
                 'avatar_url' => $githubUser->getAvatar(),
             ]);
         } else {
@@ -52,13 +51,11 @@ class GitHubAuthController extends Controller
                 'name' => $githubUser->getName() ?? $githubUser->getNickname(),
                 'email' => $email,
                 'github_id' => $githubUser->getId(),
-                'github_token' => $githubUser->token,
-                'github_refresh_token' => $githubUser->refreshToken,
                 'avatar_url' => $githubUser->getAvatar(),
             ]);
         }
 
-        $this->syncGitHubOrganizations($user, $githubUser->token);
+        $this->syncGitHubOrganizations($user);
 
         Auth::login($user, remember: true);
 
@@ -101,18 +98,13 @@ class GitHubAuthController extends Controller
         return $primary['email'] ?? null;
     }
 
-    private function syncGitHubOrganizations(User $user, string $token): void
+    private function syncGitHubOrganizations(User $user): void
     {
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->get('https://api.github.com/user/installations');
-
-        if ($response->failed()) {
+        try {
+            $installations = app(GitHubService::class)->listAppInstallations();
+        } catch (\Throwable) {
             return;
         }
-
-        $installations = $response->json('installations', []);
 
         $orgIds = [];
 

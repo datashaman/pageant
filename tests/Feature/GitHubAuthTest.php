@@ -3,9 +3,11 @@
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\GitHubService;
 use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Mockery\MockInterface;
 
 it('redirects to github', function () {
     $response = $this->get(route('auth.github'));
@@ -15,7 +17,9 @@ it('redirects to github', function () {
 });
 
 it('creates a new user from github callback', function () {
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $socialiteUser = createSocialiteUser();
 
@@ -36,7 +40,9 @@ it('creates a new user from github callback', function () {
 });
 
 it('links existing user by email on github callback', function () {
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $existingUser = User::factory()->create(['email' => 'test@example.com']);
 
@@ -55,7 +61,9 @@ it('links existing user by email on github callback', function () {
 });
 
 it('links existing user by github_id on callback', function () {
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $existingUser = User::factory()->create([
         'email' => 'old@example.com',
@@ -99,8 +107,11 @@ it('fetches primary email from github api when email is private', function () {
             ['email' => 'secondary@example.com', 'primary' => false, 'verified' => true],
             ['email' => 'primary@example.com', 'primary' => true, 'verified' => true],
         ]),
-        'https://api.github.com/user/installations' => Http::response([]),
     ]);
+
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $socialiteUser = createSocialiteUser(email: null);
 
@@ -116,15 +127,13 @@ it('fetches primary email from github api when email is private', function () {
         ->and($user->email)->toBe('primary@example.com');
 });
 
-it('creates organizations from github callback', function () {
-    Http::fake([
-        'https://api.github.com/user/installations' => Http::response([
-            'installations' => [
-                ['id' => 1001, 'account' => ['login' => 'Acme Corp', 'type' => 'Organization']],
-                ['id' => 1002, 'account' => ['login' => 'widgets-inc', 'type' => 'Organization']],
-            ],
-        ]),
-    ]);
+it('creates organizations from github callback using app installations', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([
+            ['id' => 1001, 'account' => ['login' => 'Acme Corp', 'type' => 'Organization'], 'permissions' => [], 'events' => []],
+            ['id' => 1002, 'account' => ['login' => 'widgets-inc', 'type' => 'Organization'], 'permissions' => [], 'events' => []],
+        ]);
+    });
 
     $socialiteUser = createSocialiteUser();
 
@@ -152,13 +161,11 @@ it('attaches user to existing organization by slug', function () {
         'slug' => 'existing-org',
     ]);
 
-    Http::fake([
-        'https://api.github.com/user/installations' => Http::response([
-            'installations' => [
-                ['id' => 2001, 'account' => ['login' => 'existing-org', 'type' => 'Organization']],
-            ],
-        ]),
-    ]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([
+            ['id' => 2001, 'account' => ['login' => 'existing-org', 'type' => 'Organization'], 'permissions' => [], 'events' => []],
+        ]);
+    });
 
     $socialiteUser = createSocialiteUser();
 
