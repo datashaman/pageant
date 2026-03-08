@@ -86,7 +86,7 @@ describe('Plan Events Broadcasting', function () {
             ->toBeInstanceOf(\Illuminate\Contracts\Broadcasting\ShouldBroadcast::class);
     });
 
-    it('dispatches PlanCompleted event via broadcast', function () {
+    it('dispatches PlanCompleted event', function () {
         Event::fake([PlanCompleted::class]);
 
         PlanCompleted::dispatch($this->plan);
@@ -169,25 +169,29 @@ describe('PlanStep Events Broadcasting', function () {
 });
 
 describe('Channel Authorization', function () {
-    it('authorizes users who belong to the organization', function () {
-        $result = Broadcast::channel('organization.{organization}', function (User $user, Organization $organization) {
-            return $user->organizations->contains($organization);
-        });
-
-        $this->actingAs($this->user);
-
-        expect($this->user->organizations->contains($this->organization))->toBeTrue();
-    });
-
-    it('rejects users who do not belong to the organization', function () {
-        $otherUser = User::factory()->create();
-
-        expect($otherUser->organizations->contains($this->organization))->toBeFalse();
-    });
-
     it('registers the organization channel route', function () {
         $channels = Broadcast::getChannels();
 
         expect($channels)->toHaveKey('organization.{organization}');
+    });
+
+    it('authorizes users who belong to the organization via channel callback', function () {
+        $channels = Broadcast::getChannels();
+        $callback = $channels['organization.{organization}'];
+
+        $result = $callback($this->user, $this->organization);
+
+        expect($result)->toBeTrue();
+    });
+
+    it('rejects users who do not belong to the organization via channel callback', function () {
+        $otherUser = User::factory()->create();
+
+        $channels = Broadcast::getChannels();
+        $callback = $channels['organization.{organization}'];
+
+        $result = $callback($otherUser, $this->organization);
+
+        expect($result)->toBeFalse();
     });
 });

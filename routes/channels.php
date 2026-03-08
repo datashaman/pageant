@@ -9,5 +9,5 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 });
 
 Broadcast::channel('organization.{organization}', function (User $user, Organization $organization) {
-    return $user->organizations->contains($organization);
+    return $user->organizations()->whereKey($organization->getKey())->exists();
 });
