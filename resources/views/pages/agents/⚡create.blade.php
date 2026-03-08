@@ -26,9 +26,9 @@ new #[Title('Create Agent')] class extends Component {
     public array $selectedRepos = [];
 
     #[Computed]
-    public function groupedTools(): array
+    public function toolCategories(): array
     {
-        return ToolRegistry::grouped();
+        return ToolRegistry::groupedByCategory();
     }
 
     /**
@@ -230,10 +230,15 @@ new #[Title('Create Agent')] class extends Component {
                     class="-mb-px px-4 py-2 text-sm font-medium transition">
                     {{ __('Events') }}
                 </button>
-                <button type="button" @click="tab = 'tools'"
-                    :class="tab === 'tools' ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'"
+                <button type="button" @click="tab = 'github-tools'"
+                    :class="tab === 'github-tools' ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'"
                     class="-mb-px px-4 py-2 text-sm font-medium transition">
-                    {{ __('Tools') }}
+                    {{ __('GitHub Tools') }}
+                </button>
+                <button type="button" @click="tab = 'pageant-tools'"
+                    :class="tab === 'pageant-tools' ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'"
+                    class="-mb-px px-4 py-2 text-sm font-medium transition">
+                    {{ __('Pageant Tools') }}
                 </button>
                 <button type="button" @click="tab = 'skills'"
                     :class="tab === 'skills' ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'"
@@ -322,15 +327,33 @@ new #[Title('Create Agent')] class extends Component {
                     </div>
                 </div>
 
-                {{-- Tools tab --}}
-                <div x-show="tab === 'tools'" x-cloak>
+                {{-- GitHub Tools tab --}}
+                <div x-show="tab === 'github-tools'" x-cloak>
                     <div class="space-y-4">
                         <div class="flex items-center gap-2">
                             <flux:button size="xs" wire:click="selectAllTools">{{ __('Check all') }}</flux:button>
                             <flux:button size="xs" wire:click="deselectAllTools">{{ __('Uncheck all') }}</flux:button>
                         </div>
                         <flux:checkbox.group wire:model="selectedTools">
-                            @foreach ($this->groupedTools as $group => $tools)
+                            @foreach ($this->toolCategories['github'] as $group => $tools)
+                                <div class="mb-4">
+                                    <flux:heading size="xs" class="mb-2">{{ $group }}</flux:heading>
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        @foreach ($tools as $name => $description)
+                                            <flux:checkbox :label="$description" :value="$name" />
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </flux:checkbox.group>
+                    </div>
+                </div>
+
+                {{-- Pageant Tools tab --}}
+                <div x-show="tab === 'pageant-tools'" x-cloak>
+                    <div class="space-y-4">
+                        <flux:checkbox.group wire:model="selectedTools">
+                            @foreach ($this->toolCategories['pageant'] as $group => $tools)
                                 <div class="mb-4">
                                     <flux:heading size="xs" class="mb-2">{{ $group }}</flux:heading>
                                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
