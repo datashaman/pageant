@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\ConversationStore;
-use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 new class extends Component
@@ -53,21 +52,6 @@ new class extends Component
         $this->conversationId = $id;
     }
 
-    #[Computed]
-    public function defaultRepo(): ?string
-    {
-        $user = auth()->user();
-        $organizationId = $user->currentOrganizationId();
-
-        if (! $organizationId) {
-            return null;
-        }
-
-        return \App\Models\Repo::where('organization_id', $organizationId)
-            ->where('source', 'github')
-            ->first()
-            ?->source_reference;
-    }
 };
 ?>
 
@@ -133,7 +117,6 @@ new class extends Component
                     body: JSON.stringify({
                         message: message,
                         conversation_id: this.conversationId,
-                        repo_full_name: @js($this->defaultRepo),
                         page_context: this.getPageContext(),
                     }),
                 });
