@@ -206,7 +206,7 @@ new #[Title('Repos')] class extends Component {
                                 <flux:button size="sm" href="{{ route('repos.edit', $repo) }}" wire:navigate>
                                     {{ __('Edit') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="confirmDelete('{{ $repo->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="confirmDelete('{{ $repo->id }}')">
                                     {{ __('Delete') }}
                                 </flux:button>
                             </div>
@@ -291,7 +291,7 @@ new #[Title('Repos')] class extends Component {
                                     </div>
                                     <div class="ml-3 shrink-0">
                                         <template x-if="tracked.includes(repo.full_name)">
-                                            <flux:button size="sm" variant="danger" x-on:click="$wire.untrackRepo(repo.full_name); $dispatch('repo-untracked', { fullName: repo.full_name })">
+                                            <flux:button size="sm" variant="ghost" x-on:click="$wire.untrackRepo(repo.full_name); $dispatch('repo-untracked', { fullName: repo.full_name })">
                                                 {{ __('Remove') }}
                                             </flux:button>
                                         </template>

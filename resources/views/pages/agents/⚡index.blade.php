@@ -100,7 +100,7 @@ new #[Title('Agents')] class extends Component {
                                 <flux:button size="sm" href="{{ route('agents.edit', $agent) }}" wire:navigate>
                                     {{ __('Edit') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="confirmDelete('{{ $agent->id }}')">
+                                <flux:button size="sm" variant="ghost" wire:click="confirmDelete('{{ $agent->id }}')">
                                     {{ __('Delete') }}
                                 </flux:button>
                             </div>
