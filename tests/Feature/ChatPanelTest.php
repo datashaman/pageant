@@ -139,7 +139,7 @@ it('sends page context to the stream endpoint', function () {
         ]);
 
     $response->assertOk();
-    $response->assertHeader('content-type', 'text/event-stream; charset=utf-8')
+    $response->assertHeader('content-type', 'text/event-stream; charset=utf-8');
 });
 
 it('resolves all tools for PageantAssistant', function () {
