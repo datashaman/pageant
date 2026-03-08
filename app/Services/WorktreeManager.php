@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\ExecutionDriver;
 use App\Models\WorkItem;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use RuntimeException;
 
@@ -74,18 +75,28 @@ class WorktreeManager
         if (File::isDirectory($workItem->worktree_path)) {
             $escapedWorktreePath = escapeshellarg($workItem->worktree_path);
 
-            Process::path($barePath)
+            $result = Process::path($barePath)
                 ->run("git worktree remove --force {$escapedWorktreePath}");
+
+            if (! $result->successful()) {
+                Log::warning('git worktree remove failed', [
+                    'work_item_id' => $workItem->id,
+                    'worktree_path' => $workItem->worktree_path,
+                    'error' => $result->errorOutput(),
+                ]);
+            }
         }
 
         if (File::isDirectory($workItem->worktree_path)) {
             File::deleteDirectory($workItem->worktree_path);
         }
 
-        $workItem->update([
-            'worktree_path' => null,
-            'worktree_branch' => null,
-        ]);
+        if ($workItem->exists) {
+            $workItem->update([
+                'worktree_path' => null,
+                'worktree_branch' => null,
+            ]);
+        }
     }
 
     /**
@@ -109,6 +120,10 @@ class WorktreeManager
 
         if (empty($repoReference) || ! str_contains($repoReference, '/')) {
             throw new RuntimeException("Invalid source reference for worktree: {$sourceReference}");
+        }
+
+        if (str_contains($repoReference, '..') || str_contains($repoReference, "\0")) {
+            throw new RuntimeException("Unsafe source reference detected: {$sourceReference}");
         }
 
         return $repoReference;
@@ -152,8 +167,12 @@ class WorktreeManager
     protected function ensureBareClone(string $barePath, string $repoReference): void
     {
         if (File::isDirectory($barePath)) {
-            Process::path($barePath)
+            $result = Process::path($barePath)
                 ->run('git fetch --all');
+
+            if (! $result->successful()) {
+                throw new RuntimeException("Failed to fetch repository updates: {$result->errorOutput()}");
+            }
 
             return;
         }

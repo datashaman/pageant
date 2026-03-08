@@ -17,7 +17,7 @@ class WorkItem extends Model
 
     /** @var array<string, class-string> */
     protected $dispatchesEvents = [
-        'deleting' => WorkItemDeleted::class,
+        'deleted' => WorkItemDeleted::class,
     ];
 
     protected $fillable = [

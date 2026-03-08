@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\WorkItem;
-use App\Services\WorktreeManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
 
 class WorktreeCleanupCommand extends Command
 {
@@ -15,7 +15,7 @@ class WorktreeCleanupCommand extends Command
 
     protected $description = 'Clean up orphaned worktree directories';
 
-    public function handle(WorktreeManager $worktreeManager): int
+    public function handle(): int
     {
         $isDryRun = $this->option('dry-run');
         $isForce = $this->option('force');
@@ -76,7 +76,7 @@ class WorktreeCleanupCommand extends Command
                             continue;
                         }
 
-                        File::deleteDirectory($worktreeDir);
+                        $this->removeOrphanedWorktree($worktreeDir, $repoDir);
                         $cleanedCount++;
                     }
                 }
@@ -90,5 +90,28 @@ class WorktreeCleanupCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Remove an orphaned worktree using git worktree remove, falling back to directory deletion.
+     */
+    protected function removeOrphanedWorktree(string $worktreeDir, string $repoDir): void
+    {
+        $barePath = $repoDir.'/.bare';
+
+        if (File::isDirectory($barePath)) {
+            $escapedWorktreeDir = escapeshellarg($worktreeDir);
+
+            $result = Process::path($barePath)
+                ->run("git worktree remove --force {$escapedWorktreeDir}");
+
+            if ($result->successful()) {
+                return;
+            }
+
+            $this->warn("git worktree remove failed for {$worktreeDir}: {$result->errorOutput()}");
+        }
+
+        File::deleteDirectory($worktreeDir);
     }
 }
