@@ -83,7 +83,7 @@ new #[Title('Projects')] class extends Component {
                         <flux:table.cell>{{ $project->organization->name }}</flux:table.cell>
                         <flux:table.cell align="end">
                             <div class="flex items-center justify-end gap-2">
-                                <flux:button href="{{ route('projects.edit', $project) }}" wire:navigate size="sm" variant="ghost">
+                                <flux:button href="{{ route('projects.edit', $project) }}" wire:navigate size="sm">
                                     {{ __('Edit') }}
                                 </flux:button>
 
