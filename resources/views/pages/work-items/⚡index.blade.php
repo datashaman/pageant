@@ -223,108 +223,119 @@ new #[Title('Work Items')] class extends Component {
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
-            <div class="flex-1">
-                <flux:input wire:model.live="search" placeholder="{{ __('Search work items...') }}" icon="magnifying-glass" />
+        @if ($this->workItems->isEmpty() && ! $this->search && $this->statusFilter === 'open')
+            <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
+                <flux:icon.clipboard-document-list class="size-10 text-zinc-400 dark:text-zinc-500" />
+                <flux:heading size="lg" class="mt-4">{{ __('No work items yet') }}</flux:heading>
+                <flux:text class="mt-1 max-w-sm">{{ __('Work items track GitHub issues and tasks that agents can pick up and work on. Import issues from your tracked repos to get started.') }}</flux:text>
+                <flux:button variant="primary" wire:click="openImportModal" class="mt-6">
+                    {{ __('Import Issues') }}
+                </flux:button>
             </div>
-            <flux:select wire:model.live="statusFilter" class="w-40">
-                <flux:select.option value="open">{{ __('Open') }}</flux:select.option>
-                <flux:select.option value="closed">{{ __('Closed') }}</flux:select.option>
-                <flux:select.option value="all">{{ __('All') }}</flux:select.option>
-            </flux:select>
-        </div>
+        @else
+            <div class="flex items-center gap-4">
+                <div class="flex-1">
+                    <flux:input wire:model.live="search" placeholder="{{ __('Search work items...') }}" icon="magnifying-glass" />
+                </div>
+                <flux:select wire:model.live="statusFilter" class="w-40">
+                    <flux:select.option value="open">{{ __('Open') }}</flux:select.option>
+                    <flux:select.option value="closed">{{ __('Closed') }}</flux:select.option>
+                    <flux:select.option value="all">{{ __('All') }}</flux:select.option>
+                </flux:select>
+            </div>
 
-        <flux:table :paginate="$this->workItems">
-            <flux:table.columns>
-                <flux:table.column sortable :sorted="$sortField === 'title'" :direction="$sortDirection" wire:click="sortBy('title')">
-                    {{ __('Title') }}
-                </flux:table.column>
-                <flux:table.column>
-                    {{ __('Issue') }}
-                </flux:table.column>
-                <flux:table.column>
-                    {{ __('Status') }}
-                </flux:table.column>
-                <flux:table.column>
-                    {{ __('Project') }}
-                </flux:table.column>
-                <flux:table.column>
-                    {{ __('Organization') }}
-                </flux:table.column>
-                <flux:table.column align="end">
-                    {{ __('Actions') }}
-                </flux:table.column>
-            </flux:table.columns>
+            <flux:table :paginate="$this->workItems">
+                <flux:table.columns>
+                    <flux:table.column sortable :sorted="$sortField === 'title'" :direction="$sortDirection" wire:click="sortBy('title')">
+                        {{ __('Title') }}
+                    </flux:table.column>
+                    <flux:table.column>
+                        {{ __('Issue') }}
+                    </flux:table.column>
+                    <flux:table.column>
+                        {{ __('Status') }}
+                    </flux:table.column>
+                    <flux:table.column>
+                        {{ __('Project') }}
+                    </flux:table.column>
+                    <flux:table.column>
+                        {{ __('Organization') }}
+                    </flux:table.column>
+                    <flux:table.column align="end">
+                        {{ __('Actions') }}
+                    </flux:table.column>
+                </flux:table.columns>
 
-            <flux:table.rows>
-                @forelse ($this->workItems as $workItem)
-                    <flux:table.row :key="$workItem->id">
-                        <flux:table.cell>
-                            <flux:link href="{{ route('work-items.show', $workItem) }}" wire:navigate>
-                                {{ $workItem->title }}
-                            </flux:link>
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            @if ($workItem->source_url)
-                                <flux:link href="{{ $workItem->source_url }}" target="_blank">
-                                    {{ $workItem->source_reference }}
+                <flux:table.rows>
+                    @forelse ($this->workItems as $workItem)
+                        <flux:table.row :key="$workItem->id">
+                            <flux:table.cell>
+                                <flux:link href="{{ route('work-items.show', $workItem) }}" wire:navigate>
+                                    {{ $workItem->title }}
                                 </flux:link>
-                            @else
-                                {{ $workItem->source_reference }}
-                            @endif
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            <flux:badge :variant="$workItem->isOpen() ? 'success' : 'default'" size="sm">
-                                {{ ucfirst($workItem->status) }}
-                            </flux:badge>
-                        </flux:table.cell>
-                        <flux:table.cell>
-                            @if ($workItem->project)
-                                <flux:link href="{{ route('projects.show', $workItem->project) }}" wire:navigate>
-                                    {{ $workItem->project->name }}
-                                </flux:link>
-                            @else
-                                &mdash;
-                            @endif
-                        </flux:table.cell>
-                        <flux:table.cell>{{ $workItem->organization->name }}</flux:table.cell>
-                        <flux:table.cell align="end">
-                            <div class="flex items-center justify-end gap-2">
-                                <flux:button size="sm" href="{{ route('work-items.edit', $workItem) }}" wire:navigate>
-                                    {{ __('Edit') }}
-                                </flux:button>
-                                @if ($workItem->isOpen())
-                                    <flux:button size="sm" variant="danger" wire:click="confirmClose('{{ $workItem->id }}')">
-                                        {{ __('Close') }}
-                                    </flux:button>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                @if ($workItem->source_url)
+                                    <flux:link href="{{ $workItem->source_url }}" target="_blank">
+                                        {{ $workItem->source_reference }}
+                                    </flux:link>
                                 @else
-                                    <flux:button size="sm" wire:click="reopen('{{ $workItem->id }}')">
-                                        {{ __('Reopen') }}
-                                    </flux:button>
+                                    {{ $workItem->source_reference }}
                                 @endif
-                            </div>
-
-                            <flux:modal name="confirm-close-{{ $workItem->id }}">
-                                <div class="space-y-6">
-                                    <flux:heading size="lg">{{ __('Close Work Item') }}</flux:heading>
-                                    <flux:text>{{ __('Are you sure you want to close ":title"?', ['title' => $workItem->title]) }}</flux:text>
-                                    <div class="flex justify-end gap-3">
-                                        <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                                        <flux:button variant="danger" wire:click="close('{{ $workItem->id }}')">{{ __('Close') }}</flux:button>
-                                    </div>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                <flux:badge :variant="$workItem->isOpen() ? 'success' : 'default'" size="sm">
+                                    {{ ucfirst($workItem->status) }}
+                                </flux:badge>
+                            </flux:table.cell>
+                            <flux:table.cell>
+                                @if ($workItem->project)
+                                    <flux:link href="{{ route('projects.show', $workItem->project) }}" wire:navigate>
+                                        {{ $workItem->project->name }}
+                                    </flux:link>
+                                @else
+                                    &mdash;
+                                @endif
+                            </flux:table.cell>
+                            <flux:table.cell>{{ $workItem->organization->name }}</flux:table.cell>
+                            <flux:table.cell align="end">
+                                <div class="flex items-center justify-end gap-2">
+                                    <flux:button size="sm" href="{{ route('work-items.edit', $workItem) }}" wire:navigate>
+                                        {{ __('Edit') }}
+                                    </flux:button>
+                                    @if ($workItem->isOpen())
+                                        <flux:button size="sm" variant="danger" wire:click="confirmClose('{{ $workItem->id }}')">
+                                            {{ __('Close') }}
+                                        </flux:button>
+                                    @else
+                                        <flux:button size="sm" wire:click="reopen('{{ $workItem->id }}')">
+                                            {{ __('Reopen') }}
+                                        </flux:button>
+                                    @endif
                                 </div>
-                            </flux:modal>
-                        </flux:table.cell>
-                    </flux:table.row>
-                @empty
-                    <flux:table.row>
-                        <flux:table.cell colspan="6" class="text-center">
-                            {{ __('No work items found.') }}
-                        </flux:table.cell>
-                    </flux:table.row>
-                @endforelse
-            </flux:table.rows>
-        </flux:table>
+
+                                <flux:modal name="confirm-close-{{ $workItem->id }}">
+                                    <div class="space-y-6">
+                                        <flux:heading size="lg">{{ __('Close Work Item') }}</flux:heading>
+                                        <flux:text>{{ __('Are you sure you want to close ":title"?', ['title' => $workItem->title]) }}</flux:text>
+                                        <div class="flex justify-end gap-3">
+                                            <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
+                                            <flux:button variant="danger" wire:click="close('{{ $workItem->id }}')">{{ __('Close') }}</flux:button>
+                                        </div>
+                                    </div>
+                                </flux:modal>
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @empty
+                        <flux:table.row>
+                            <flux:table.cell colspan="6" class="text-center">
+                                {{ __('No work items found.') }}
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforelse
+                </flux:table.rows>
+            </flux:table>
+        @endif
     </div>
 
     <flux:modal wire:model="showImportModal" variant="flyout" class="w-[32rem]">
