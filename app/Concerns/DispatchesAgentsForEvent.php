@@ -10,9 +10,9 @@ trait DispatchesAgentsForEvent
 {
     // TODO: Webhook event text (issue body, comment body, PR description) is user-controlled
     // and passed directly to the LLM as event context. Agents with write-capable tools
-    // (create_or_update_file, delete_file, merge_pull_request) could be manipulated via
-    // prompt injection in these fields. Consider restricting webhook-triggered agents to
-    // read-only tools, or adding human approval before executing write operations.
+    // (write_file, bash, merge_pull_request) could be manipulated via prompt injection in
+    // these fields. Consider restricting webhook-triggered agents to read-only tools, or
+    // adding human approval before executing write operations.
 
     /**
      * @param  array<string, mixed>  $filterContext

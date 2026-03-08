@@ -8,17 +8,13 @@ use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
-use App\Mcp\Tools\CreateOrUpdateFileTool;
 use App\Mcp\Tools\CreatePullRequestReviewTool;
 use App\Mcp\Tools\CreatePullRequestTool;
-use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
 use App\Mcp\Tools\GetCommitStatusTool;
-use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
 use App\Mcp\Tools\GetPullRequestDiffTool;
 use App\Mcp\Tools\GetPullRequestTool;
-use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
 use App\Mcp\Tools\ListCheckRunsTool;
 use App\Mcp\Tools\ListCommentsTool;
@@ -30,7 +26,6 @@ use App\Mcp\Tools\ListPullRequestsTool;
 use App\Mcp\Tools\MergePullRequestTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
 use App\Mcp\Tools\RequestReviewersTool;
-use App\Mcp\Tools\SearchCodeTool;
 use App\Mcp\Tools\SearchIssuesTool;
 use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
@@ -75,14 +70,7 @@ class GitHubServer extends Server
         ListBranchesTool::class,
         CreateBranchTool::class,
 
-        // Files
-        GetFileContentsTool::class,
-        GetRepositoryTreeTool::class,
-        CreateOrUpdateFileTool::class,
-        DeleteFileTool::class,
-
         // Search
-        SearchCodeTool::class,
         SearchIssuesTool::class,
 
         // Labels

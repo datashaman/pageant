@@ -11,12 +11,10 @@ use App\Ai\Tools\CreateBranchTool;
 use App\Ai\Tools\CreateCommentTool;
 use App\Ai\Tools\CreateIssueTool;
 use App\Ai\Tools\CreateLabelTool;
-use App\Ai\Tools\CreateOrUpdateFileTool;
 use App\Ai\Tools\CreateProjectTool;
 use App\Ai\Tools\CreatePullRequestReviewTool;
 use App\Ai\Tools\CreatePullRequestTool;
 use App\Ai\Tools\CreateWorkItemTool;
-use App\Ai\Tools\DeleteFileTool;
 use App\Ai\Tools\DeleteLabelTool;
 use App\Ai\Tools\DeleteProjectTool;
 use App\Ai\Tools\DeleteRepoTool;
@@ -24,12 +22,10 @@ use App\Ai\Tools\DeleteWorkItemTool;
 use App\Ai\Tools\DetachRepoFromProjectTool;
 use App\Ai\Tools\EditFileTool;
 use App\Ai\Tools\GetCommitStatusTool;
-use App\Ai\Tools\GetFileContentsTool;
 use App\Ai\Tools\GetIssueTool;
 use App\Ai\Tools\GetProjectTool;
 use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
-use App\Ai\Tools\GetRepositoryTreeTool;
 use App\Ai\Tools\GetRepoTool;
 use App\Ai\Tools\GitCommitTool;
 use App\Ai\Tools\GitDiffTool;
@@ -53,7 +49,6 @@ use App\Ai\Tools\MergePullRequestTool;
 use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
-use App\Ai\Tools\SearchCodeTool;
 use App\Ai\Tools\SearchIssuesTool;
 use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdateProjectTool;
@@ -105,13 +100,6 @@ class ToolRegistry
         // Branches
         'list_branches' => ['class' => ListBranchesTool::class, 'description' => 'List branches', 'group' => 'Branches'],
         'create_branch' => ['class' => CreateBranchTool::class, 'description' => 'Create a branch', 'group' => 'Branches'],
-
-        // Files
-        'get_file_contents' => ['class' => GetFileContentsTool::class, 'description' => 'Get file contents', 'group' => 'Files'],
-        'get_repository_tree' => ['class' => GetRepositoryTreeTool::class, 'description' => 'List repository tree', 'group' => 'Files'],
-        'create_or_update_file' => ['class' => CreateOrUpdateFileTool::class, 'description' => 'Create or update a file', 'group' => 'Files'],
-        'delete_file' => ['class' => DeleteFileTool::class, 'description' => 'Delete a file', 'group' => 'Files'],
-        'search_code' => ['class' => SearchCodeTool::class, 'description' => 'Search for code', 'group' => 'Files'],
 
         // CI / Status
         'get_commit_status' => ['class' => GetCommitStatusTool::class, 'description' => 'Get commit status', 'group' => 'CI / Status'],
