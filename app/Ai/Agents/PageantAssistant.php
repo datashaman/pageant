@@ -28,7 +28,9 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
             $this->repoFullName
                 ? "You are operating on the GitHub repository: {$this->repoFullName}."
                 : 'No repository is currently selected. You can list repos and projects, but GitHub-specific tools are unavailable until a repo is selected.',
-            'Use the available tools to interact with the repository when the user asks you to perform actions.',
+            $this->repoFullName
+                ? 'Use the available tools to interact with the repository when the user asks you to perform actions.'
+                : null,
             'Be concise and helpful in your responses.',
             $this->pageContext ? "Current page context: {$this->pageContext}" : null,
         ]));

@@ -56,16 +56,21 @@ it('validates the messages request', function () {
 });
 
 it('streams a response without a repo', function () {
+    PageantAssistant::fake(['Hello! I can help with general questions.']);
+
     $orgWithoutRepo = Organization::factory()->create();
     $user = User::factory()->create([
         'current_organization_id' => $orgWithoutRepo->id,
     ]);
     $user->organizations()->attach($orgWithoutRepo);
 
-    $this->actingAs($user)
-        ->postJson(route('chat.stream'), [
+    $response = $this->actingAs($user)
+        ->post(route('chat.stream'), [
             'message' => 'Hello',
-        ])->assertOk();
+        ]);
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'text/event-stream; charset=utf-8');
 });
 
 it('streams a response via SSE', function () {
@@ -130,4 +135,32 @@ it('returns conversation messages', function () {
         ->assertOk()
         ->assertJsonCount(1)
         ->assertJsonFragment(['role' => 'user', 'content' => 'Hello']);
+});
+
+it('does not return conversation messages for another user', function () {
+    $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
+    $conversationId = $store->storeConversation($this->user->id, 'Test chat');
+
+    \Illuminate\Support\Facades\DB::table('agent_conversation_messages')->insert([
+        'id' => \Illuminate\Support\Str::uuid7()->toString(),
+        'conversation_id' => $conversationId,
+        'user_id' => $this->user->id,
+        'agent' => PageantAssistant::class,
+        'role' => 'user',
+        'content' => 'Secret message',
+        'attachments' => '[]',
+        'tool_calls' => '[]',
+        'tool_results' => '[]',
+        'usage' => '[]',
+        'meta' => '[]',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $otherUser = User::factory()->create();
+
+    $this->actingAs($otherUser)
+        ->getJson(route('chat.messages', ['conversation_id' => $conversationId]))
+        ->assertOk()
+        ->assertJsonCount(0);
 });

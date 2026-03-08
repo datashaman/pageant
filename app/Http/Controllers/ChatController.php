@@ -13,6 +13,7 @@ class ChatController extends Controller
         $request->validate([
             'message' => ['required', 'string', 'max:10000'],
             'conversation_id' => ['nullable', 'string', 'max:36'],
+            'repo_full_name' => ['nullable', 'string'],
             'page_context' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -20,6 +21,7 @@ class ChatController extends Controller
 
         $assistant = new PageantAssistant(
             user: $user,
+            repoFullName: $request->input('repo_full_name'),
             pageContext: $request->input('page_context', ''),
         );
 
@@ -40,6 +42,7 @@ class ChatController extends Controller
 
         $messages = DB::table('agent_conversation_messages')
             ->where('conversation_id', $request->input('conversation_id'))
+            ->where('user_id', $request->user()->id)
             ->orderBy('created_at')
             ->get(['role', 'content']);
 
