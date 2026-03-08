@@ -38,18 +38,19 @@ class SearchAgentsTool extends Tool
                 ->forCurrentOrganization()
                 ->findOrFail($validated['work_item_id']);
 
-            $searchTerms = array_filter(array_merge(
-                str_word_count($workItem->title, 1),
-                str_word_count($workItem->description ?? '', 1),
+            $stopWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'has', 'her', 'was', 'one', 'our', 'out', 'his', 'had', 'its', 'how', 'may', 'who', 'did', 'get', 'let', 'say', 'she', 'too', 'use', 'that', 'this', 'with', 'have', 'from', 'they', 'been', 'said', 'each', 'will', 'other', 'about', 'many', 'then', 'them', 'these', 'some', 'would', 'make', 'like', 'into', 'than', 'just', 'over', 'also', 'back', 'after', 'could', 'when', 'what', 'your', 'which', 'their', 'there', 'should', 'does', 'need', 'must', 'been', 'being', 'were', 'more', 'very'];
+
+            $searchTerms = array_unique(array_filter(
+                array_merge(
+                    str_word_count(strtolower($workItem->title), 1),
+                    str_word_count(strtolower($workItem->description ?? ''), 1),
+                ),
+                fn (string $term) => strlen($term) >= 3 && ! in_array($term, $stopWords),
             ));
 
             if (! empty($searchTerms)) {
                 $query->where(function ($q) use ($searchTerms) {
                     foreach ($searchTerms as $term) {
-                        if (strlen($term) < 3) {
-                            continue;
-                        }
-
                         $q->orWhere('name', 'like', "%{$term}%")
                             ->orWhere('description', 'like', "%{$term}%");
                     }

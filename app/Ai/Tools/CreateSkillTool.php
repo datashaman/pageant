@@ -40,8 +40,8 @@ class CreateSkillTool implements Tool
             'provider' => $request['provider'] ?? 'anthropic',
             'model' => $request['model'] ?? 'inherit',
             'context' => $request['context'] ?? '',
-            'source' => $request['source'] ?? '',
-            'source_reference' => $request['source_reference'] ?? '',
+            'source' => '',
+            'source_reference' => '',
         ]);
 
         return json_encode($skill->toArray(), JSON_PRETTY_PRINT);

@@ -2,7 +2,6 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Organization;
 use App\Models\Skill;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -32,12 +31,16 @@ class CreateSkillTool extends Tool
         ]);
 
         $user = auth()->user();
-        $organizationId = $user?->currentOrganizationId()
-            ?? $user?->organizations()->first()?->id
-            ?? Organization::first()?->id;
+
+        if (! $user) {
+            return Response::text(json_encode(['error' => 'Authentication required to create skills.']));
+        }
+
+        $organizationId = $user->currentOrganizationId()
+            ?? $user->organizations()->first()?->id;
 
         if (! $organizationId) {
-            return Response::text(json_encode(['error' => 'No organization found.']));
+            return Response::text(json_encode(['error' => 'No organization found for the current user.']));
         }
 
         $skill = Skill::create([
@@ -52,8 +55,8 @@ class CreateSkillTool extends Tool
             'provider' => $validated['provider'] ?? 'anthropic',
             'model' => $validated['model'] ?? 'inherit',
             'context' => $validated['context'] ?? '',
-            'source' => $validated['source'] ?? '',
-            'source_reference' => $validated['source_reference'] ?? '',
+            'source' => '',
+            'source_reference' => '',
         ]);
 
         return Response::text(json_encode($skill->toArray(), JSON_PRETTY_PRINT));
