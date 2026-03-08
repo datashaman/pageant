@@ -193,7 +193,8 @@ it('creates an issue on a repository', function () {
 
     $response->assertOk()
         ->assertSee('Fix the widget')
-        ->assertSee('99');
+        ->assertSee('99')
+        ->assertSee('create_work_item');
 });
 
 it('updates an existing issue', function () {
