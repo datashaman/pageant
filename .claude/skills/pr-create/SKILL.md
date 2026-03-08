@@ -422,10 +422,10 @@ gh api repos/{owner}/{repo}/pulls/{number}/comments --jq '.[] | "\(.id) \(.user.
 ```
 
 **Polling strategy:**
-1. Wait 30 seconds, then check
+1. Wait 60 seconds, then check
 2. If no Copilot review yet, wait 30 more seconds and check again
-3. Repeat up to 6 times (3 minutes total)
-4. If still no Copilot review after 3 minutes, check if Copilot is configured:
+3. Repeat up to 8 times (4.5 minutes total)
+4. If still no Copilot review after 4.5 minutes, check if Copilot is configured:
    - Look for a `PENDING` review from `copilot` or `github-actions` user
    - If no Copilot review appears at all, skip to Step 14 (Ensure Branch is Up to Date) — Copilot may not be enabled
 
