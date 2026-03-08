@@ -34,7 +34,7 @@ class ReadFileTool implements Tool
                 ->description('The file path relative to the worktree root.')
                 ->required(),
             'offset' => $schema->integer()
-                ->description('Line number to start reading from (1-based).'),
+                ->description('0-based line offset (0 = first line).'),
             'limit' => $schema->integer()
                 ->description('Maximum number of lines to read.'),
         ];

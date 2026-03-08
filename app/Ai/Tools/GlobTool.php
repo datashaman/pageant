@@ -20,8 +20,10 @@ class GlobTool implements Tool
 
     public function handle(Request $request): string
     {
-        $pattern = $request['path']
-            ? $request['path'].'/'.$request['pattern']
+        $path = $request['path'] ?? null;
+
+        $pattern = $path
+            ? $path.'/'.$request['pattern']
             : $request['pattern'];
 
         $matches = $this->driver->glob($pattern);

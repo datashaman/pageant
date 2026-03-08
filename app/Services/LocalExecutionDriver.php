@@ -188,6 +188,7 @@ class LocalExecutionDriver implements ExecutionDriver
             }
         }
 
+        $command[] = '--';
         $command[] = $pattern;
         $command[] = $searchPath;
 
