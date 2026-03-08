@@ -42,15 +42,6 @@ new class extends Component
         $this->messages = [];
     }
 
-    public function appendMessage(string $role, string $content): void
-    {
-        $this->messages[] = ['role' => $role, 'content' => $content];
-    }
-
-    public function setConversationId(string $id): void
-    {
-        $this->conversationId = $id;
-    }
 
 };
 ?>
@@ -164,7 +155,6 @@ new class extends Component
                 if (this.streamedContent) {
                     this.messages.push({ role: 'assistant', content: this.streamedContent });
                     this.streamedContent = '';
-                    $wire.call('appendMessage', 'assistant', this.messages[this.messages.length - 1].content);
                 }
             } catch (error) {
                 this.messages.push({ role: 'assistant', content: 'Failed to connect. Please try again.' });
