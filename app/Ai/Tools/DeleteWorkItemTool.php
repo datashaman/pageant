@@ -2,6 +2,7 @@
 
 namespace App\Ai\Tools;
 
+use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
@@ -13,7 +14,7 @@ class DeleteWorkItemTool implements Tool
 {
     public function __construct(
         protected GitHubService $github,
-        protected ?object $installation = null,
+        protected ?GithubInstallation $installation = null,
         protected ?string $repoFullName = null,
     ) {}
 

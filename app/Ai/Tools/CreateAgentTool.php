@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
+use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,7 +16,7 @@ class CreateAgentTool implements Tool
 {
     public function __construct(
         protected GitHubService $github,
-        protected ?object $installation = null,
+        protected ?GithubInstallation $installation = null,
         protected ?string $repoFullName = null,
     ) {}
 
@@ -104,6 +105,7 @@ class CreateAgentTool implements Tool
             'enabled' => $schema->boolean()
                 ->description('Whether the agent is enabled. Defaults to true.'),
             'repo_names' => $schema->array()
+                ->items($schema->string())
                 ->description('Repository full names (owner/repo) to attach the agent to.'),
         ]);
     }
