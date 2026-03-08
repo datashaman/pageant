@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Ai\Agents\PageantAssistant;
+use App\Models\Repo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,8 +20,8 @@ class ChatController extends Controller
 
         $user = $request->user();
 
-        $contextData = json_decode($request->input('page_context', '{}'), true) ?: [];
-        $repoFullName = self::resolveRepoFullName($contextData);
+        $contextData = is_array($decoded = json_decode($request->input('page_context', '{}'), true)) ? $decoded : [];
+        $repoFullName = self::resolveRepoFullName($contextData, $user);
         $pageContext = self::formatPageContext($contextData);
 
         $assistant = new PageantAssistant(
@@ -61,24 +62,54 @@ class ChatController extends Controller
     }
 
     /**
-     * Resolve a GitHub repo full name from the structured page context.
+     * Resolve a GitHub repo full name from the structured page context,
+     * scoped to the authenticated user's organizations.
      *
      * @param  array<string, mixed>  $context
      */
-    public static function resolveRepoFullName(array $context): ?string
+    public static function resolveRepoFullName(array $context, \App\Models\User $user): ?string
     {
+        $candidate = null;
+
         // Repo page: repo_source_reference is the full name (e.g. "acme/widgets")
         if (! empty($context['repo_source_reference']) && ($context['repo_source'] ?? '') === 'github') {
-            return $context['repo_source_reference'];
+            $candidate = $context['repo_source_reference'];
         }
 
         // Work item page: source_reference is "owner/repo#number"
-        if (! empty($context['source_reference']) && ($context['source'] ?? '') === 'github') {
-            return Str::before($context['source_reference'], '#');
+        if (! $candidate && ! empty($context['source_reference']) && ($context['source'] ?? '') === 'github') {
+            $candidate = Str::before($context['source_reference'], '#');
         }
 
-        return null;
+        if (! $candidate) {
+            return null;
+        }
+
+        // Verify the repo belongs to one of the user's organizations
+        $userOrgIds = $user->organizations()->pluck('organizations.id');
+
+        $exists = Repo::where('source', 'github')
+            ->where('source_reference', $candidate)
+            ->whereIn('organization_id', $userOrgIds)
+            ->exists();
+
+        return $exists ? $candidate : null;
     }
+
+    /**
+     * Format structured page context into a readable string for the assistant.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    /** @var list<string> */
+    private const CONTEXT_DISPLAY_KEYS = [
+        'repo_id', 'repo_name', 'repo_source', 'repo_source_reference',
+        'work_item_id', 'work_item_title', 'work_item_description',
+        'project', 'project_id', 'project_name',
+        'source', 'source_reference',
+        'agent_id', 'agent_name', 'agent_description',
+        'skill_id', 'skill_name',
+    ];
 
     /**
      * Format structured page context into a readable string for the assistant.
@@ -103,10 +134,10 @@ class ChatController extends Controller
             $verb = $action === 'show' ? 'viewing' : 'editing';
             $lines[] = "User is {$verb} a {$singular}";
 
-            foreach ($context as $key => $value) {
-                if ($key !== 'page' && $value !== null && $value !== '') {
+            foreach (self::CONTEXT_DISPLAY_KEYS as $key) {
+                if (isset($context[$key]) && $context[$key] !== '') {
                     $label = str_replace('_', ' ', $key);
-                    $lines[] = "{$label}: {$value}";
+                    $lines[] = "{$label}: {$context[$key]}";
                 }
             }
         } elseif ($action === 'create') {
