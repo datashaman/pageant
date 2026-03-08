@@ -154,12 +154,22 @@ new #[Title('Edit Agent')] class extends Component {
 
     public function selectAllTools(): void
     {
-        $this->selectedTools = array_keys(ToolRegistry::available());
+        $this->selectedTools = array_values(array_unique(array_merge($this->selectedTools, ToolRegistry::githubToolNames())));
     }
 
     public function deselectAllTools(): void
     {
-        $this->selectedTools = [];
+        $this->selectedTools = array_values(array_diff($this->selectedTools, ToolRegistry::githubToolNames()));
+    }
+
+    public function selectAllPageantTools(): void
+    {
+        $this->selectedTools = array_values(array_unique(array_merge($this->selectedTools, ToolRegistry::pageantToolNames())));
+    }
+
+    public function deselectAllPageantTools(): void
+    {
+        $this->selectedTools = array_values(array_diff($this->selectedTools, ToolRegistry::pageantToolNames()));
     }
 
     public function selectAllEvents(): void
@@ -420,6 +430,10 @@ new #[Title('Edit Agent')] class extends Component {
                 {{-- Pageant Tools tab --}}
                 <div x-show="tab === 'pageant-tools'" x-cloak>
                     <div class="space-y-4">
+                        <div class="flex items-center gap-2">
+                            <flux:button size="xs" wire:click="selectAllPageantTools">{{ __('Check all') }}</flux:button>
+                            <flux:button size="xs" wire:click="deselectAllPageantTools">{{ __('Uncheck all') }}</flux:button>
+                        </div>
                         <flux:checkbox.group wire:model="selectedTools">
                             @foreach ($this->toolCategories['pageant'] as $group => $tools)
                                 <div class="mb-4">

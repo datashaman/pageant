@@ -194,6 +194,28 @@ class ToolRegistry
     }
 
     /**
+     * @return list<string>
+     */
+    public static function githubToolNames(): array
+    {
+        return array_keys(array_filter(
+            self::TOOL_MAP,
+            fn (array $entry) => empty($entry['local']) && ($entry['category'] ?? null) !== 'pageant',
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function pageantToolNames(): array
+    {
+        return array_keys(array_filter(
+            self::TOOL_MAP,
+            fn (array $entry) => ! empty($entry['local']) || ($entry['category'] ?? null) === 'pageant',
+        ));
+    }
+
+    /**
      * @return array<string, array<string, string>>
      */
     public static function grouped(): array
