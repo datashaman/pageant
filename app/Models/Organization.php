@@ -17,7 +17,20 @@ class Organization extends Model
     protected $fillable = [
         'name',
         'slug',
+        'command_allowlist',
+        'command_denylist',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'command_allowlist' => 'array',
+            'command_denylist' => 'array',
+        ];
+    }
 
     public function users(): BelongsToMany
     {
