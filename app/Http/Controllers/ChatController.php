@@ -21,10 +21,6 @@ class ChatController extends Controller
         $user = $request->user();
         $repoFullName = $request->input('repo_full_name') ?? $this->resolveDefaultRepo($user);
 
-        if (! $repoFullName) {
-            return response()->json(['error' => 'No repository available. Please add a repo first.'], 422);
-        }
-
         $assistant = new PageantAssistant(
             user: $user,
             repoFullName: $repoFullName,

@@ -227,7 +227,7 @@ new class extends Component
                 <flux:button size="xs" variant="ghost" @click="newChat()" title="New conversation">
                     <flux:icon.plus class="size-4" />
                 </flux:button>
-                <flux:button size="xs" variant="ghost" @click="open = false">
+                <flux:button size="xs" variant="ghost" @click="open = false; localStorage.setItem('chat-panel-open', 'false')">
                     <flux:icon.x-mark class="size-4" />
                 </flux:button>
             </div>

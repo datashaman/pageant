@@ -114,7 +114,9 @@
 
         {{ $slot }}
 
-        <livewire:chat-panel />
+        @persist('chat-panel')
+            <livewire:chat-panel />
+        @endpersist
 
         @fluxScripts
     </body>

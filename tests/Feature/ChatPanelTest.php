@@ -55,7 +55,7 @@ it('validates the messages request', function () {
         ->assertJsonValidationErrors(['conversation_id']);
 });
 
-it('returns error when no repo is available', function () {
+it('streams a response without a repo', function () {
     $orgWithoutRepo = Organization::factory()->create();
     $user = User::factory()->create([
         'current_organization_id' => $orgWithoutRepo->id,
@@ -65,8 +65,7 @@ it('returns error when no repo is available', function () {
     $this->actingAs($user)
         ->postJson(route('chat.stream'), [
             'message' => 'Hello',
-        ])->assertUnprocessable()
-        ->assertJson(['error' => 'No repository available. Please add a repo first.']);
+        ])->assertOk();
 });
 
 it('streams a response via SSE', function () {
