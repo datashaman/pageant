@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\WorktreeManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(WorktreeManager::class, function ($app): WorktreeManager {
+            return new WorktreeManager(
+                basePath: config('execution.base_path'),
+            );
+        });
     }
 
     /**
