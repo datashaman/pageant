@@ -60,6 +60,7 @@ return new class extends Migration
                 foreach (self::TOOL_MAPPING as $oldName => $newName) {
                     $index = array_search($newName, $tools);
                     if ($index !== false) {
+                        unset($tools[$index]);
                         if (! in_array($oldName, $tools)) {
                             $tools[] = $oldName;
                         }
