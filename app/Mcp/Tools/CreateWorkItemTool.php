@@ -28,7 +28,7 @@ class CreateWorkItemTool extends Tool
             'repo' => 'required|string',
             'issue_number' => 'required|integer|min:1',
             'board_id' => 'nullable|string',
-            'project_id' => 'nullable|string',
+            'project_id' => 'nullable|uuid',
         ]);
 
         $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
@@ -36,7 +36,9 @@ class CreateWorkItemTool extends Tool
 
         $issue = $this->github->getIssue($installation, $validated['repo'], $validated['issue_number']);
 
-        $projectId = $validated['project_id'] ?? $repo->inferProjectId();
+        $projectId = filled($validated['project_id'] ?? null)
+            ? $validated['project_id']
+            : $repo->inferProjectId();
 
         $workItem = WorkItem::firstOrCreate(
             [
