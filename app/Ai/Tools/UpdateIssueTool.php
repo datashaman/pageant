@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
+use App\Models\Repo;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -12,8 +13,8 @@ class UpdateIssueTool implements Tool
 {
     public function __construct(
         protected GitHubService $github,
-        protected GithubInstallation $installation,
-        protected string $repoFullName,
+        protected ?GithubInstallation $installation = null,
+        protected ?string $repoFullName = null,
     ) {}
 
     public function description(): string
@@ -23,6 +24,14 @@ class UpdateIssueTool implements Tool
 
     public function handle(Request $request): string
     {
+        $repoFullName = $this->repoFullName ?? $request['repo'];
+        $installation = $this->installation;
+
+        if (! $installation) {
+            $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
+            $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+        }
+
         $data = [];
 
         foreach (['title', 'body', 'state', 'state_reason', 'labels', 'assignees', 'milestone'] as $field) {
@@ -32,8 +41,8 @@ class UpdateIssueTool implements Tool
         }
 
         $issue = $this->github->updateIssue(
-            $this->installation,
-            $this->repoFullName,
+            $installation,
+            $repoFullName,
             (int) $request['issue_number'],
             $data,
         );
@@ -43,7 +52,15 @@ class UpdateIssueTool implements Tool
 
     public function schema(JsonSchema $schema): array
     {
-        return [
+        $fields = [];
+
+        if (! $this->repoFullName) {
+            $fields['repo'] = $schema->string()
+                ->description('The repository in owner/repo format.')
+                ->required();
+        }
+
+        return array_merge($fields, [
             'issue_number' => $schema->integer()
                 ->description('The issue number to update.')
                 ->required(),
@@ -65,6 +82,6 @@ class UpdateIssueTool implements Tool
                 ->description('Replace all assignees with these GitHub usernames.'),
             'milestone' => $schema->integer()
                 ->description('Milestone number to associate with the issue.'),
-        ];
+        ]);
     }
 }

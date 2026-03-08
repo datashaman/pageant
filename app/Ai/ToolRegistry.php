@@ -61,8 +61,8 @@ class ToolRegistry
         // Issues
         'get_issue' => ['class' => GetIssueTool::class, 'description' => 'Get an issue by number', 'group' => 'Issues'],
         'list_issues' => ['class' => ListIssuesTool::class, 'description' => 'List open issues', 'group' => 'Issues'],
-        'create_issue' => ['class' => CreateIssueTool::class, 'description' => 'Create a new issue', 'group' => 'Issues'],
-        'update_issue' => ['class' => UpdateIssueTool::class, 'description' => 'Update an issue', 'group' => 'Issues'],
+        'create_issue' => ['class' => CreateIssueTool::class, 'description' => 'Create a new issue', 'group' => 'Issues', 'flexible' => true],
+        'update_issue' => ['class' => UpdateIssueTool::class, 'description' => 'Update an issue', 'group' => 'Issues', 'flexible' => true],
         'close_issue' => ['class' => CloseIssueTool::class, 'description' => 'Close an issue', 'group' => 'Issues'],
         'search_issues' => ['class' => SearchIssuesTool::class, 'description' => 'Search issues and PRs', 'group' => 'Issues'],
 
@@ -165,6 +165,12 @@ class ToolRegistry
                 if ($user) {
                     $tools[] = new ($entry['class'])($user);
                 }
+            } elseif (! empty($entry['flexible'])) {
+                $tools[] = new ($entry['class'])(
+                    $github ?? app(GitHubService::class),
+                    $installation,
+                    $repoFullName,
+                );
             } elseif ($github && $installation && $repoFullName) {
                 $tools[] = new ($entry['class'])($github, $installation, $repoFullName);
             }
@@ -180,7 +186,9 @@ class ToolRegistry
     {
         return array_filter(
             self::available(),
-            fn (string $description, string $name) => ! empty(self::TOOL_MAP[$name]['local']) || $repoFullName !== null,
+            fn (string $description, string $name) => ! empty(self::TOOL_MAP[$name]['local'])
+                || ! empty(self::TOOL_MAP[$name]['flexible'])
+                || $repoFullName !== null,
             ARRAY_FILTER_USE_BOTH,
         );
     }
