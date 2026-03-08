@@ -11,6 +11,14 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <script>
+            (function() {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                }
+            })();
+        </script>
     </head>
     <body class="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 flex items-center justify-center min-h-screen">
         <div class="text-center space-y-6">

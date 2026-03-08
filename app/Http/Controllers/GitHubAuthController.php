@@ -68,10 +68,21 @@ class GitHubAuthController extends Controller
     private function isEmailAllowed(?string $email): bool
     {
         $allowedEmails = array_filter(
-            array_map('trim', explode(',', config('app.allowed_emails', '')))
+            array_map(
+                static fn (string $value): string => strtolower(trim($value)),
+                explode(',', (string) config('app.allowed_emails', ''))
+            )
         );
 
-        return empty($allowedEmails) || in_array($email, $allowedEmails);
+        if (empty($allowedEmails)) {
+            return true;
+        }
+
+        if ($email === null) {
+            return false;
+        }
+
+        return in_array(strtolower($email), $allowedEmails, true);
     }
 
     private function fetchPrimaryGitHubEmail(string $token): ?string

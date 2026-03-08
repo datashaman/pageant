@@ -3,18 +3,17 @@
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
-use Laravel\Socialite\Two\User as SocialiteUser;
 
 it('allows login when email is in allowed list', function () {
     config(['app.allowed_emails' => 'allowed@example.com']);
 
     Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
-    $socialiteUser = createAllowedEmailsSocialiteUser('allowed@example.com');
+    $socialiteUser = createSocialiteUser(email: 'allowed@example.com');
 
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturn(mockAllowedEmailsSocialiteDriver($socialiteUser));
+        ->andReturn(mockSocialiteDriver($socialiteUser));
 
     $response = $this->get(route('auth.github.callback'));
 
@@ -25,11 +24,11 @@ it('allows login when email is in allowed list', function () {
 it('rejects login when email is not in allowed list', function () {
     config(['app.allowed_emails' => 'allowed@example.com']);
 
-    $socialiteUser = createAllowedEmailsSocialiteUser('denied@example.com');
+    $socialiteUser = createSocialiteUser(email: 'denied@example.com');
 
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturn(mockAllowedEmailsSocialiteDriver($socialiteUser));
+        ->andReturn(mockSocialiteDriver($socialiteUser));
 
     $response = $this->get(route('auth.github.callback'));
 
@@ -43,11 +42,11 @@ it('allows any email when allowed list is empty', function () {
 
     Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
-    $socialiteUser = createAllowedEmailsSocialiteUser('anyone@example.com');
+    $socialiteUser = createSocialiteUser(email: 'anyone@example.com');
 
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturn(mockAllowedEmailsSocialiteDriver($socialiteUser));
+        ->andReturn(mockSocialiteDriver($socialiteUser));
 
     $response = $this->get(route('auth.github.callback'));
 
@@ -60,11 +59,11 @@ it('supports multiple emails in allowed list', function () {
 
     Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
-    $socialiteUser = createAllowedEmailsSocialiteUser('second@example.com');
+    $socialiteUser = createSocialiteUser(email: 'second@example.com');
 
     Socialite::shouldReceive('driver')
         ->with('github')
-        ->andReturn(mockAllowedEmailsSocialiteDriver($socialiteUser));
+        ->andReturn(mockSocialiteDriver($socialiteUser));
 
     $response = $this->get(route('auth.github.callback'));
 
@@ -72,29 +71,38 @@ it('supports multiple emails in allowed list', function () {
     expect(User::query()->where('email', 'second@example.com')->exists())->toBeTrue();
 });
 
-function createAllowedEmailsSocialiteUser(string $email): SocialiteUser
-{
-    $socialiteUser = new SocialiteUser;
-    $socialiteUser->id = 123456;
-    $socialiteUser->name = 'Test User';
-    $socialiteUser->email = $email;
-    $socialiteUser->avatar = 'https://avatars.githubusercontent.com/u/123456';
-    $socialiteUser->token = 'github-token';
-    $socialiteUser->refreshToken = 'github-refresh-token';
-    $socialiteUser->nickname = 'testuser';
+it('performs case-insensitive email comparison', function () {
+    config(['app.allowed_emails' => 'User@Example.COM']);
 
-    return $socialiteUser;
-}
+    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
 
-function mockAllowedEmailsSocialiteDriver(SocialiteUser $socialiteUser): object
-{
-    return new class($socialiteUser)
-    {
-        public function __construct(private SocialiteUser $user) {}
+    $socialiteUser = createSocialiteUser(email: 'user@example.com');
 
-        public function user(): SocialiteUser
-        {
-            return $this->user;
-        }
-    };
-}
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn(mockSocialiteDriver($socialiteUser));
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirect(route('dashboard'));
+    expect(User::query()->where('email', 'user@example.com')->exists())->toBeTrue();
+});
+
+it('rejects null email when allowed list is non-empty', function () {
+    config(['app.allowed_emails' => 'allowed@example.com']);
+
+    Http::fake([
+        'https://api.github.com/user/emails' => Http::response([], 404),
+    ]);
+
+    $socialiteUser = createSocialiteUser(email: null);
+
+    Socialite::shouldReceive('driver')
+        ->with('github')
+        ->andReturn(mockSocialiteDriver($socialiteUser));
+
+    $response = $this->get(route('auth.github.callback'));
+
+    $response->assertRedirect(route('home'));
+    $this->assertGuest();
+});
