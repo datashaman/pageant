@@ -7,17 +7,13 @@ use App\Mcp\Tools\CreateBranchTool;
 use App\Mcp\Tools\CreateCommentTool;
 use App\Mcp\Tools\CreateIssueTool;
 use App\Mcp\Tools\CreateLabelTool;
-use App\Mcp\Tools\CreateOrUpdateFileTool;
 use App\Mcp\Tools\CreatePullRequestReviewTool;
 use App\Mcp\Tools\CreatePullRequestTool;
-use App\Mcp\Tools\DeleteFileTool;
 use App\Mcp\Tools\DeleteLabelTool;
 use App\Mcp\Tools\GetCommitStatusTool;
-use App\Mcp\Tools\GetFileContentsTool;
 use App\Mcp\Tools\GetIssueTool;
 use App\Mcp\Tools\GetPullRequestDiffTool;
 use App\Mcp\Tools\GetPullRequestTool;
-use App\Mcp\Tools\GetRepositoryTreeTool;
 use App\Mcp\Tools\ListBranchesTool;
 use App\Mcp\Tools\ListCheckRunsTool;
 use App\Mcp\Tools\ListCommentsTool;
@@ -29,7 +25,6 @@ use App\Mcp\Tools\ListPullRequestsTool;
 use App\Mcp\Tools\MergePullRequestTool;
 use App\Mcp\Tools\RemoveLabelFromIssueTool;
 use App\Mcp\Tools\RequestReviewersTool;
-use App\Mcp\Tools\SearchCodeTool;
 use App\Mcp\Tools\SearchIssuesTool;
 use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
@@ -492,101 +487,6 @@ it('lists comments on an issue', function () {
         ->assertSee('Second comment');
 });
 
-it('gets file contents from a repository', function () {
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('getFileContents')
-            ->once()
-            ->andReturn([
-                'name' => 'README.md',
-                'path' => 'README.md',
-                'sha' => 'abc123',
-                'content' => base64_encode('# Hello World'),
-                'encoding' => 'base64',
-            ]);
-    });
-
-    $response = GitHubServer::tool(GetFileContentsTool::class, [
-        'repo' => 'acme/widgets',
-        'path' => 'README.md',
-    ]);
-
-    $response->assertOk()
-        ->assertSee('# Hello World')
-        ->assertSee('abc123');
-});
-
-it('gets repository tree', function () {
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('getRepositoryTree')
-            ->once()
-            ->andReturn([
-                'sha' => 'tree-sha',
-                'tree' => [
-                    ['path' => 'src', 'type' => 'tree', 'sha' => 'aaa'],
-                    ['path' => 'README.md', 'type' => 'blob', 'sha' => 'bbb'],
-                ],
-            ]);
-    });
-
-    $response = GitHubServer::tool(GetRepositoryTreeTool::class, [
-        'repo' => 'acme/widgets',
-        'tree_sha' => 'main',
-    ]);
-
-    $response->assertOk()
-        ->assertSee('README.md')
-        ->assertSee('src');
-});
-
-it('creates or updates a file', function () {
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('createOrUpdateFile')
-            ->once()
-            ->withArgs(function ($installation, $repo, $path, $content, $message, $branch, $sha) {
-                return $repo === 'acme/widgets'
-                    && $path === 'src/hello.js'
-                    && $content === 'console.log("hello");'
-                    && $branch === 'feature-branch';
-            })
-            ->andReturn([
-                'content' => ['path' => 'src/hello.js', 'sha' => 'new-sha'],
-                'commit' => ['sha' => 'commit-sha', 'message' => 'Add hello.js'],
-            ]);
-    });
-
-    $response = GitHubServer::tool(CreateOrUpdateFileTool::class, [
-        'repo' => 'acme/widgets',
-        'path' => 'src/hello.js',
-        'content' => 'console.log("hello");',
-        'message' => 'Add hello.js',
-        'branch' => 'feature-branch',
-    ]);
-
-    $response->assertOk()
-        ->assertSee('new-sha');
-});
-
-it('deletes a file', function () {
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('deleteFile')
-            ->once()
-            ->andReturn([
-                'commit' => ['sha' => 'commit-sha', 'message' => 'Remove old file'],
-            ]);
-    });
-
-    $response = GitHubServer::tool(DeleteFileTool::class, [
-        'repo' => 'acme/widgets',
-        'path' => 'old-file.txt',
-        'message' => 'Remove old file',
-        'branch' => 'main',
-        'sha' => 'file-sha-123',
-    ]);
-
-    $response->assertOk()
-        ->assertSee('commit-sha');
-});
-
 it('merges a pull request', function () {
     $this->mock(GitHubService::class, function (MockInterface $mock) {
         $mock->shouldReceive('mergePullRequest')
@@ -767,30 +667,6 @@ it('lists check runs', function () {
     $response->assertOk()
         ->assertSee('test-suite')
         ->assertSee('completed');
-});
-
-it('searches code in a repository', function () {
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('searchCode')
-            ->once()
-            ->withArgs(function ($installation, $query) {
-                return str_contains($query, 'className') && str_contains($query, 'repo:acme/widgets');
-            })
-            ->andReturn([
-                'total_count' => 1,
-                'items' => [
-                    ['name' => 'Widget.php', 'path' => 'src/Widget.php'],
-                ],
-            ]);
-    });
-
-    $response = GitHubServer::tool(SearchCodeTool::class, [
-        'repo' => 'acme/widgets',
-        'query' => 'className',
-    ]);
-
-    $response->assertOk()
-        ->assertSee('Widget.php');
 });
 
 it('searches issues in a repository', function () {

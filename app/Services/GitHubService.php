@@ -450,89 +450,6 @@ class GitHubService
         return $comments;
     }
 
-    public function getFileContents(GithubInstallation $installation, string $repo, string $path, ?string $ref = null): array
-    {
-        $token = $this->getInstallationToken($installation->installation_id);
-
-        $params = [];
-        if ($ref !== null) {
-            $params['ref'] = $ref;
-        }
-
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->get(self::API_BASE."/repos/{$repo}/contents/{$path}", $params);
-
-        $response->throw();
-
-        return $response->json();
-    }
-
-    /**
-     * @return array<int, array{path: string, type: string, sha: string, size: ?int}>
-     */
-    public function getRepositoryTree(GithubInstallation $installation, string $repo, string $treeSha, bool $recursive = false): array
-    {
-        $token = $this->getInstallationToken($installation->installation_id);
-
-        $params = [];
-        if ($recursive) {
-            $params['recursive'] = '1';
-        }
-
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->get(self::API_BASE."/repos/{$repo}/git/trees/{$treeSha}", $params);
-
-        $response->throw();
-
-        return $response->json();
-    }
-
-    public function createOrUpdateFile(GithubInstallation $installation, string $repo, string $path, string $content, string $message, string $branch, ?string $sha = null): array
-    {
-        $token = $this->getInstallationToken($installation->installation_id);
-
-        $data = [
-            'message' => $message,
-            'content' => base64_encode($content),
-            'branch' => $branch,
-        ];
-
-        if ($sha !== null) {
-            $data['sha'] = $sha;
-        }
-
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->put(self::API_BASE."/repos/{$repo}/contents/{$path}", $data);
-
-        $response->throw();
-
-        return $response->json();
-    }
-
-    public function deleteFile(GithubInstallation $installation, string $repo, string $path, string $message, string $branch, string $sha): array
-    {
-        $token = $this->getInstallationToken($installation->installation_id);
-
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->delete(self::API_BASE."/repos/{$repo}/contents/{$path}", [
-            'message' => $message,
-            'sha' => $sha,
-            'branch' => $branch,
-        ]);
-
-        $response->throw();
-
-        return $response->json();
-    }
-
     public function mergePullRequest(GithubInstallation $installation, string $repo, int $pullNumber, ?string $commitTitle = null, ?string $mergeMethod = null): array
     {
         $token = $this->getInstallationToken($installation->installation_id);
@@ -678,26 +595,6 @@ class GitHubService
             'Authorization' => "Bearer {$token}",
             'Accept' => 'application/vnd.github+json',
         ])->get(self::API_BASE."/repos/{$repo}/commits/{$ref}/check-runs");
-
-        $response->throw();
-
-        return $response->json();
-    }
-
-    /**
-     * @return array{total_count: int, items: array}
-     */
-    public function searchCode(GithubInstallation $installation, string $query): array
-    {
-        $token = $this->getInstallationToken($installation->installation_id);
-
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->get(self::API_BASE.'/search/code', [
-            'q' => $query,
-            'per_page' => 30,
-        ]);
 
         $response->throw();
 
