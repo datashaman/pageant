@@ -136,6 +136,125 @@ describe('ToolRegistry plan tools', function () {
     });
 });
 
+describe('WorkItemOrchestrator::summarizeResponse', function () {
+    it('truncates responses to 200 characters', function () {
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'summarizeResponse');
+
+        $longText = str_repeat('a', 300);
+        $result = $method->invoke($orchestrator, $longText);
+
+        expect(strlen($result))->toBe(200)
+            ->and($result)->toEndWith('...');
+    });
+
+    it('does not truncate short responses', function () {
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'summarizeResponse');
+
+        $shortText = 'This is a short response.';
+        $result = $method->invoke($orchestrator, $shortText);
+
+        expect($result)->toBe($shortText);
+    });
+});
+
+describe('WorkItemOrchestrator::buildPriorStepsContext', function () {
+    it('returns null when there are no prior steps', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+        ]);
+
+        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
+
+        $step = PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 1,
+            'status' => 'pending',
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'buildPriorStepsContext');
+
+        expect($method->invoke($orchestrator, $step))->toBeNull();
+    });
+
+    it('limits prior steps to the last 3 via sliding window', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+        ]);
+
+        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
+
+        for ($i = 1; $i <= 5; $i++) {
+            PlanStep::factory()->create([
+                'plan_id' => $plan->id,
+                'agent_id' => $agent->id,
+                'order' => $i,
+                'status' => 'completed',
+                'description' => "Step {$i} description",
+                'result' => "Result {$i}",
+            ]);
+        }
+
+        $currentStep = PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 6,
+            'status' => 'pending',
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'buildPriorStepsContext');
+
+        $context = $method->invoke($orchestrator, $currentStep);
+
+        expect($context)->toContain('Step 3 description')
+            ->and($context)->toContain('Step 4 description')
+            ->and($context)->toContain('Step 5 description')
+            ->and($context)->not->toContain('Step 1 description')
+            ->and($context)->not->toContain('Step 2 description');
+    });
+
+    it('enforces a total character budget for prior context', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+        ]);
+
+        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
+
+        for ($i = 1; $i <= 3; $i++) {
+            PlanStep::factory()->create([
+                'plan_id' => $plan->id,
+                'agent_id' => $agent->id,
+                'order' => $i,
+                'status' => 'completed',
+                'description' => str_repeat("Step {$i} ", 100),
+                'result' => str_repeat('x', 200),
+            ]);
+        }
+
+        $currentStep = PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 4,
+            'status' => 'pending',
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'buildPriorStepsContext');
+
+        $context = $method->invoke($orchestrator, $currentStep);
+        $contextWithoutHeader = str_replace("## Prior Steps\n", '', $context);
+
+        expect(strlen($contextWithoutHeader))->toBeLessThanOrEqual(2000);
+    });
+});
+
 describe('EventRegistry plan events', function () {
     it('includes plan events', function () {
         $available = \App\Ai\EventRegistry::available();

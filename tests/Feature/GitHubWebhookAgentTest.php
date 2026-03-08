@@ -75,6 +75,12 @@ it('resolves provider and model from agent model', function () {
         ->and($webhookAgent->model())->toBe('claude-sonnet-4-5-20250514');
 });
 
+it('limits conversation messages to 20', function () {
+    $reflection = new ReflectionClassConstant(GitHubWebhookAgent::class, 'MAX_CONVERSATION_MESSAGES');
+
+    expect($reflection->getValue())->toBe(20);
+});
+
 it('returns null model when set to inherit', function () {
     $agent = Agent::factory()->create([
         'organization_id' => $this->organization->id,

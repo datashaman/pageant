@@ -171,18 +171,27 @@ class WorkItemOrchestrator
         }
     }
 
+    protected const MAX_PRIOR_STEPS = 3;
+
+    protected const PRIOR_CONTEXT_BUDGET = 2000;
+
     protected function buildPriorStepsContext(PlanStep $step): ?string
     {
         $priorSteps = $step->plan->steps()
             ->where('order', '<', $step->order)
             ->whereIn('status', ['completed', 'failed', 'skipped'])
-            ->get();
+            ->reorder('order', 'desc')
+            ->take(static::MAX_PRIOR_STEPS)
+            ->get()
+            ->sortBy('order')
+            ->values();
 
         if ($priorSteps->isEmpty()) {
             return null;
         }
 
         $lines = ['## Prior Steps'];
+        $totalLength = 0;
 
         foreach ($priorSteps as $prior) {
             $icon = match ($prior->status) {
@@ -193,7 +202,14 @@ class WorkItemOrchestrator
             };
 
             $result = $prior->result ? " — {$prior->result}" : '';
-            $lines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+            $line = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+
+            if ($totalLength + strlen($line) > static::PRIOR_CONTEXT_BUDGET) {
+                break;
+            }
+
+            $lines[] = $line;
+            $totalLength += strlen($line);
         }
 
         return implode("\n", $lines);
@@ -230,8 +246,8 @@ class WorkItemOrchestrator
     {
         $text = is_string($response) ? $response : (string) $response;
 
-        if (strlen($text) > 500) {
-            return substr($text, 0, 497).'...';
+        if (strlen($text) > 200) {
+            return substr($text, 0, 197).'...';
         }
 
         return $text;
