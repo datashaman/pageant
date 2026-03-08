@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
+use Illuminate\Support\Facades\Queue;
 use Mockery\MockInterface;
 
 beforeEach(function () {
@@ -98,27 +99,20 @@ describe('SyncWorkItemStatus listener', function () {
 });
 
 describe('work-items:reconcile command', function () {
-    it('syncs work item status from GitHub', function () {
-        $workItem = WorkItem::factory()->create([
+    it('dispatches the reconciliation job', function () {
+        Queue::fake();
+
+        WorkItem::factory()->create([
             'organization_id' => $this->organization->id,
             'source' => 'github',
             'source_reference' => 'acme/widgets#42',
             'status' => 'open',
         ]);
 
-        $this->mock(GitHubService::class, function (MockInterface $mock) {
-            $mock->shouldReceive('getIssue')
-                ->once()
-                ->andReturn([
-                    'number' => 42,
-                    'state' => 'closed',
-                ]);
-        });
-
         $this->artisan('work-items:reconcile')
             ->assertSuccessful();
 
-        expect($workItem->fresh()->status)->toBe('closed');
+        Queue::assertPushed(ReconcileWorkItemStatuses::class);
     });
 
     it('reports no work items when none exist', function () {
@@ -155,6 +149,9 @@ describe('ReconcileWorkItemStatuses job', function () {
 
     it('skips work items from other organizations', function () {
         $otherOrg = Organization::factory()->create();
+        GithubInstallation::factory()->create([
+            'organization_id' => $otherOrg->id,
+        ]);
         $otherWorkItem = WorkItem::factory()->create([
             'organization_id' => $otherOrg->id,
             'source' => 'github',

@@ -24,9 +24,9 @@ class ReconcileWorkItems extends Command
             return self::SUCCESS;
         }
 
-        ReconcileWorkItemStatuses::dispatchSync();
+        ReconcileWorkItemStatuses::dispatch();
 
-        $this->info('Work item statuses reconciled.');
+        $this->info('Work item status reconciliation dispatched.');
 
         return self::SUCCESS;
     }

@@ -9,6 +9,8 @@ use App\Services\GitHubService;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Log;
 
 class ReconcileWorkItemStatuses implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
@@ -30,7 +32,9 @@ class ReconcileWorkItemStatuses implements ShouldBeUniqueUntilProcessing, Should
             $query->where('organization_id', $this->organization->id);
         }
 
-        $installations = GithubInstallation::all()->keyBy('organization_id');
+        $installations = $this->organization
+            ? GithubInstallation::where('organization_id', $this->organization->id)->get()->keyBy('organization_id')
+            : GithubInstallation::all()->keyBy('organization_id');
 
         $query->chunkById(100, function ($workItems) use ($github, $installations) {
             foreach ($workItems as $workItem) {
@@ -54,8 +58,20 @@ class ReconcileWorkItemStatuses implements ShouldBeUniqueUntilProcessing, Should
                     if ($workItem->status !== $newStatus) {
                         $workItem->update(['status' => $newStatus]);
                     }
-                } catch (\Throwable) {
-                    // Skip items that fail (e.g. deleted issues)
+                } catch (RequestException $e) {
+                    if ($e->response?->status() === 404) {
+                        continue;
+                    }
+
+                    Log::warning('Failed to reconcile work item status', [
+                        'source_reference' => $workItem->source_reference,
+                        'error' => $e->getMessage(),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to reconcile work item status', [
+                        'source_reference' => $workItem->source_reference,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         });
