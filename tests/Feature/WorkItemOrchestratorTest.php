@@ -219,7 +219,7 @@ describe('WorkItemOrchestrator::buildPriorStepsContext', function () {
             ->and($context)->not->toContain('Step 2 description');
     });
 
-    it('enforces a total character budget for prior context', function () {
+    it('enforces a total character budget and keeps newest steps', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
             'work_item_id' => $this->workItem->id,
@@ -252,6 +252,39 @@ describe('WorkItemOrchestrator::buildPriorStepsContext', function () {
         $contextWithoutHeader = str_replace("## Prior Steps\n", '', $context);
 
         expect(strlen($contextWithoutHeader))->toBeLessThanOrEqual(2000);
+
+        expect($context)->toContain('Step 3 ')
+            ->and($context)->not->toContain('Step 1 ');
+    });
+
+    it('returns null when all steps exceed the budget individually', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+        ]);
+
+        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
+
+        PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 1,
+            'status' => 'completed',
+            'description' => str_repeat('x', 2100),
+            'result' => 'done',
+        ]);
+
+        $currentStep = PlanStep::factory()->create([
+            'plan_id' => $plan->id,
+            'agent_id' => $agent->id,
+            'order' => 2,
+            'status' => 'pending',
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $method = new ReflectionMethod($orchestrator, 'buildPriorStepsContext');
+
+        expect($method->invoke($orchestrator, $currentStep))->toBeNull();
     });
 });
 

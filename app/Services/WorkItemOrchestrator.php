@@ -190,8 +190,7 @@ class WorkItemOrchestrator
             return null;
         }
 
-        $lines = ['## Prior Steps'];
-        $totalLength = 0;
+        $formattedLines = [];
 
         foreach ($priorSteps as $prior) {
             $icon = match ($prior->status) {
@@ -202,17 +201,26 @@ class WorkItemOrchestrator
             };
 
             $result = $prior->result ? " — {$prior->result}" : '';
-            $line = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+            $formattedLines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+        }
 
+        $selected = [];
+        $totalLength = 0;
+
+        foreach (array_reverse($formattedLines) as $line) {
             if ($totalLength + strlen($line) > static::PRIOR_CONTEXT_BUDGET) {
                 break;
             }
 
-            $lines[] = $line;
+            array_unshift($selected, $line);
             $totalLength += strlen($line);
         }
 
-        return implode("\n", $lines);
+        if (empty($selected)) {
+            return null;
+        }
+
+        return implode("\n", array_merge(['## Prior Steps'], $selected));
     }
 
     protected function resolveDriver(WorkItem $workItem): ?ExecutionDriver
