@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\LocalExecutionDriver;
 use App\Services\WorktreeManager;
@@ -243,3 +244,87 @@ it('throws an exception when worktree creation fails', function () {
 
     $this->manager->provision($workItem);
 })->throws(RuntimeException::class, 'Failed to create worktree');
+
+it('runs the setup script after provisioning a worktree', function () {
+    Process::fake([
+        '*git clone*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+        '*git worktree add*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+        '*bash*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+    ]);
+
+    $workItem = WorkItem::factory()->create([
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#42',
+    ]);
+
+    Repo::factory()->create([
+        'organization_id' => $workItem->organization_id,
+        'source' => 'github',
+        'source_reference' => 'acme/widgets',
+        'setup_script' => "#!/bin/bash\ncomposer install",
+    ]);
+
+    $this->manager->provision($workItem);
+
+    Process::assertRan(function ($process) {
+        return is_array($process->command)
+            && $process->command[0] === 'bash'
+            && $process->command[1] === '-c'
+            && str_contains($process->command[2], 'composer install');
+    });
+});
+
+it('does not run setup script when repo has no script', function () {
+    Process::fake([
+        '*git clone*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+        '*git worktree add*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+    ]);
+
+    $workItem = WorkItem::factory()->create([
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#42',
+    ]);
+
+    Repo::factory()->create([
+        'organization_id' => $workItem->organization_id,
+        'source' => 'github',
+        'source_reference' => 'acme/widgets',
+        'setup_script' => null,
+    ]);
+
+    $this->manager->provision($workItem);
+
+    Process::assertNotRan(function ($process) {
+        return is_array($process->command) && $process->command[0] === 'bash';
+    });
+});
+
+it('logs a warning when setup script fails', function () {
+    Process::fake([
+        '*git clone*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+        '*git worktree add*' => Process::result(output: '', errorOutput: '', exitCode: 0),
+        '*bash*' => Process::result(output: '', errorOutput: 'command not found', exitCode: 127),
+    ]);
+
+    $workItem = WorkItem::factory()->create([
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#42',
+    ]);
+
+    Repo::factory()->create([
+        'organization_id' => $workItem->organization_id,
+        'source' => 'github',
+        'source_reference' => 'acme/widgets',
+        'setup_script' => 'nonexistent-command',
+    ]);
+
+    \Illuminate\Support\Facades\Log::shouldReceive('warning')
+        ->once()
+        ->withArgs(fn ($message) => str_contains($message, 'Setup script failed'));
+
+    $this->manager->provision($workItem);
+
+    // Worktree is still provisioned despite setup failure
+    $workItem->refresh();
+    expect($workItem->worktree_path)->not->toBeNull();
+});

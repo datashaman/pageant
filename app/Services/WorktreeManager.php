@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\ExecutionDriver;
+use App\Models\Repo;
 use App\Models\WorkItem;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +31,7 @@ class WorktreeManager
 
         $this->ensureBareClone($barePath, $repoReference);
         $this->createWorktree($barePath, $worktreePath, $branchName);
+        $this->runSetupScript($workItem, $repoReference, $worktreePath);
 
         $workItem->update([
             'worktree_path' => $worktreePath,
@@ -107,6 +109,34 @@ class WorktreeManager
         $path = $this->provisionOrResolve($workItem);
 
         return new LocalExecutionDriver($path);
+    }
+
+    /**
+     * Run the repo's setup script inside the worktree, if one is configured.
+     */
+    protected function runSetupScript(WorkItem $workItem, string $repoReference, string $worktreePath): void
+    {
+        $repo = Repo::where('source', 'github')
+            ->where('source_reference', $repoReference)
+            ->where('organization_id', $workItem->organization_id)
+            ->first();
+
+        if (! $repo || ! $repo->setup_script) {
+            return;
+        }
+
+        $result = Process::path($worktreePath)
+            ->timeout(300)
+            ->run(['bash', '-c', $repo->setup_script]);
+
+        if (! $result->successful()) {
+            Log::warning('Setup script failed for worktree', [
+                'work_item_id' => $workItem->id,
+                'repo' => $repoReference,
+                'exit_code' => $result->exitCode(),
+                'error' => $result->errorOutput(),
+            ]);
+        }
     }
 
     /**

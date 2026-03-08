@@ -21,6 +21,7 @@ class Repo extends Model
         'source',
         'source_reference',
         'source_url',
+        'setup_script',
     ];
 
     public function organization(): BelongsTo
