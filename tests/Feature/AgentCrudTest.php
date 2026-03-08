@@ -105,6 +105,20 @@ it('shows actual model name on index page when set', function () {
         ->assertSee('claude-sonnet-4-6');
 });
 
+it('does not show event codes as descriptions in create form', function () {
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.create')
+        ->assertDontSeeHtml('<ui-description data-flux-description')
+        ->assertSeeHtml('Pushed');
+});
+
+it('does not show event codes as descriptions in edit form', function () {
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.edit', ['agent' => $this->agent])
+        ->assertDontSeeHtml('<ui-description data-flux-description')
+        ->assertSeeHtml('Pushed');
+});
+
 it('prevents access to agents from other organizations', function () {
     $otherOrg = Organization::factory()->create();
     $otherAgent = Agent::factory()->for($otherOrg)->create();
