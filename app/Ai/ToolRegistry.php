@@ -19,6 +19,7 @@ use App\Ai\Tools\CreatePlanTool;
 use App\Ai\Tools\CreateProjectTool;
 use App\Ai\Tools\CreatePullRequestReviewTool;
 use App\Ai\Tools\CreatePullRequestTool;
+use App\Ai\Tools\CreateSkillTool;
 use App\Ai\Tools\CreateWorkItemTool;
 use App\Ai\Tools\DeleteLabelTool;
 use App\Ai\Tools\DeleteProjectTool;
@@ -60,7 +61,9 @@ use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
 use App\Ai\Tools\ResumePlanTool;
+use App\Ai\Tools\SearchAgentsTool;
 use App\Ai\Tools\SearchIssuesTool;
+use App\Ai\Tools\SearchSkillsTool;
 use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdateProjectTool;
 use App\Ai\Tools\UpdatePullRequestTool;
@@ -123,9 +126,12 @@ class ToolRegistry
         // Agents
         'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant', 'flexible' => true],
         'list_agents' => ['class' => ListAgentsTool::class, 'description' => 'List agents in the organization', 'group' => 'Agents', 'local' => true],
+        'search_agents' => ['class' => SearchAgentsTool::class, 'description' => 'Search for agents matching work item requirements', 'group' => 'Agents', 'local' => true],
 
         // Skills
         'list_skills' => ['class' => ListSkillsTool::class, 'description' => 'List skills in the organization', 'group' => 'Skills', 'local' => true],
+        'search_skills' => ['class' => SearchSkillsTool::class, 'description' => 'Search skills by capability', 'group' => 'Skills', 'local' => true],
+        'create_skill' => ['class' => CreateSkillTool::class, 'description' => 'Create a new skill', 'group' => 'Skills', 'local' => true],
         'attach_skill_to_agent' => ['class' => AttachSkillToAgentTool::class, 'description' => 'Attach a skill to an agent', 'group' => 'Skills', 'local' => true],
 
         // Plans
