@@ -115,6 +115,39 @@ it('includes proactive behavior directives in instructions', function () {
         ->toContain('genuine ambiguity');
 });
 
+it('includes rich page context in assistant instructions', function () {
+    $context = 'User is viewing a work item. work item id: abc-123. work item title: Fix login bug. project: My Project';
+
+    $assistant = new PageantAssistant(
+        user: $this->user,
+        pageContext: $context,
+    );
+
+    expect($assistant->instructions())
+        ->toContain('Fix login bug')
+        ->toContain('work item id: abc-123')
+        ->toContain('My Project');
+});
+
+it('sends page context to the stream endpoint and includes it in assistant instructions', function () {
+    PageantAssistant::fake(['Got it, you are viewing a work item.']);
+
+    $pageContext = 'User is viewing a work item. work item id: abc-123. work item title: Fix login bug';
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'What am I looking at?',
+            'page_context' => $pageContext,
+        ]);
+
+    $response->assertOk();
+    $response->assertHeader('content-type', 'text/event-stream; charset=utf-8');
+
+    PageantAssistant::assertPrompted(function ($prompt) use ($pageContext) {
+        return str_contains($prompt->agent->instructions(), $pageContext);
+    });
+});
+
 it('resolves all tools for PageantAssistant', function () {
     $assistant = new PageantAssistant(
         user: $this->user,

@@ -96,7 +96,7 @@ new #[Title('Work Item')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'work-items.show', 'work_item_id' => $workItem->id, 'work_item_title' => $workItem->title, 'work_item_description' => Str::limit($workItem->description, 200), 'project' => $workItem->project?->name, 'source' => $workItem->source, 'source_reference' => $workItem->source_reference]) }}">
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">

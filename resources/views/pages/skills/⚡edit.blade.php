@@ -121,7 +121,7 @@ new #[Title('Edit Skill')] class extends Component {
     }
 }; ?>
 
-<div class="w-full">
+<div class="w-full" data-chat-context="{{ json_encode(['page' => 'skills.edit', 'skill_id' => $skill->id, 'skill_name' => $skill->name]) }}">
     <div class="space-y-6">
         <div class="flex items-center gap-4">
             <flux:button href="{{ route('skills.show', $skill) }}" wire:navigate>
