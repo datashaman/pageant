@@ -46,7 +46,11 @@ class CreateIssueTool extends Tool
 
         $issue = $this->github->createIssue($installation, $validated['repo'], $data);
 
-        return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
+        $result = json_encode($issue, JSON_PRETTY_PRINT);
+
+        $result .= "\n\n[ASSISTANT HINT: The issue was created successfully. Offer the user to also create a Pageant work item linked to this issue using the create_work_item tool.]";
+
+        return Response::text($result);
     }
 
     /**

@@ -27,7 +27,7 @@ class CreateWorkItemTool extends Tool
         $validated = $request->validate([
             'repo' => 'required|string',
             'issue_number' => 'required|integer|min:1',
-            'board_id' => 'required|string',
+            'board_id' => 'nullable|string',
             'project_id' => 'nullable|string',
         ]);
 
@@ -46,7 +46,7 @@ class CreateWorkItemTool extends Tool
                 'project_id' => $validated['project_id'] ?? null,
                 'title' => $issue['title'],
                 'description' => $issue['body'] ?? '',
-                'board_id' => $validated['board_id'],
+                'board_id' => $validated['board_id'] ?? null,
                 'source_url' => $issue['html_url'] ?? '',
             ]
         );
@@ -71,8 +71,7 @@ class CreateWorkItemTool extends Tool
                 ->description('The GitHub issue number to create a work item from.')
                 ->required(),
             'board_id' => $schema->string()
-                ->description('The board ID to place the work item on.')
-                ->required(),
+                ->description('Optional board ID to place the work item on.'),
             'project_id' => $schema->string()
                 ->description('Optional project ID to associate the work item with.'),
         ];

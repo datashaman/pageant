@@ -54,7 +54,7 @@ class CreateWorkItemTool implements Tool
                 'project_id' => $request['project_id'] ?? null,
                 'title' => $issue['title'],
                 'description' => $issue['body'] ?? '',
-                'board_id' => $request['board_id'],
+                'board_id' => $request['board_id'] ?? null,
                 'source_url' => $issue['html_url'] ?? '',
             ]
         );
@@ -81,8 +81,7 @@ class CreateWorkItemTool implements Tool
                 ->description('The GitHub issue number to create a work item from.')
                 ->required(),
             'board_id' => $schema->string()
-                ->description('The board ID to place the work item on.')
-                ->required(),
+                ->description('Optional board ID to place the work item on.'),
             'project_id' => $schema->string()
                 ->description('Optional project ID to associate the work item with.'),
         ]);

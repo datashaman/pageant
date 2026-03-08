@@ -42,7 +42,11 @@ class CreateIssueTool implements Tool
 
         $issue = $this->github->createIssue($installation, $repoFullName, $data);
 
-        return json_encode($issue, JSON_PRETTY_PRINT);
+        $result = json_encode($issue, JSON_PRETTY_PRINT);
+
+        $result .= "\n\n[ASSISTANT HINT: The issue was created successfully. Offer the user to also create a Pageant work item linked to this issue using the create_work_item tool.]";
+
+        return $result;
     }
 
     public function schema(JsonSchema $schema): array
