@@ -222,7 +222,9 @@ describe('work items index page load reconciliation', function () {
         Livewire::actingAs($user)
             ->test('pages::work-items.index')
             ->set('statusFilter', 'closed')
-            ->assertSee('Closed');
+            ->assertSeeInOrder(['Stale open issue', 'Closed']);
+
+        expect($workItem->fresh()->status)->toBe('closed');
     });
 
     it('syncs statuses when sync button is clicked', function () {
@@ -241,13 +243,22 @@ describe('work items index page load reconciliation', function () {
         $this->mock(GitHubService::class, function (MockInterface $mock) {
             $mock->shouldReceive('getIssue')
                 ->with(Mockery::on(fn ($inst) => $inst->id === $this->installation->id), 'acme/widgets', 42)
-                ->andReturn(['number' => 42, 'state' => 'closed']);
+                ->twice()
+                ->andReturn(
+                    ['number' => 42, 'state' => 'open'],
+                    ['number' => 42, 'state' => 'closed'],
+                );
         });
 
-        Livewire::actingAs($user)
-            ->test('pages::work-items.index')
-            ->call('syncStatuses');
+        $component = Livewire::actingAs($user)
+            ->test('pages::work-items.index');
 
+        // After mount, status should still be open (first mock returns 'open')
+        expect($workItem->fresh()->status)->toBe('open');
+
+        $component->call('syncStatuses');
+
+        // After syncStatuses, status should be closed (second mock returns 'closed')
         expect($workItem->fresh()->status)->toBe('closed');
     });
 });
