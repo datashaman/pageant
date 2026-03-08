@@ -58,6 +58,34 @@ it('creates a work item from a GitHub issue', function () {
         ->and($workItem->organization_id)->toBe($this->organization->id);
 });
 
+it('creates a work item without board_id', function () {
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('getIssue')
+            ->once()
+            ->andReturn([
+                'number' => 55,
+                'title' => 'New feature request',
+                'body' => 'Please add this',
+                'state' => 'open',
+                'html_url' => 'https://github.com/acme/widgets/issues/55',
+            ]);
+    });
+
+    $response = PageantServer::tool(CreateWorkItemTool::class, [
+        'repo' => 'acme/widgets',
+        'issue_number' => 55,
+    ]);
+
+    $response->assertOk()
+        ->assertSee('New feature request');
+
+    $workItem = WorkItem::where('source_reference', 'acme/widgets#55')->first();
+
+    expect($workItem)->not->toBeNull()
+        ->and($workItem->title)->toBe('New feature request')
+        ->and($workItem->board_id)->toBeNull();
+});
+
 it('deletes a work item by repo and issue number', function () {
     WorkItem::factory()->create([
         'organization_id' => $this->organization->id,
