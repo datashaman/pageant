@@ -47,7 +47,7 @@ routes/
   web.php            # Auth + webhook + dashboard routes
   resources.php      # Resource routes
   settings.php       # Settings routes
-  ai.php             # AI/chat routes
+  ai.php             # MCP server routes (GitHub & Pageant servers)
 tests/
   Feature/           # Feature tests (20+ files)
   Unit/              # Unit tests
@@ -93,6 +93,7 @@ Agent
 Repo
 ├── organization [BelongsTo] → Organization
 ├── agents [BelongsToMany] → Agent
+├── skills [BelongsToMany] → Skill
 └── projects [BelongsToMany] → Project
 
 WorkItem
@@ -122,7 +123,7 @@ composer run dev
 
 ```bash
 php artisan test --compact                       # All tests
-php artisan test --compact --filter=AgentCrud    # Filter by name
+php artisan test --compact --filter=testName     # Filter by name
 ```
 
 ### Linting
@@ -188,7 +189,7 @@ php artisan passport:keys
 - Use `php artisan make:` commands to scaffold new files; pass `--no-interaction`.
 - Middleware is configured in `bootstrap/app.php` (not in `Kernel.php` — that file does not exist in Laravel 12).
 - Prefer Eloquent relationships and eager loading; avoid `DB::` raw queries.
-- Use Form Request classes for validation (not inline validation).
+- Use Laravel's validation helpers (e.g. `$request->validate([...])`) for request validation; introduce Form Request classes only when they provide clear reuse or complexity benefits.
 - Use named routes and the `route()` helper for URL generation.
 - Use queued jobs (`ShouldQueue`) for time-consuming operations.
 - When creating models, also create factories and seeders.
