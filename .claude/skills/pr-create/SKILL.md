@@ -275,7 +275,25 @@ TaskUpdate:
 - metadata: {"prUrl": "<url>", "prNumber": <N>, "prTitle": "<title>", "commits": <count>}
 ```
 
-### Step 9: Monitor CI
+### Step 9: Check for Merge Conflicts and Monitor CI
+
+**Before monitoring CI, check for merge conflicts on the PR.** GitHub CI checks will not run (or will be stuck) if there are merge conflicts.
+
+```bash
+gh pr view <pr-number> --json mergeable,mergeStateStatus --jq '"\(.mergeable) \(.mergeStateStatus)"'
+```
+
+- If `CONFLICTING` or `mergeable` is `false`: the branch has merge conflicts with the base branch. Rebase first:
+  ```bash
+  git fetch origin
+  git rebase origin/<base-branch>
+  # Resolve any conflicts, then:
+  git rebase --continue
+  git push --force-with-lease
+  ```
+  After resolving conflicts, CI will be triggered by the push. Continue monitoring below.
+
+- If `MERGEABLE` or `UNKNOWN` (GitHub is still calculating): proceed to monitor CI.
 
 **Create a CI run task:**
 ```

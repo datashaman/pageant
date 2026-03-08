@@ -10,6 +10,8 @@ new class extends Component
 
     public array $messages = [];
 
+    public array $conversations = [];
+
     public function mount(): void
     {
         $store = resolve(ConversationStore::class);
@@ -18,6 +20,8 @@ new class extends Component
         if ($this->conversationId) {
             $this->loadMessages();
         }
+
+        $this->loadConversations();
     }
 
     public function loadMessages(): void
@@ -36,13 +40,32 @@ new class extends Component
             ->all();
     }
 
+    public function loadConversations(): void
+    {
+        $this->conversations = DB::table('agent_conversations')
+            ->where('user_id', auth()->id())
+            ->orderByDesc('updated_at')
+            ->limit(20)
+            ->get(['id', 'title', 'updated_at'])
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'title' => $c->title,
+                'updated_at' => $c->updated_at,
+            ])
+            ->all();
+    }
+
+    public function switchConversation(string $conversationId): void
+    {
+        $this->conversationId = $conversationId;
+        $this->loadMessages();
+    }
+
     public function newConversation(): void
     {
         $this->conversationId = null;
         $this->messages = [];
     }
-
-
 };
 ?>
 
@@ -52,6 +75,7 @@ new class extends Component
         currentMessage: '',
         streaming: false,
         streamedContent: '',
+        transcriptCopied: false,
         messages: @entangle('messages'),
         conversationId: @entangle('conversationId'),
 
@@ -172,6 +196,18 @@ new class extends Component
             }
         },
 
+        copyTranscript() {
+            const transcript = this.messages.map(msg => {
+                const label = msg.role === 'user' ? 'User' : 'Assistant';
+                return `${label}:\n${msg.content}`;
+            }).join('\n\n---\n\n');
+
+            navigator.clipboard.writeText(transcript).then(() => {
+                this.transcriptCopied = true;
+                setTimeout(() => this.transcriptCopied = false, 1500);
+            });
+        },
+
         newChat() {
             $wire.call('newConversation');
             this.messages = [];
@@ -188,8 +224,34 @@ new class extends Component
 >
     {{-- Header --}}
     <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-        <flux:heading size="sm">{{ __('Assistant') }}</flux:heading>
+        <flux:dropdown position="bottom" align="start">
+            <flux:button size="sm" variant="ghost" class="max-w-48 truncate" icon-trailing="chevron-down">
+                <span x-text="conversationId ? ($wire.conversations.find(c => c.id === conversationId)?.title || '{{ __('Assistant') }}') : '{{ __('New conversation') }}'"></span>
+            </flux:button>
+
+            <flux:menu>
+                @foreach ($conversations as $conversation)
+                    <flux:menu.item
+                        wire:click="switchConversation('{{ $conversation['id'] }}')"
+                        class="max-w-64 truncate"
+                    >
+                        {{ $conversation['title'] }}
+                    </flux:menu.item>
+                @endforeach
+
+                @if (empty($conversations))
+                    <flux:menu.item disabled>
+                        {{ __('No conversations yet') }}
+                    </flux:menu.item>
+                @endif
+            </flux:menu>
+        </flux:dropdown>
+
         <div class="flex items-center gap-2">
+            <flux:button size="xs" variant="ghost" @click="copyTranscript()" x-show="messages.length > 0" x-bind:title="transcriptCopied ? 'Copied!' : 'Copy transcript'">
+                <flux:icon.clipboard-document-list class="size-4" x-show="!transcriptCopied" />
+                <flux:icon.check class="size-4 text-green-500" x-show="transcriptCopied" x-cloak />
+            </flux:button>
             <flux:button size="xs" variant="ghost" @click="newChat()" title="New conversation">
                 <flux:icon.plus class="size-4" />
             </flux:button>
