@@ -62,6 +62,11 @@ class Organization extends Model
         return $this->hasMany(WorkItem::class);
     }
 
+    public function plans(): HasMany
+    {
+        return $this->hasMany(Plan::class);
+    }
+
     public function githubInstallation(): HasOne
     {
         return $this->hasOne(GithubInstallation::class);

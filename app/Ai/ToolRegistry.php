@@ -3,14 +3,19 @@
 namespace App\Ai;
 
 use App\Ai\Tools\AddLabelsToIssueTool;
+use App\Ai\Tools\AddPlanStepTool;
+use App\Ai\Tools\ApprovePlanTool;
 use App\Ai\Tools\AttachRepoToProjectTool;
+use App\Ai\Tools\AttachSkillToAgentTool;
 use App\Ai\Tools\BashTool;
+use App\Ai\Tools\CancelPlanTool;
 use App\Ai\Tools\CloseIssueTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateBranchTool;
 use App\Ai\Tools\CreateCommentTool;
 use App\Ai\Tools\CreateIssueTool;
 use App\Ai\Tools\CreateLabelTool;
+use App\Ai\Tools\CreatePlanTool;
 use App\Ai\Tools\CreateProjectTool;
 use App\Ai\Tools\CreatePullRequestReviewTool;
 use App\Ai\Tools\CreatePullRequestTool;
@@ -23,6 +28,7 @@ use App\Ai\Tools\DetachRepoFromProjectTool;
 use App\Ai\Tools\EditFileTool;
 use App\Ai\Tools\GetCommitStatusTool;
 use App\Ai\Tools\GetIssueTool;
+use App\Ai\Tools\GetPlanTool;
 use App\Ai\Tools\GetProjectTool;
 use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
@@ -34,6 +40,7 @@ use App\Ai\Tools\GitPushTool;
 use App\Ai\Tools\GitStatusTool;
 use App\Ai\Tools\GlobTool;
 use App\Ai\Tools\GrepTool;
+use App\Ai\Tools\ListAgentsTool;
 use App\Ai\Tools\ListBranchesTool;
 use App\Ai\Tools\ListCheckRunsTool;
 use App\Ai\Tools\ListCommentsTool;
@@ -41,14 +48,18 @@ use App\Ai\Tools\ListDirectoryTool;
 use App\Ai\Tools\ListIssueLabelsTool;
 use App\Ai\Tools\ListIssuesTool;
 use App\Ai\Tools\ListLabelsTool;
+use App\Ai\Tools\ListPlansTool;
 use App\Ai\Tools\ListProjectsTool;
 use App\Ai\Tools\ListPullRequestFilesTool;
 use App\Ai\Tools\ListPullRequestsTool;
 use App\Ai\Tools\ListReposTool;
+use App\Ai\Tools\ListSkillsTool;
 use App\Ai\Tools\MergePullRequestTool;
+use App\Ai\Tools\PausePlanTool;
 use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
+use App\Ai\Tools\ResumePlanTool;
 use App\Ai\Tools\SearchIssuesTool;
 use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdateProjectTool;
@@ -111,6 +122,21 @@ class ToolRegistry
 
         // Agents
         'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant', 'flexible' => true],
+        'list_agents' => ['class' => ListAgentsTool::class, 'description' => 'List agents in the organization', 'group' => 'Agents', 'local' => true],
+
+        // Skills
+        'list_skills' => ['class' => ListSkillsTool::class, 'description' => 'List skills in the organization', 'group' => 'Skills', 'local' => true],
+        'attach_skill_to_agent' => ['class' => AttachSkillToAgentTool::class, 'description' => 'Attach a skill to an agent', 'group' => 'Skills', 'local' => true],
+
+        // Plans
+        'create_plan' => ['class' => CreatePlanTool::class, 'description' => 'Create an execution plan for a work item', 'group' => 'Plans', 'local' => true],
+        'get_plan' => ['class' => GetPlanTool::class, 'description' => 'Get a plan with its steps', 'group' => 'Plans', 'local' => true],
+        'list_plans' => ['class' => ListPlansTool::class, 'description' => 'List plans for work items', 'group' => 'Plans', 'local' => true],
+        'approve_plan' => ['class' => ApprovePlanTool::class, 'description' => 'Approve a pending plan for execution', 'group' => 'Plans', 'local' => true],
+        'cancel_plan' => ['class' => CancelPlanTool::class, 'description' => 'Cancel a pending or running plan', 'group' => 'Plans', 'local' => true],
+        'add_plan_step' => ['class' => AddPlanStepTool::class, 'description' => 'Add a step to an existing plan', 'group' => 'Plans', 'local' => true],
+        'pause_plan' => ['class' => PausePlanTool::class, 'description' => 'Pause a running plan', 'group' => 'Plans', 'local' => true],
+        'resume_plan' => ['class' => ResumePlanTool::class, 'description' => 'Resume a paused plan', 'group' => 'Plans', 'local' => true],
 
         // Repos (organization-scoped, no GitHub API needed)
         'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Repos', 'local' => true],

@@ -62,6 +62,36 @@ class EventRegistry
             'actions' => [],
             'filters' => [],
         ],
+
+        // Plans
+        'plan_step_completed' => [
+            'label' => 'Plans',
+            'description' => 'Plan step completed successfully',
+            'group' => 'Plans',
+            'actions' => [],
+            'filters' => [],
+        ],
+        'plan_step_failed' => [
+            'label' => 'Plans',
+            'description' => 'Plan step failed',
+            'group' => 'Plans',
+            'actions' => [],
+            'filters' => [],
+        ],
+        'plan_completed' => [
+            'label' => 'Plans',
+            'description' => 'Plan completed successfully',
+            'group' => 'Plans',
+            'actions' => [],
+            'filters' => [],
+        ],
+        'plan_failed' => [
+            'label' => 'Plans',
+            'description' => 'Plan failed',
+            'group' => 'Plans',
+            'actions' => [],
+            'filters' => [],
+        ],
     ];
 
     /**
