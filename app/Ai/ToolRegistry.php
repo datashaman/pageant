@@ -3,6 +3,7 @@
 namespace App\Ai;
 
 use App\Ai\Tools\AddLabelsToIssueTool;
+use App\Ai\Tools\AddPlanStepTool;
 use App\Ai\Tools\ApprovePlanTool;
 use App\Ai\Tools\AttachRepoToProjectTool;
 use App\Ai\Tools\AttachSkillToAgentTool;
@@ -54,9 +55,11 @@ use App\Ai\Tools\ListPullRequestsTool;
 use App\Ai\Tools\ListReposTool;
 use App\Ai\Tools\ListSkillsTool;
 use App\Ai\Tools\MergePullRequestTool;
+use App\Ai\Tools\PausePlanTool;
 use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
+use App\Ai\Tools\ResumePlanTool;
 use App\Ai\Tools\SearchIssuesTool;
 use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdateProjectTool;
@@ -131,6 +134,9 @@ class ToolRegistry
         'list_plans' => ['class' => ListPlansTool::class, 'description' => 'List plans for work items', 'group' => 'Plans', 'local' => true],
         'approve_plan' => ['class' => ApprovePlanTool::class, 'description' => 'Approve a pending plan for execution', 'group' => 'Plans', 'local' => true],
         'cancel_plan' => ['class' => CancelPlanTool::class, 'description' => 'Cancel a pending or running plan', 'group' => 'Plans', 'local' => true],
+        'add_plan_step' => ['class' => AddPlanStepTool::class, 'description' => 'Add a step to an existing plan', 'group' => 'Plans', 'local' => true],
+        'pause_plan' => ['class' => PausePlanTool::class, 'description' => 'Pause a running plan', 'group' => 'Plans', 'local' => true],
+        'resume_plan' => ['class' => ResumePlanTool::class, 'description' => 'Resume a paused plan', 'group' => 'Plans', 'local' => true],
 
         // Repos (organization-scoped, no GitHub API needed)
         'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Repos', 'local' => true],

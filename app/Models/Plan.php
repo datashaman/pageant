@@ -85,4 +85,9 @@ class Plan extends Model
     {
         return $this->status === 'failed';
     }
+
+    public function isPaused(): bool
+    {
+        return $this->status === 'paused';
+    }
 }

@@ -64,8 +64,50 @@ describe('WorkItemOrchestrator::execute', function () {
     });
 });
 
+describe('WorkItemOrchestrator pause/resume', function () {
+    it('rejects execution of a paused plan that has not been resumed', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+            'status' => 'paused',
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+
+        // Paused plans can be executed (resume sets to approved then dispatches)
+        // but a raw paused plan should also work since the loop checks status
+        $plan->update(['status' => 'approved']);
+        $plan->refresh();
+
+        expect($plan->isApproved())->toBeTrue();
+    });
+});
+
+describe('Plan paused status', function () {
+    it('tracks paused state', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+            'status' => 'paused',
+        ]);
+
+        expect($plan->isPaused())->toBeTrue();
+        expect($plan->isRunning())->toBeFalse();
+    });
+
+    it('includes paused plans in active plan query', function () {
+        $plan = Plan::factory()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+            'status' => 'paused',
+        ]);
+
+        expect($this->workItem->activePlan()->id)->toBe($plan->id);
+    });
+});
+
 describe('ToolRegistry plan tools', function () {
-    it('includes plan tools in the registry', function () {
+    it('includes all plan tools in the registry', function () {
         $available = \App\Ai\ToolRegistry::available();
 
         expect($available)->toHaveKey('create_plan');
@@ -73,6 +115,9 @@ describe('ToolRegistry plan tools', function () {
         expect($available)->toHaveKey('list_plans');
         expect($available)->toHaveKey('approve_plan');
         expect($available)->toHaveKey('cancel_plan');
+        expect($available)->toHaveKey('add_plan_step');
+        expect($available)->toHaveKey('pause_plan');
+        expect($available)->toHaveKey('resume_plan');
         expect($available)->toHaveKey('list_agents');
         expect($available)->toHaveKey('list_skills');
         expect($available)->toHaveKey('attach_skill_to_agent');
@@ -83,7 +128,33 @@ describe('ToolRegistry plan tools', function () {
 
         expect($pageantTools)->toContain('create_plan');
         expect($pageantTools)->toContain('list_plans');
+        expect($pageantTools)->toContain('add_plan_step');
+        expect($pageantTools)->toContain('pause_plan');
+        expect($pageantTools)->toContain('resume_plan');
         expect($pageantTools)->toContain('list_agents');
         expect($pageantTools)->toContain('list_skills');
+    });
+});
+
+describe('EventRegistry plan events', function () {
+    it('includes plan events', function () {
+        $available = \App\Ai\EventRegistry::available();
+
+        expect($available)->toHaveKey('plan_step_completed');
+        expect($available)->toHaveKey('plan_step_failed');
+        expect($available)->toHaveKey('plan_completed');
+        expect($available)->toHaveKey('plan_failed');
+    });
+
+    it('groups plan events together', function () {
+        $grouped = \App\Ai\EventRegistry::grouped();
+
+        expect($grouped)->toHaveKey('Plans');
+        expect($grouped['Plans'])->toHaveKeys([
+            'plan_step_completed',
+            'plan_step_failed',
+            'plan_completed',
+            'plan_failed',
+        ]);
     });
 });

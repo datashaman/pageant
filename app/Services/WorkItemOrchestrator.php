@@ -4,6 +4,10 @@ namespace App\Services;
 
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Contracts\ExecutionDriver;
+use App\Events\PlanCompleted;
+use App\Events\PlanFailed;
+use App\Events\PlanStepCompleted;
+use App\Events\PlanStepFailed;
 use App\Models\Plan;
 use App\Models\PlanStep;
 use App\Models\WorkItem;
@@ -21,7 +25,7 @@ class WorkItemOrchestrator
 
     public function execute(Plan $plan): void
     {
-        if (! $plan->isApproved()) {
+        if (! $plan->isApproved() && $plan->status !== 'paused') {
             throw new \InvalidArgumentException('Plan must be approved before execution.');
         }
 
@@ -35,6 +39,12 @@ class WorkItemOrchestrator
 
         try {
             foreach ($plan->steps as $step) {
+                $plan->refresh();
+
+                if ($plan->isPaused() || $plan->status === 'cancelled') {
+                    return;
+                }
+
                 if ($step->status !== 'pending') {
                     continue;
                 }
@@ -47,6 +57,8 @@ class WorkItemOrchestrator
                         'completed_at' => now(),
                     ]);
 
+                    PlanFailed::dispatch($plan);
+
                     return;
                 }
             }
@@ -55,6 +67,8 @@ class WorkItemOrchestrator
                 'status' => 'completed',
                 'completed_at' => now(),
             ]);
+
+            PlanCompleted::dispatch($plan);
         } catch (\Throwable $e) {
             Log::error('Plan execution failed', [
                 'plan_id' => $plan->id,
@@ -126,6 +140,8 @@ class WorkItemOrchestrator
                 'completed_at' => now(),
                 'result' => $this->summarizeResponse($response),
             ]);
+
+            PlanStepCompleted::dispatch($step);
         } catch (\Throwable $e) {
             Log::error('Plan step failed', [
                 'step_id' => $step->id,
@@ -137,6 +153,8 @@ class WorkItemOrchestrator
                 'completed_at' => now(),
                 'result' => "Failed: {$e->getMessage()}",
             ]);
+
+            PlanStepFailed::dispatch($step);
         }
     }
 

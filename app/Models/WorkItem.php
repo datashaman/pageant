@@ -53,7 +53,7 @@ class WorkItem extends Model
     public function activePlan(): ?Plan
     {
         return $this->plans()
-            ->whereIn('status', ['pending', 'approved', 'running'])
+            ->whereIn('status', ['pending', 'approved', 'running', 'paused'])
             ->latest()
             ->first();
     }

@@ -58,6 +58,31 @@ new #[Title('Work Item')] class extends Component {
         unset($this->plans);
     }
 
+    public function pausePlan(string $planId): void
+    {
+        $plan = Plan::where('organization_id', $this->workItem->organization_id)
+            ->findOrFail($planId);
+
+        if ($plan->isRunning()) {
+            $plan->update(['status' => 'paused']);
+        }
+
+        unset($this->plans);
+    }
+
+    public function resumePlan(string $planId): void
+    {
+        $plan = Plan::where('organization_id', $this->workItem->organization_id)
+            ->findOrFail($planId);
+
+        if ($plan->isPaused()) {
+            $plan->update(['status' => 'approved']);
+            ExecutePlan::dispatch($plan);
+        }
+
+        unset($this->plans);
+    }
+
     public function confirmDelete(): void
     {
         $this->dispatch('open-modal', id: 'confirm-delete');
@@ -168,6 +193,7 @@ new #[Title('Work Item')] class extends Component {
                                     'pending' => 'warning',
                                     'approved' => 'info',
                                     'running' => 'info',
+                                    'paused' => 'warning',
                                     'completed' => 'success',
                                     'failed' => 'danger',
                                     'cancelled' => 'default',
@@ -187,6 +213,16 @@ new #[Title('Work Item')] class extends Component {
                                     {{ __('Cancel') }}
                                 </flux:button>
                             @elseif ($plan->isRunning())
+                                <flux:button size="sm" wire:click="pausePlan('{{ $plan->id }}')">
+                                    {{ __('Pause') }}
+                                </flux:button>
+                                <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
+                                    {{ __('Cancel') }}
+                                </flux:button>
+                            @elseif ($plan->isPaused())
+                                <flux:button size="sm" variant="primary" wire:click="resumePlan('{{ $plan->id }}')">
+                                    {{ __('Resume') }}
+                                </flux:button>
                                 <flux:button size="sm" variant="danger" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
                                 </flux:button>
