@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Livewire\Livewire;
 
 test('guests are redirected to the login page', function () {
     $response = $this->get(route('dashboard'));
@@ -15,33 +16,49 @@ test('authenticated users can visit the dashboard', function () {
     $response->assertOk();
 });
 
-test('dashboard cards link to their respective index pages', function () {
+test('dashboard cards are clickable links to their respective index pages', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    $response = $this->get(route('dashboard'));
-    $response->assertOk();
+    $component = Livewire::test('pages::dashboard');
 
-    $content = $response->getContent();
+    $html = $component->html();
 
-    expect($content)
-        ->toContain(route('projects.index'))
-        ->toContain(route('repos.index'))
-        ->toContain(route('work-items.index'))
-        ->toContain(route('agents.index'))
-        ->toContain(route('skills.index'));
+    $expectedRoutes = [
+        route('projects.index'),
+        route('repos.index'),
+        route('work-items.index'),
+        route('agents.index'),
+        route('skills.index'),
+    ];
+
+    foreach ($expectedRoutes as $route) {
+        expect($html)->toContain('href="'.$route.'"');
+    }
+});
+
+test('dashboard cards have hover effects', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $component = Livewire::test('pages::dashboard');
+
+    $html = $component->html();
+
+    preg_match_all('/<a\b[^>]*class="[^"]*hover:border-zinc-300[^"]*hover:shadow-sm[^"]*"/', $html, $matches);
+
+    expect(count($matches[0]))->toBe(5, 'Expected 5 dashboard card links with hover effects');
 });
 
 test('dashboard cards display icons', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    $response = $this->get(route('dashboard'));
-    $response->assertOk();
+    $component = Livewire::test('pages::dashboard');
 
-    $content = $response->getContent();
+    $html = $component->html();
 
-    preg_match_all('/<svg\b/', $content, $svgMatches);
+    preg_match_all('/<svg\b/', $html, $svgMatches);
 
-    expect(count($svgMatches[0]))->toBeGreaterThanOrEqual(5, 'Expected at least 5 SVG icons on the dashboard cards');
+    expect(count($svgMatches[0]))->toBe(5, 'Expected exactly 5 SVG icons for the 5 dashboard cards');
 });
