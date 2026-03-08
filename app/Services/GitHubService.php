@@ -602,6 +602,32 @@ class GitHubService
     }
 
     /**
+     * Fetch decoded file content from a repository using the GitHub Contents API.
+     *
+     * Returns the UTF-8 string content for files encoded as base64.
+     * Throws RequestException on non-2xx responses (including 404).
+     */
+    public function getFileContents(GithubInstallation $installation, string $repo, string $path): string
+    {
+        $token = $this->getInstallationToken($installation->installation_id);
+
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/vnd.github+json',
+        ])->get(self::API_BASE."/repos/{$repo}/contents/{$path}");
+
+        $response->throw();
+
+        $data = $response->json();
+
+        if (($data['encoding'] ?? '') === 'base64') {
+            return base64_decode($data['content']);
+        }
+
+        return $data['content'] ?? '';
+    }
+
+    /**
      * @return array{total_count: int, items: array}
      */
     public function searchIssues(GithubInstallation $installation, string $query): array

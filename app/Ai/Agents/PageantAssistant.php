@@ -4,6 +4,7 @@ namespace App\Ai\Agents;
 
 use App\Ai\ToolRegistry;
 use App\Models\User;
+use App\Services\RepoInstructionsService;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent as AgentContract;
 use Laravel\Ai\Contracts\Conversational;
@@ -35,7 +36,13 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
             'When context narrows to a single option (one repo, one agent, one project, etc.), use it without asking the user to confirm the selection, except when choosing would immediately lead to a destructive or irreversible action.',
             'Only ask clarifying questions when there is genuine ambiguity that cannot be resolved from context, or when the user appears to be requesting a destructive or irreversible action and you do not yet have explicit confirmation.',
             $this->pageContext ? "Current page context: {$this->pageContext}" : null,
+            $this->repoFullName ? $this->loadRepoInstructions() : null,
         ]));
+    }
+
+    protected function loadRepoInstructions(): string
+    {
+        return app(RepoInstructionsService::class)->loadForRepo($this->repoFullName);
     }
 
     public function tools(): iterable
