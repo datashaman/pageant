@@ -24,6 +24,8 @@ function make500Exception(): RequestException
 }
 
 beforeEach(function () {
+    Cache::flush();
+
     $this->organization = Organization::factory()->create();
 
     $this->installation = GithubInstallation::factory()->create([
@@ -128,9 +130,7 @@ it('respects the character budget', function () {
     $service = app(RepoInstructionsService::class);
     $result = $service->loadForRepo('acme/my-repo');
 
-    expect(mb_strlen($result))->toBeLessThanOrEqual(
-        RepoInstructionsService::MAX_CHARS + mb_strlen("## Repository Instructions\n\n")
-    );
+    expect(mb_strlen($result))->toBeLessThanOrEqual(RepoInstructionsService::MAX_CHARS);
     expect($result)->not->toContain('Should not appear');
 });
 

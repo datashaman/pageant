@@ -619,12 +619,19 @@ class GitHubService
         $response->throw();
 
         $data = $response->json();
+        $content = $data['content'] ?? null;
 
-        if (($data['encoding'] ?? '') === 'base64') {
-            return base64_decode($data['content']);
+        if (! is_string($content)) {
+            return '';
         }
 
-        return $data['content'] ?? '';
+        if (($data['encoding'] ?? '') === 'base64') {
+            $decoded = base64_decode($content, true);
+
+            return $decoded === false ? '' : $decoded;
+        }
+
+        return $content;
     }
 
     /**
