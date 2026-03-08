@@ -26,6 +26,12 @@ class GitHubAuthController extends Controller
 
         $email = $githubUser->getEmail() ?? $this->fetchPrimaryGitHubEmail($githubUser->token);
 
+        if (! $this->isEmailAllowed($email)) {
+            return redirect()->route('home')->withErrors([
+                'email' => 'You are not authorized to access this application.',
+            ]);
+        }
+
         $query = User::query()->where('github_id', $githubUser->getId());
 
         if ($email) {
@@ -57,6 +63,26 @@ class GitHubAuthController extends Controller
         Auth::login($user, remember: true);
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    private function isEmailAllowed(?string $email): bool
+    {
+        $allowedEmails = array_filter(
+            array_map(
+                static fn (string $value): string => strtolower(trim($value)),
+                explode(',', (string) config('app.allowed_emails', ''))
+            )
+        );
+
+        if (empty($allowedEmails)) {
+            return true;
+        }
+
+        if ($email === null) {
+            return false;
+        }
+
+        return in_array(strtolower($email), $allowedEmails, true);
     }
 
     private function fetchPrimaryGitHubEmail(string $token): ?string
