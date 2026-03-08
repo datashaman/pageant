@@ -175,6 +175,7 @@ it('maintains conversation context across messages', function () {
 
     $content = $response->streamedContent();
     preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty();
     $conversationId = $matches[1];
 
     // Second message - with conversation_id
@@ -187,7 +188,7 @@ it('maintains conversation context across messages', function () {
     $response->assertOk();
 
     // All messages should be stored in the same conversation
-    $messageCount = DB::table('agent_conversation_messages')
+    $messageCount = \Illuminate\Support\Facades\DB::table('agent_conversation_messages')
         ->where('conversation_id', $conversationId)
         ->count();
 
