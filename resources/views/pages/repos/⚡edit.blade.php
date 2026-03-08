@@ -16,6 +16,7 @@ new #[Title('Edit Repo')] class extends Component {
 
     public string $name = '';
     public ?string $setupScript = null;
+    public string $setupSuggestionMessage = '';
 
     public array $selectedSkills = [];
     public array $selectedAgents = [];
@@ -66,7 +67,7 @@ new #[Title('Edit Repo')] class extends Component {
     public function suggestSetupScript(): void
     {
         if ($this->repo->source !== 'github') {
-            session()->flash('setup-suggestion', __('Setup script suggestions are only available for GitHub repos.'));
+            $this->setupSuggestionMessage = __('Setup script suggestions are only available for GitHub repos.');
 
             return;
         }
@@ -74,7 +75,7 @@ new #[Title('Edit Repo')] class extends Component {
         $installation = GithubInstallation::where('organization_id', $this->repo->organization_id)->first();
 
         if (! $installation) {
-            session()->flash('setup-suggestion', __('No GitHub installation found for this organization.'));
+            $this->setupSuggestionMessage = __('No GitHub installation found for this organization.');
 
             return;
         }
@@ -85,19 +86,16 @@ new #[Title('Edit Repo')] class extends Component {
         foreach (self::SETUP_FILES as $filePath) {
             try {
                 $content = $github->getFileContents($installation, $this->repo->source_reference, $filePath);
-
-                if ($content !== null) {
-                    $found[$filePath] = $content;
-                }
+                $found[$filePath] = $content;
             } catch (\Throwable) {
                 // File not found or inaccessible — skip
             }
         }
 
         if (empty($found)) {
-            session()->flash('setup-suggestion', __('No setup files found in the repository (:files).', [
+            $this->setupSuggestionMessage = __('No setup files found in the repository (:files).', [
                 'files' => implode(', ', self::SETUP_FILES),
-            ]));
+            ]);
 
             return;
         }
@@ -164,8 +162,8 @@ new #[Title('Edit Repo')] class extends Component {
                     <span wire:loading.remove wire:target="suggestSetupScript">{{ __('Suggest from repo') }}</span>
                     <span wire:loading wire:target="suggestSetupScript">{{ __('Checking repo...') }}</span>
                 </flux:button>
-                @if (session('setup-suggestion'))
-                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ session('setup-suggestion') }}</flux:text>
+                @if ($setupSuggestionMessage)
+                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ $setupSuggestionMessage }}</flux:text>
                 @endif
             </div>
 
