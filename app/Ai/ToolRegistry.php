@@ -21,6 +21,7 @@ use App\Ai\Tools\DeleteProjectTool;
 use App\Ai\Tools\DeleteRepoTool;
 use App\Ai\Tools\DeleteWorkItemTool;
 use App\Ai\Tools\DetachRepoFromProjectTool;
+use App\Ai\Tools\EditFileTool;
 use App\Ai\Tools\GetCommitStatusTool;
 use App\Ai\Tools\GetFileContentsTool;
 use App\Ai\Tools\GetIssueTool;
@@ -29,9 +30,12 @@ use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
 use App\Ai\Tools\GetRepositoryTreeTool;
 use App\Ai\Tools\GetRepoTool;
+use App\Ai\Tools\GlobTool;
+use App\Ai\Tools\GrepTool;
 use App\Ai\Tools\ListBranchesTool;
 use App\Ai\Tools\ListCheckRunsTool;
 use App\Ai\Tools\ListCommentsTool;
+use App\Ai\Tools\ListDirectoryTool;
 use App\Ai\Tools\ListIssueLabelsTool;
 use App\Ai\Tools\ListIssuesTool;
 use App\Ai\Tools\ListLabelsTool;
@@ -40,6 +44,7 @@ use App\Ai\Tools\ListPullRequestFilesTool;
 use App\Ai\Tools\ListPullRequestsTool;
 use App\Ai\Tools\ListReposTool;
 use App\Ai\Tools\MergePullRequestTool;
+use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
 use App\Ai\Tools\SearchCodeTool;
@@ -48,6 +53,8 @@ use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdateProjectTool;
 use App\Ai\Tools\UpdatePullRequestTool;
 use App\Ai\Tools\UpdateRepoTool;
+use App\Ai\Tools\WriteFileTool;
+use App\Contracts\ExecutionDriver;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
 use App\Models\User;
@@ -125,13 +132,21 @@ class ToolRegistry
         'delete_project' => ['class' => DeleteProjectTool::class, 'description' => 'Delete a project', 'group' => 'Projects', 'local' => true],
         'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Projects', 'local' => true],
         'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Projects', 'local' => true],
+
+        // Worktree File Tools
+        'read_file' => ['class' => ReadFileTool::class, 'description' => 'Read file contents from the worktree', 'group' => 'Worktree Files', 'worktree' => true],
+        'write_file' => ['class' => WriteFileTool::class, 'description' => 'Create or overwrite a file in the worktree', 'group' => 'Worktree Files', 'worktree' => true],
+        'edit_file' => ['class' => EditFileTool::class, 'description' => 'Perform exact string replacement in a file', 'group' => 'Worktree Files', 'worktree' => true],
+        'glob' => ['class' => GlobTool::class, 'description' => 'Find files by glob pattern', 'group' => 'Worktree Files', 'worktree' => true],
+        'grep' => ['class' => GrepTool::class, 'description' => 'Search file contents with regex', 'group' => 'Worktree Files', 'worktree' => true],
+        'list_directory' => ['class' => ListDirectoryTool::class, 'description' => 'List files and directories', 'group' => 'Worktree Files', 'worktree' => true],
     ];
 
     /**
      * @param  array<int, string>  $toolNames
      * @return Tool[]
      */
-    public static function resolve(array $toolNames, ?string $repoFullName = null, ?User $user = null): array
+    public static function resolve(array $toolNames, ?string $repoFullName = null, ?User $user = null, ?ExecutionDriver $driver = null): array
     {
         if (empty($toolNames)) {
             return [];
@@ -141,7 +156,7 @@ class ToolRegistry
         $installation = null;
 
         $hasGithubTools = collect($toolNames)->contains(
-            fn (string $name) => isset(self::TOOL_MAP[$name]) && empty(self::TOOL_MAP[$name]['local'])
+            fn (string $name) => isset(self::TOOL_MAP[$name]) && empty(self::TOOL_MAP[$name]['local']) && empty(self::TOOL_MAP[$name]['worktree'])
         );
 
         if ($hasGithubTools && $repoFullName) {
@@ -161,7 +176,11 @@ class ToolRegistry
 
             $entry = self::TOOL_MAP[$name];
 
-            if (! empty($entry['local'])) {
+            if (! empty($entry['worktree'])) {
+                if ($driver) {
+                    $tools[] = new ($entry['class'])($driver);
+                }
+            } elseif (! empty($entry['local'])) {
                 if ($user) {
                     $tools[] = new ($entry['class'])($user);
                 }
@@ -188,6 +207,7 @@ class ToolRegistry
             self::available(),
             fn (string $description, string $name) => ! empty(self::TOOL_MAP[$name]['local'])
                 || ! empty(self::TOOL_MAP[$name]['flexible'])
+                || ! empty(self::TOOL_MAP[$name]['worktree'])
                 || $repoFullName !== null,
             ARRAY_FILTER_USE_BOTH,
         );
@@ -220,6 +240,17 @@ class ToolRegistry
         return array_keys(array_filter(
             self::TOOL_MAP,
             fn (array $entry) => ! empty($entry['local']) || ($entry['category'] ?? null) === 'pageant',
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function worktreeToolNames(): array
+    {
+        return array_keys(array_filter(
+            self::TOOL_MAP,
+            fn (array $entry) => ! empty($entry['worktree']),
         ));
     }
 
