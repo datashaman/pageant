@@ -7,6 +7,7 @@ use App\Models\Repo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Ai\Contracts\ConversationStore;
 
 class ChatController extends Controller
 {
@@ -30,15 +31,17 @@ class ChatController extends Controller
             pageContext: $pageContext,
         );
 
-        $assistant->forUser($user);
-
         if ($conversationId = $request->input('conversation_id')) {
-            $assistant->continue($conversationId, $user);
+            $assistant->resumeConversation($conversationId);
         }
 
-        $streamable = $assistant->stream($request->input('message'));
+        $message = $request->input('message');
 
-        return response()->stream(function () use ($assistant, $streamable) {
+        $this->ensureConversationExists($assistant, $user, $message);
+
+        $streamable = $assistant->stream($message);
+
+        return response()->stream(function () use ($assistant, $user, $streamable) {
             $flush = function () {
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -46,9 +49,23 @@ class ChatController extends Controller
                 flush();
             };
 
-            foreach ($streamable as $event) {
-                echo 'data: '.((string) $event)."\n\n";
-                $flush();
+            $fullText = '';
+
+            try {
+                foreach ($streamable as $event) {
+                    $decoded = json_decode((string) $event, true);
+
+                    if (is_array($decoded) && ($decoded['type'] ?? '') === 'text_delta') {
+                        $fullText .= $decoded['delta'] ?? '';
+                    }
+
+                    echo 'data: '.((string) $event)."\n\n";
+                    $flush();
+                }
+            } finally {
+                if ($fullText !== '' && $conversationId = $assistant->currentConversation()) {
+                    $this->storeAssistantMessage($conversationId, $user->id, $fullText);
+                }
             }
 
             if ($conversationId = $assistant->currentConversation()) {
@@ -59,6 +76,65 @@ class ChatController extends Controller
             echo "data: [DONE]\n\n";
             $flush();
         }, headers: ['Content-Type' => 'text/event-stream']);
+    }
+
+    /**
+     * Eagerly create the conversation and persist the user message before streaming begins.
+     *
+     * This guarantees the user message is never lost, even when the SSE stream
+     * errors mid-way and the framework's RememberConversation middleware
+     * never fires its .then() callback.
+     */
+    protected function ensureConversationExists(PageantAssistant $assistant, \App\Models\User $user, string $message): void
+    {
+        if (! $assistant->currentConversation()) {
+            $conversationId = resolve(ConversationStore::class)->storeConversation(
+                $user->id,
+                Str::limit($message, 100, preserveWords: true),
+            );
+
+            $assistant->resumeConversation($conversationId);
+        }
+
+        DB::table('agent_conversation_messages')->insert([
+            'id' => Str::uuid7()->toString(),
+            'conversation_id' => $assistant->currentConversation(),
+            'user_id' => $user->id,
+            'agent' => PageantAssistant::class,
+            'role' => 'user',
+            'content' => $message,
+            'attachments' => '[]',
+            'tool_calls' => '[]',
+            'tool_results' => '[]',
+            'usage' => '[]',
+            'meta' => '[]',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Store the assistant response captured from the stream.
+     *
+     * Called from a finally block so partial content is preserved even on error.
+     */
+    protected function storeAssistantMessage(string $conversationId, int $userId, string $text): void
+    {
+        DB::table('agent_conversation_messages')->insert([
+            'id' => Str::uuid7()->toString(),
+            'conversation_id' => $conversationId,
+            'user_id' => $userId,
+            'agent' => PageantAssistant::class,
+            'role' => 'assistant',
+            'content' => $text,
+            'attachments' => '[]',
+            'tool_calls' => '[]',
+            'tool_results' => '[]',
+            'usage' => '[]',
+            'meta' => '[]',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

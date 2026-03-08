@@ -133,6 +133,10 @@ new class extends Component
                 input?.focus();
             });
 
+            const streamTimeout = 120000;
+            const abortController = new AbortController();
+            const timeoutId = setTimeout(() => abortController.abort(), streamTimeout);
+
             try {
                 const response = await fetch('{{ route('chat.stream') }}', {
                     method: 'POST',
@@ -146,12 +150,12 @@ new class extends Component
                         conversation_id: this.conversationId,
                         page_context: this.getPageContext(),
                     }),
+                    signal: abortController.signal,
                 });
 
                 if (! response.ok) {
                     const error = await response.json();
                     this.messages.push({ role: 'assistant', content: error.error || 'An error occurred.' });
-                    this.streaming = false;
                     return;
                 }
 
@@ -187,14 +191,21 @@ new class extends Component
                         }
                     }
                 }
+            } catch (error) {
+                if (! this.streamedContent) {
+                    const errorMessage = abortController.signal.aborted
+                        ? 'The response timed out. Please try again.'
+                        : 'Failed to connect. Please try again.';
+                    this.messages.push({ role: 'assistant', content: errorMessage });
+                }
+            } finally {
+                clearTimeout(timeoutId);
 
                 if (this.streamedContent) {
                     this.messages.push({ role: 'assistant', content: this.streamedContent });
                     this.streamedContent = '';
                 }
-            } catch (error) {
-                this.messages.push({ role: 'assistant', content: 'Failed to connect. Please try again.' });
-            } finally {
+
                 this.streaming = false;
                 this.$nextTick(() => {
                     const ref = this.$refs.chatInput;

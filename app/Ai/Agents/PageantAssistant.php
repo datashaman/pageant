@@ -49,6 +49,21 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
         }
     }
 
+    /**
+     * Resume an existing conversation without enabling the RememberConversation middleware.
+     *
+     * Unlike continue(), this sets the conversation ID for loading prior messages
+     * but does not set a conversation participant, so the framework's built-in
+     * persistence middleware is not applied. The ChatController handles message
+     * persistence directly to guarantee messages survive stream errors.
+     */
+    public function resumeConversation(string $conversationId): static
+    {
+        $this->conversationId = $conversationId;
+
+        return $this;
+    }
+
     public function tools(): iterable
     {
         return ToolRegistry::resolve(
