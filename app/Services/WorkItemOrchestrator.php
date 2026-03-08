@@ -171,18 +171,26 @@ class WorkItemOrchestrator
         }
     }
 
+    protected const MAX_PRIOR_STEPS = 3;
+
+    protected const PRIOR_CONTEXT_BUDGET = 2000;
+
     protected function buildPriorStepsContext(PlanStep $step): ?string
     {
         $priorSteps = $step->plan->steps()
             ->where('order', '<', $step->order)
             ->whereIn('status', ['completed', 'failed', 'skipped'])
-            ->get();
+            ->reorder('order', 'desc')
+            ->take(static::MAX_PRIOR_STEPS)
+            ->get()
+            ->sortBy('order')
+            ->values();
 
         if ($priorSteps->isEmpty()) {
             return null;
         }
 
-        $lines = ['## Prior Steps'];
+        $formattedLines = [];
 
         foreach ($priorSteps as $prior) {
             $icon = match ($prior->status) {
@@ -193,10 +201,26 @@ class WorkItemOrchestrator
             };
 
             $result = $prior->result ? " — {$prior->result}" : '';
-            $lines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+            $formattedLines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
         }
 
-        return implode("\n", $lines);
+        $selected = [];
+        $totalLength = 0;
+
+        foreach (array_reverse($formattedLines) as $line) {
+            if ($totalLength + strlen($line) > static::PRIOR_CONTEXT_BUDGET) {
+                continue;
+            }
+
+            array_unshift($selected, $line);
+            $totalLength += strlen($line);
+        }
+
+        if (empty($selected)) {
+            return null;
+        }
+
+        return implode("\n", array_merge(['## Prior Steps'], $selected));
     }
 
     protected function resolveDriver(WorkItem $workItem): ?ExecutionDriver
@@ -230,8 +254,8 @@ class WorkItemOrchestrator
     {
         $text = is_string($response) ? $response : (string) $response;
 
-        if (strlen($text) > 500) {
-            return substr($text, 0, 497).'...';
+        if (strlen($text) > 200) {
+            return substr($text, 0, 197).'...';
         }
 
         return $text;

@@ -43,6 +43,8 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
         return implode("\n\n", $parts);
     }
 
+    protected const MAX_CONVERSATION_MESSAGES = 20;
+
     public function messages(): iterable
     {
         if (! $this->conversationId) {
@@ -50,7 +52,7 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
         }
 
         return resolve(ConversationStore::class)
-            ->getLatestConversationMessages($this->conversationId, 100)
+            ->getLatestConversationMessages($this->conversationId, static::MAX_CONVERSATION_MESSAGES)
             ->all();
     }
 
