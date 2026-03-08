@@ -225,8 +225,8 @@ new class extends Component
     {{-- Header --}}
     <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
         <flux:dropdown position="bottom" align="start">
-            <flux:button size="sm" variant="ghost" class="max-w-48 truncate" icon-trailing="chevron-down">
-                <span x-text="conversationId ? ($wire.conversations.find(c => c.id === conversationId)?.title || '{{ __('Assistant') }}') : '{{ __('New conversation') }}'"></span>
+            <flux:button size="sm" variant="ghost" icon-trailing="chevron-down">
+                <span class="block max-w-32 truncate text-left" x-text="conversationId ? ($wire.conversations.find(c => c.id === conversationId)?.title || '{{ __('Assistant') }}') : '{{ __('New conversation') }}'"></span>
             </flux:button>
 
             <flux:menu>
