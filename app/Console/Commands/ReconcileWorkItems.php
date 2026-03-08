@@ -15,51 +15,54 @@ class ReconcileWorkItems extends Command
 
     public function handle(GitHubService $github): int
     {
-        $workItems = WorkItem::where('source', 'github')
-            ->whereNotNull('source_reference')
-            ->get();
+        $query = WorkItem::where('source', 'github')
+            ->whereNotNull('source_reference');
 
-        if ($workItems->isEmpty()) {
+        if ($query->clone()->doesntExist()) {
             $this->info('No GitHub-linked work items found.');
 
             return self::SUCCESS;
         }
 
+        $installations = GithubInstallation::all()->keyBy('organization_id');
+
         $synced = 0;
         $errors = 0;
 
-        foreach ($workItems as $workItem) {
-            if (! preg_match('/^(.+)#(\d+)$/', $workItem->source_reference, $matches)) {
-                $this->warn("Skipping {$workItem->source_reference}: invalid format.");
+        $query->chunkById(100, function ($workItems) use ($github, $installations, &$synced, &$errors) {
+            foreach ($workItems as $workItem) {
+                if (! preg_match('/^(.+)#(\d+)$/', $workItem->source_reference, $matches)) {
+                    $this->warn("Skipping {$workItem->source_reference}: invalid format.");
 
-                continue;
-            }
-
-            $repoFullName = $matches[1];
-            $issueNumber = (int) $matches[2];
-
-            $installation = GithubInstallation::where('organization_id', $workItem->organization_id)->first();
-
-            if (! $installation) {
-                $this->warn("Skipping {$workItem->source_reference}: no GitHub installation found.");
-
-                continue;
-            }
-
-            try {
-                $issue = $github->getIssue($installation, $repoFullName, $issueNumber);
-                $newStatus = $issue['state'] === 'open' ? 'open' : 'closed';
-
-                if ($workItem->status !== $newStatus) {
-                    $workItem->update(['status' => $newStatus]);
-                    $this->line("  {$workItem->source_reference}: {$workItem->getOriginal('status')} → {$newStatus}");
-                    $synced++;
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                $this->error("  {$workItem->source_reference}: {$e->getMessage()}");
-                $errors++;
+
+                $repoFullName = $matches[1];
+                $issueNumber = (int) $matches[2];
+
+                $installation = $installations->get($workItem->organization_id);
+
+                if (! $installation) {
+                    $this->warn("Skipping {$workItem->source_reference}: no GitHub installation found.");
+
+                    continue;
+                }
+
+                try {
+                    $issue = $github->getIssue($installation, $repoFullName, $issueNumber);
+                    $newStatus = $issue['state'] === 'open' ? 'open' : 'closed';
+
+                    if ($workItem->status !== $newStatus) {
+                        $workItem->update(['status' => $newStatus]);
+                        $this->line("  {$workItem->source_reference}: {$workItem->getOriginal('status')} → {$newStatus}");
+                        $synced++;
+                    }
+                } catch (\Throwable $e) {
+                    $this->error("  {$workItem->source_reference}: {$e->getMessage()}");
+                    $errors++;
+                }
             }
-        }
+        });
 
         $this->info("Reconciled {$synced} work items. {$errors} errors.");
 

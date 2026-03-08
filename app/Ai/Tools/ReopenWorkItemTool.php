@@ -27,9 +27,16 @@ class ReopenWorkItemTool implements Tool
     {
         $repoFullName = $this->repoFullName ?? $request['repo'];
 
-        $repo = Repo::where('source', 'github')
-            ->where('source_reference', $repoFullName)
-            ->firstOrFail();
+        $repoQuery = Repo::where('source', 'github')
+            ->where('source_reference', $repoFullName);
+
+        if ($this->installation) {
+            $repoQuery->where('organization_id', $this->installation->organization_id);
+        } elseif ($user = auth()->user()) {
+            $repoQuery->forCurrentOrganization($user);
+        }
+
+        $repo = $repoQuery->firstOrFail();
 
         $sourceReference = $repoFullName.'#'.$request['issue_number'];
 

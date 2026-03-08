@@ -131,9 +131,13 @@ describe('work-items:reconcile command', function () {
 
 describe('WorkItem model status', function () {
     it('defaults to open status', function () {
-        $workItem = WorkItem::factory()->create([
+        $attributes = WorkItem::factory()->make([
             'organization_id' => $this->organization->id,
-        ]);
+        ])->getAttributes();
+
+        unset($attributes['status']);
+
+        $workItem = WorkItem::query()->create($attributes)->fresh();
 
         expect($workItem->status)->toBe('open')
             ->and($workItem->isOpen())->toBeTrue()

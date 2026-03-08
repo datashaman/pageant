@@ -22,11 +22,14 @@ class ReopenWorkItemTool extends Tool
             'issue_number' => 'required|integer|min:1',
         ]);
 
-        $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
+        $repo = Repo::forCurrentOrganization()
+            ->where('source', 'github')
+            ->where('source_reference', $validated['repo'])
+            ->firstOrFail();
 
         $sourceReference = $validated['repo'].'#'.$validated['issue_number'];
 
-        $workItem = WorkItem::where('organization_id', $repo->organization_id)
+        $workItem = WorkItem::forCurrentOrganization()
             ->where('source', 'github')
             ->where('source_reference', $sourceReference)
             ->firstOrFail();

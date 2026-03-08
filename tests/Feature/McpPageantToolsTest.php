@@ -7,12 +7,16 @@ use App\Mcp\Tools\ReopenWorkItemTool;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
+use App\Models\User;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Mockery\MockInterface;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
+    $this->user = User::factory()->create();
+    $this->user->organizations()->attach($this->organization);
+    $this->actingAs($this->user);
     $this->installation = GithubInstallation::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
