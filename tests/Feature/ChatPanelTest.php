@@ -109,6 +109,7 @@ it('includes proactive behavior directives in instructions', function () {
 
     expect($instructions)
         ->toContain('Act immediately when the user\'s intent is clear')
+        ->toContain('destructive or irreversible action')
         ->toContain('Batch related operations together')
         ->toContain('context narrows to a single option')
         ->toContain('genuine ambiguity');
