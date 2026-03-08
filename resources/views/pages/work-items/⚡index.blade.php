@@ -16,12 +16,18 @@ new #[Title('Work Items')] class extends Component {
     public string $search = '';
     public string $sortField = 'title';
     public string $sortDirection = 'asc';
+    public string $statusFilter = 'open';
 
     public bool $showImportModal = false;
     public string $selectedRepoId = '';
     public bool $issuesLoaded = false;
 
     public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusFilter(): void
     {
         $this->resetPage();
     }
@@ -42,6 +48,7 @@ new #[Title('Work Items')] class extends Component {
         return WorkItem::query()
             ->forCurrentOrganization()
             ->with(['organization', 'project'])
+            ->when($this->statusFilter !== 'all', fn ($query) => $query->where('status', $this->statusFilter))
             ->when($this->search, fn ($query, $search) => $query->where('title', 'like', "%{$search}%"))
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
@@ -154,17 +161,23 @@ new #[Title('Work Items')] class extends Component {
         unset($this->trackedIssueKeys);
     }
 
-    public function confirmDelete(string $id): void
+    public function confirmClose(string $id): void
     {
-        $this->dispatch('open-modal', id: 'confirm-delete-' . $id);
+        $this->dispatch('open-modal', id: 'confirm-close-' . $id);
     }
 
-    public function delete(string $id): void
+    public function close(string $id): void
     {
         $workItem = WorkItem::query()->forCurrentOrganization()->findOrFail($id);
-        $workItem->delete();
+        $workItem->update(['status' => 'closed']);
 
-        $this->dispatch('close-modal', id: 'confirm-delete-' . $id);
+        $this->dispatch('close-modal', id: 'confirm-close-' . $id);
+    }
+
+    public function reopen(string $id): void
+    {
+        $workItem = WorkItem::query()->forCurrentOrganization()->findOrFail($id);
+        $workItem->update(['status' => 'open']);
     }
 }; ?>
 
@@ -177,7 +190,16 @@ new #[Title('Work Items')] class extends Component {
             </flux:button>
         </div>
 
-        <flux:input wire:model.live="search" placeholder="{{ __('Search work items...') }}" icon="magnifying-glass" />
+        <div class="flex items-center gap-4">
+            <div class="flex-1">
+                <flux:input wire:model.live="search" placeholder="{{ __('Search work items...') }}" icon="magnifying-glass" />
+            </div>
+            <flux:select wire:model.live="statusFilter" class="w-40">
+                <flux:select.option value="open">{{ __('Open') }}</flux:select.option>
+                <flux:select.option value="closed">{{ __('Closed') }}</flux:select.option>
+                <flux:select.option value="all">{{ __('All') }}</flux:select.option>
+            </flux:select>
+        </div>
 
         <flux:table :paginate="$this->workItems">
             <flux:table.columns>
@@ -186,6 +208,9 @@ new #[Title('Work Items')] class extends Component {
                 </flux:table.column>
                 <flux:table.column>
                     {{ __('Issue') }}
+                </flux:table.column>
+                <flux:table.column>
+                    {{ __('Status') }}
                 </flux:table.column>
                 <flux:table.column>
                     {{ __('Project') }}
@@ -216,6 +241,11 @@ new #[Title('Work Items')] class extends Component {
                             @endif
                         </flux:table.cell>
                         <flux:table.cell>
+                            <flux:badge :variant="$workItem->isOpen() ? 'success' : 'default'" size="sm">
+                                {{ ucfirst($workItem->status) }}
+                            </flux:badge>
+                        </flux:table.cell>
+                        <flux:table.cell>
                             @if ($workItem->project)
                                 <flux:link href="{{ route('projects.show', $workItem->project) }}" wire:navigate>
                                     {{ $workItem->project->name }}
@@ -230,18 +260,24 @@ new #[Title('Work Items')] class extends Component {
                                 <flux:button size="sm" href="{{ route('work-items.edit', $workItem) }}" wire:navigate>
                                     {{ __('Edit') }}
                                 </flux:button>
-                                <flux:button size="sm" variant="danger" wire:click="confirmDelete('{{ $workItem->id }}')">
-                                    {{ __('Delete') }}
-                                </flux:button>
+                                @if ($workItem->isOpen())
+                                    <flux:button size="sm" variant="danger" wire:click="confirmClose('{{ $workItem->id }}')">
+                                        {{ __('Close') }}
+                                    </flux:button>
+                                @else
+                                    <flux:button size="sm" wire:click="reopen('{{ $workItem->id }}')">
+                                        {{ __('Reopen') }}
+                                    </flux:button>
+                                @endif
                             </div>
 
-                            <flux:modal name="confirm-delete-{{ $workItem->id }}">
+                            <flux:modal name="confirm-close-{{ $workItem->id }}">
                                 <div class="space-y-6">
-                                    <flux:heading size="lg">{{ __('Delete Work Item') }}</flux:heading>
-                                    <flux:text>{{ __('Are you sure you want to delete ":title"? This action cannot be undone.', ['title' => $workItem->title]) }}</flux:text>
+                                    <flux:heading size="lg">{{ __('Close Work Item') }}</flux:heading>
+                                    <flux:text>{{ __('Are you sure you want to close ":title"?', ['title' => $workItem->title]) }}</flux:text>
                                     <div class="flex justify-end gap-3">
                                         <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                                        <flux:button variant="danger" wire:click="delete('{{ $workItem->id }}')">{{ __('Delete') }}</flux:button>
+                                        <flux:button variant="danger" wire:click="close('{{ $workItem->id }}')">{{ __('Close') }}</flux:button>
                                     </div>
                                 </div>
                             </flux:modal>
@@ -249,7 +285,7 @@ new #[Title('Work Items')] class extends Component {
                     </flux:table.row>
                 @empty
                     <flux:table.row>
-                        <flux:table.cell colspan="5" class="text-center">
+                        <flux:table.cell colspan="6" class="text-center">
                             {{ __('No work items found.') }}
                         </flux:table.cell>
                     </flux:table.row>

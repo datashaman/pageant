@@ -30,6 +30,7 @@ class WorkItem extends Model
         'source',
         'source_reference',
         'source_url',
+        'status',
         'conversation_id',
         'worktree_path',
         'worktree_branch',
@@ -56,5 +57,15 @@ class WorkItem extends Model
             ->whereIn('status', ['pending', 'approved', 'running', 'paused'])
             ->latest()
             ->first();
+    }
+
+    public function isOpen(): bool
+    {
+        return $this->status === 'open';
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->status === 'closed';
     }
 }

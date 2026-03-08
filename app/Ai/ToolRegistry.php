@@ -10,6 +10,7 @@ use App\Ai\Tools\AttachSkillToAgentTool;
 use App\Ai\Tools\BashTool;
 use App\Ai\Tools\CancelPlanTool;
 use App\Ai\Tools\CloseIssueTool;
+use App\Ai\Tools\CloseWorkItemTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateBranchTool;
 use App\Ai\Tools\CreateCommentTool;
@@ -24,7 +25,6 @@ use App\Ai\Tools\CreateWorkItemTool;
 use App\Ai\Tools\DeleteLabelTool;
 use App\Ai\Tools\DeleteProjectTool;
 use App\Ai\Tools\DeleteRepoTool;
-use App\Ai\Tools\DeleteWorkItemTool;
 use App\Ai\Tools\DetachRepoFromProjectTool;
 use App\Ai\Tools\EditFileTool;
 use App\Ai\Tools\GetCommitStatusTool;
@@ -59,6 +59,7 @@ use App\Ai\Tools\MergePullRequestTool;
 use App\Ai\Tools\PausePlanTool;
 use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
+use App\Ai\Tools\ReopenWorkItemTool;
 use App\Ai\Tools\RequestReviewersTool;
 use App\Ai\Tools\ResumePlanTool;
 use App\Ai\Tools\SearchAgentsTool;
@@ -121,7 +122,8 @@ class ToolRegistry
 
         // Work Items
         'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
-        'delete_work_item' => ['class' => DeleteWorkItemTool::class, 'description' => 'Delete a work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
+        'close_work_item' => ['class' => CloseWorkItemTool::class, 'description' => 'Close a work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
+        'reopen_work_item' => ['class' => ReopenWorkItemTool::class, 'description' => 'Reopen a closed work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
 
         // Agents
         'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant', 'flexible' => true],

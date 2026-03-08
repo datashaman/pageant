@@ -1,16 +1,18 @@
 <?php
 
 use App\Ai\ToolRegistry;
+use App\Ai\Tools\CloseWorkItemTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateWorkItemTool;
-use App\Ai\Tools\DeleteWorkItemTool;
+use App\Ai\Tools\ReopenWorkItemTool;
 
 it('includes flexible tools in availableForContext when no repo is selected', function () {
     $available = ToolRegistry::availableForContext(null);
 
     expect($available)
         ->toHaveKey('create_work_item')
-        ->toHaveKey('delete_work_item')
+        ->toHaveKey('close_work_item')
+        ->toHaveKey('reopen_work_item')
         ->toHaveKey('create_agent')
         ->toHaveKey('create_issue')
         ->toHaveKey('update_issue');
@@ -37,12 +39,13 @@ it('includes all tools in availableForContext when a repo is selected', function
 });
 
 it('resolves flexible tools without a repo context', function () {
-    $tools = ToolRegistry::resolve(['create_work_item', 'delete_work_item', 'create_agent'], null);
+    $tools = ToolRegistry::resolve(['create_work_item', 'close_work_item', 'reopen_work_item', 'create_agent'], null);
 
-    expect($tools)->toHaveCount(3)
+    expect($tools)->toHaveCount(4)
         ->and($tools[0])->toBeInstanceOf(CreateWorkItemTool::class)
-        ->and($tools[1])->toBeInstanceOf(DeleteWorkItemTool::class)
-        ->and($tools[2])->toBeInstanceOf(CreateAgentTool::class);
+        ->and($tools[1])->toBeInstanceOf(CloseWorkItemTool::class)
+        ->and($tools[2])->toBeInstanceOf(ReopenWorkItemTool::class)
+        ->and($tools[3])->toBeInstanceOf(CreateAgentTool::class);
 });
 
 it('requires repo parameter in schema when no repo context is provided', function () {

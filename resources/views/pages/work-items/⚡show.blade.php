@@ -83,16 +83,19 @@ new #[Title('Work Item')] class extends Component {
         unset($this->plans);
     }
 
-    public function confirmDelete(): void
+    public function confirmClose(): void
     {
-        $this->dispatch('open-modal', id: 'confirm-delete');
+        $this->dispatch('open-modal', id: 'confirm-close');
     }
 
-    public function delete(): void
+    public function close(): void
     {
-        $this->workItem->delete();
+        $this->workItem->update(['status' => 'closed']);
+    }
 
-        $this->redirect(route('work-items.index'), navigate: true);
+    public function reopen(): void
+    {
+        $this->workItem->update(['status' => 'open']);
     }
 }; ?>
 
@@ -104,14 +107,23 @@ new #[Title('Work Item')] class extends Component {
                     {{ __('Back') }}
                 </flux:button>
                 <flux:heading size="xl">{{ $workItem->title }}</flux:heading>
+                <flux:badge :variant="$workItem->isOpen() ? 'success' : 'default'" size="sm">
+                    {{ ucfirst($workItem->status) }}
+                </flux:badge>
             </div>
             <div class="flex items-center gap-2">
                 <flux:button href="{{ route('work-items.edit', $workItem) }}" wire:navigate>
                     {{ __('Edit') }}
                 </flux:button>
-                <flux:button variant="danger" wire:click="confirmDelete">
-                    {{ __('Delete') }}
-                </flux:button>
+                @if ($workItem->isOpen())
+                    <flux:button variant="danger" wire:click="confirmClose">
+                        {{ __('Close') }}
+                    </flux:button>
+                @else
+                    <flux:button wire:click="reopen">
+                        {{ __('Reopen') }}
+                    </flux:button>
+                @endif
             </div>
         </div>
 
@@ -290,13 +302,13 @@ new #[Title('Work Item')] class extends Component {
             @endforelse
         </div>
 
-        <flux:modal name="confirm-delete">
+        <flux:modal name="confirm-close">
             <div class="space-y-6">
-                <flux:heading size="lg">{{ __('Delete Work Item') }}</flux:heading>
-                <flux:text>{{ __('Are you sure you want to delete ":title"? This action cannot be undone.', ['title' => $workItem->title]) }}</flux:text>
+                <flux:heading size="lg">{{ __('Close Work Item') }}</flux:heading>
+                <flux:text>{{ __('Are you sure you want to close ":title"?', ['title' => $workItem->title]) }}</flux:text>
                 <div class="flex justify-end gap-3">
                     <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                    <flux:button variant="danger" wire:click="delete">{{ __('Delete') }}</flux:button>
+                    <flux:button variant="danger" wire:click="close">{{ __('Close') }}</flux:button>
                 </div>
             </div>
         </flux:modal>

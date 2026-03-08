@@ -92,14 +92,22 @@ it('can update a work item', function () {
     expect($this->workItem->fresh()->title)->toBe('Updated Work Item');
 });
 
-it('can delete a work item', function () {
+it('can close a work item', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::work-items.index')
-        ->call('delete', $this->workItem->id);
+        ->call('close', $this->workItem->id);
 
-    $this->assertDatabaseMissing('work_items', [
-        'id' => $this->workItem->id,
-    ]);
+    expect($this->workItem->fresh()->status)->toBe('closed');
+});
+
+it('can reopen a closed work item', function () {
+    $this->workItem->update(['status' => 'closed']);
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.index')
+        ->call('reopen', $this->workItem->id);
+
+    expect($this->workItem->fresh()->status)->toBe('open');
 });
 
 it('prevents access to work items from other organizations', function () {

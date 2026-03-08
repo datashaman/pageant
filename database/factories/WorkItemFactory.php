@@ -26,7 +26,13 @@ class WorkItemFactory extends Factory
             'source' => fake()->randomElement(['github', 'gitlab', 'jira']),
             'source_reference' => fake()->slug(2),
             'source_url' => fake()->url(),
+            'status' => 'open',
         ];
+    }
+
+    public function closed(): static
+    {
+        return $this->state(fn () => ['status' => 'closed']);
     }
 
     public function forProject(?Project $project = null): static
