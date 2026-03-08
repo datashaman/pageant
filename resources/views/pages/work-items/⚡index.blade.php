@@ -29,7 +29,7 @@ new #[Title('Work Items')] class extends Component {
         $org = auth()->user()->currentOrganization;
 
         if ($org) {
-            ReconcileWorkItemStatuses::dispatch($org);
+            ReconcileWorkItemStatuses::dispatchSync($org);
         }
     }
 

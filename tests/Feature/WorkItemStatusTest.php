@@ -6,9 +6,11 @@ use App\Listeners\SyncWorkItemStatus;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
+use App\Models\User;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Illuminate\Support\Facades\Queue;
+use Livewire\Livewire;
 use Mockery\MockInterface;
 
 beforeEach(function () {
@@ -166,6 +168,87 @@ describe('ReconcileWorkItemStatuses job', function () {
         ReconcileWorkItemStatuses::dispatchSync($this->organization);
 
         expect($otherWorkItem->fresh()->status)->toBe('open');
+    });
+});
+
+describe('work items index page load reconciliation', function () {
+    it('reconciles statuses synchronously on page load', function () {
+        $user = User::factory()->create([
+            'current_organization_id' => $this->organization->id,
+        ]);
+        $user->organizations()->attach($this->organization);
+
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $this->organization->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#42',
+            'status' => 'open',
+        ]);
+
+        $this->mock(GitHubService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('getIssue')
+                ->with(Mockery::on(fn ($inst) => $inst->id === $this->installation->id), 'acme/widgets', 42)
+                ->once()
+                ->andReturn(['number' => 42, 'state' => 'closed']);
+        });
+
+        Livewire::actingAs($user)
+            ->test('pages::work-items.index');
+
+        expect($workItem->fresh()->status)->toBe('closed');
+    });
+
+    it('displays reconciled statuses immediately on page load', function () {
+        $user = User::factory()->create([
+            'current_organization_id' => $this->organization->id,
+        ]);
+        $user->organizations()->attach($this->organization);
+
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $this->organization->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#7',
+            'status' => 'open',
+            'title' => 'Stale open issue',
+        ]);
+
+        $this->mock(GitHubService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('getIssue')
+                ->with(Mockery::on(fn ($inst) => $inst->id === $this->installation->id), 'acme/widgets', 7)
+                ->once()
+                ->andReturn(['number' => 7, 'state' => 'closed']);
+        });
+
+        Livewire::actingAs($user)
+            ->test('pages::work-items.index')
+            ->set('statusFilter', 'closed')
+            ->assertSee('Closed');
+    });
+
+    it('syncs statuses when sync button is clicked', function () {
+        $user = User::factory()->create([
+            'current_organization_id' => $this->organization->id,
+        ]);
+        $user->organizations()->attach($this->organization);
+
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $this->organization->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#42',
+            'status' => 'open',
+        ]);
+
+        $this->mock(GitHubService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('getIssue')
+                ->with(Mockery::on(fn ($inst) => $inst->id === $this->installation->id), 'acme/widgets', 42)
+                ->andReturn(['number' => 42, 'state' => 'closed']);
+        });
+
+        Livewire::actingAs($user)
+            ->test('pages::work-items.index')
+            ->call('syncStatuses');
+
+        expect($workItem->fresh()->status)->toBe('closed');
     });
 });
 
