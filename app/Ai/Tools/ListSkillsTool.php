@@ -21,8 +21,7 @@ class ListSkillsTool implements Tool
 
     public function handle(Request $request): string
     {
-        $query = Skill::query()
-            ->where('organization_id', $this->user->current_organization_id)
+        $query = Skill::forCurrentOrganization($this->user)
             ->where('enabled', true);
 
         if (! empty($request['search'])) {

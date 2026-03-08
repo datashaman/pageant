@@ -23,20 +23,19 @@ class CreatePlanTool implements Tool
 
     public function handle(Request $request): string
     {
-        $organizationId = $this->user->current_organization_id;
-
-        $workItem = WorkItem::where('organization_id', $organizationId)
+        $workItem = WorkItem::forCurrentOrganization($this->user)
             ->findOrFail($request['work_item_id']);
 
         $plan = Plan::create([
-            'organization_id' => $organizationId,
+            'organization_id' => $workItem->organization_id,
             'work_item_id' => $workItem->id,
             'status' => 'pending',
             'summary' => $request['summary'],
+            'created_by' => $this->user->id,
         ]);
 
         foreach ($request['steps'] as $index => $stepData) {
-            $agent = Agent::where('organization_id', $organizationId)
+            $agent = Agent::forCurrentOrganization($this->user)
                 ->findOrFail($stepData['agent_id']);
 
             $plan->steps()->create([

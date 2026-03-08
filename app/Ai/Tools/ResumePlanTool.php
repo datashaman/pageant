@@ -22,10 +22,10 @@ class ResumePlanTool implements Tool
 
     public function handle(Request $request): string
     {
-        $plan = Plan::where('organization_id', $this->user->current_organization_id)
+        $plan = Plan::forCurrentOrganization($this->user)
             ->findOrFail($request['plan_id']);
 
-        if ($plan->status !== 'paused') {
+        if (! $plan->isPaused()) {
             return json_encode([
                 'error' => "Plan is not paused (current status: {$plan->status}).",
             ]);

@@ -90,4 +90,9 @@ class Plan extends Model
     {
         return $this->status === 'paused';
     }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
 }

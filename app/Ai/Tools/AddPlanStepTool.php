@@ -22,18 +22,16 @@ class AddPlanStepTool implements Tool
 
     public function handle(Request $request): string
     {
-        $organizationId = $this->user->current_organization_id;
-
-        $plan = Plan::where('organization_id', $organizationId)
+        $plan = Plan::forCurrentOrganization($this->user)
             ->findOrFail($request['plan_id']);
 
-        if ($plan->isCompleted() || $plan->status === 'cancelled') {
+        if ($plan->isCompleted() || $plan->isCancelled()) {
             return json_encode([
                 'error' => "Cannot add steps to a {$plan->status} plan.",
             ]);
         }
 
-        $agent = Agent::where('organization_id', $organizationId)
+        $agent = Agent::forCurrentOrganization($this->user)
             ->findOrFail($request['agent_id']);
 
         $maxOrder = $plan->steps()->max('order') ?? 0;

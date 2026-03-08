@@ -34,6 +34,8 @@ class WorkItemOrchestrator
             'started_at' => now(),
         ]);
 
+        $plan->load('steps.agent.skills');
+
         $workItem = $plan->workItem;
         $driver = $this->resolveDriver($workItem);
 
@@ -41,7 +43,7 @@ class WorkItemOrchestrator
             foreach ($plan->steps as $step) {
                 $plan->refresh();
 
-                if ($plan->isPaused() || $plan->status === 'cancelled') {
+                if ($plan->isPaused() || $plan->isCancelled()) {
                     return;
                 }
 
@@ -52,6 +54,8 @@ class WorkItemOrchestrator
                 $this->executeStep($step, $workItem, $driver);
 
                 if ($step->isFailed()) {
+                    $this->skipRemainingSteps($plan);
+
                     $plan->update([
                         'status' => 'failed',
                         'completed_at' => now(),
@@ -75,6 +79,8 @@ class WorkItemOrchestrator
                 'error' => $e->getMessage(),
             ]);
 
+            $this->skipRemainingSteps($plan);
+
             $plan->update([
                 'status' => 'failed',
                 'completed_at' => now(),
@@ -94,6 +100,13 @@ class WorkItemOrchestrator
             'status' => 'cancelled',
             'completed_at' => now(),
         ]);
+    }
+
+    protected function skipRemainingSteps(Plan $plan): void
+    {
+        $plan->steps()
+            ->where('status', 'pending')
+            ->update(['status' => 'skipped']);
     }
 
     protected function executeStep(PlanStep $step, WorkItem $workItem, ?ExecutionDriver $driver): void

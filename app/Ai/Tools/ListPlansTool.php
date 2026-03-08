@@ -21,8 +21,7 @@ class ListPlansTool implements Tool
 
     public function handle(Request $request): string
     {
-        $query = Plan::query()
-            ->where('organization_id', $this->user->current_organization_id)
+        $query = Plan::forCurrentOrganization($this->user)
             ->with('steps.agent', 'workItem');
 
         if (! empty($request['work_item_id'])) {

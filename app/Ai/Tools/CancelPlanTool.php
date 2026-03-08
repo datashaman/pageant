@@ -22,10 +22,10 @@ class CancelPlanTool implements Tool
 
     public function handle(Request $request): string
     {
-        $plan = Plan::where('organization_id', $this->user->current_organization_id)
+        $plan = Plan::forCurrentOrganization($this->user)
             ->findOrFail($request['plan_id']);
 
-        if ($plan->isCompleted() || $plan->status === 'cancelled') {
+        if ($plan->isCompleted() || $plan->isCancelled()) {
             return json_encode([
                 'error' => "Plan cannot be cancelled (current status: {$plan->status}).",
             ]);

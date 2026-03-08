@@ -22,10 +22,10 @@ class AttachSkillToAgentTool implements Tool
 
     public function handle(Request $request): string
     {
-        $agent = Agent::where('organization_id', $this->user->current_organization_id)
+        $agent = Agent::forCurrentOrganization($this->user)
             ->findOrFail($request['agent_id']);
 
-        $skill = Skill::where('organization_id', $this->user->current_organization_id)
+        $skill = Skill::forCurrentOrganization($this->user)
             ->findOrFail($request['skill_id']);
 
         $agent->skills()->syncWithoutDetaching([$skill->id]);

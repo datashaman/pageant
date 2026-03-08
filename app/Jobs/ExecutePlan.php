@@ -4,10 +4,11 @@ namespace App\Jobs;
 
 use App\Models\Plan;
 use App\Services\WorkItemOrchestrator;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class ExecutePlan implements ShouldQueue
+class ExecutePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Queueable;
 

@@ -21,7 +21,7 @@ class GetPlanTool implements Tool
 
     public function handle(Request $request): string
     {
-        $plan = Plan::where('organization_id', $this->user->current_organization_id)
+        $plan = Plan::forCurrentOrganization($this->user)
             ->with('steps.agent', 'workItem')
             ->findOrFail($request['plan_id']);
 

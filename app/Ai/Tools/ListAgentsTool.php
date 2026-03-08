@@ -21,8 +21,7 @@ class ListAgentsTool implements Tool
 
     public function handle(Request $request): string
     {
-        $query = Agent::query()
-            ->where('organization_id', $this->user->current_organization_id)
+        $query = Agent::forCurrentOrganization($this->user)
             ->where('enabled', true);
 
         if (! empty($request['search'])) {
