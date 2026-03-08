@@ -223,10 +223,10 @@ new class extends Component
     @keydown.escape.window="if (open) close()"
 >
     {{-- Header --}}
-    <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-        <flux:dropdown position="bottom" align="start">
-            <flux:button size="sm" variant="ghost" icon-trailing="chevron-down">
-                <span class="block max-w-32 truncate text-left" x-text="conversationId ? ($wire.conversations.find(c => c.id === conversationId)?.title || '{{ __('Assistant') }}') : '{{ __('New conversation') }}'"></span>
+    <div class="flex items-center justify-between gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+        <flux:dropdown position="bottom" align="start" class="min-w-0 flex-1">
+            <flux:button size="sm" variant="ghost" icon-trailing="chevron-down" class="max-w-full">
+                <span class="block min-w-0 truncate text-left" x-text="conversationId ? ($wire.conversations.find(c => c.id === conversationId)?.title || '{{ __('Assistant') }}') : '{{ __('New conversation') }}'"></span>
             </flux:button>
 
             <flux:menu>
