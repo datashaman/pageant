@@ -112,11 +112,15 @@
             </flux:dropdown>
         </flux:header>
 
-        {{ $slot }}
+        <div class="flex min-h-screen flex-1">
+            <div class="min-w-0 flex-1">
+                {{ $slot }}
+            </div>
 
-        @persist('chat-panel')
-            <livewire:chat-panel />
-        @endpersist
+            @persist('chat-panel')
+                <livewire:chat-panel />
+            @endpersist
+        </div>
 
         @fluxScripts
     </body>

@@ -55,9 +55,18 @@ new class extends Component
         messages: @entangle('messages'),
         conversationId: @entangle('conversationId'),
 
+        close() {
+            this.open = false;
+            localStorage.setItem('chat-panel-open', 'false');
+            this.$dispatch('chat-panel-closed');
+        },
+
         toggle() {
             this.open = ! this.open;
             localStorage.setItem('chat-panel-open', JSON.stringify(this.open));
+            if (! this.open) {
+                this.$dispatch('chat-panel-closed');
+            }
             if (this.open) {
                 this.$nextTick(() => this.scrollToBottom());
             }
@@ -172,112 +181,82 @@ new class extends Component
     x-init="if (open) $nextTick(() => scrollToBottom())"
     @keydown.meta.k.window="toggle()"
     @toggle-chat-panel.window="toggle()"
+    x-show="open"
+    x-cloak
+    class="sticky top-0 flex h-screen w-full max-w-md shrink-0 flex-col border-l border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+    @keydown.escape.window="if (open) close()"
 >
-    {{-- Toggle Button (mobile only, desktop uses sidebar item) --}}
-    <button
-        @click="toggle()"
-        class="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-white shadow-lg transition hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-800 dark:hover:bg-zinc-300 lg:hidden"
-    >
-        <flux:icon.chat-bubble-left-right class="size-5" />
-    </button>
-
-    {{-- Slide-over Panel --}}
-    <div
-        x-show="open"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="translate-x-full"
-        x-transition:enter-end="translate-x-0"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="translate-x-0"
-        x-transition:leave-end="translate-x-full"
-        class="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-zinc-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
-        @keydown.escape.window="open = false; localStorage.setItem('chat-panel-open', 'false')"
-    >
-        {{-- Header --}}
-        <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-            <flux:heading size="sm">{{ __('Assistant') }}</flux:heading>
-            <div class="flex items-center gap-2">
-                <flux:button size="xs" variant="ghost" @click="newChat()" title="New conversation">
-                    <flux:icon.plus class="size-4" />
-                </flux:button>
-                <flux:button size="xs" variant="ghost" @click="open = false; localStorage.setItem('chat-panel-open', 'false')">
-                    <flux:icon.x-mark class="size-4" />
-                </flux:button>
-            </div>
-        </div>
-
-        {{-- Messages --}}
-        <div x-ref="messageList" class="flex-1 space-y-4 overflow-y-auto p-4">
-            <template x-if="messages.length === 0 && !streaming">
-                <div class="flex h-full items-center justify-center">
-                    <flux:text class="text-center text-zinc-400">
-                        {{ __('Ask me anything about your repos, agents, or work items.') }}
-                    </flux:text>
-                </div>
-            </template>
-
-            <template x-for="(msg, index) in messages" :key="index">
-                <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
-                    <div
-                        :class="msg.role === 'user'
-                            ? 'max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-4 py-2 text-sm text-white dark:bg-zinc-200 dark:text-zinc-900'
-                            : 'chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'"
-                        x-html="msg.role === 'user' ? msg.content : window.renderMarkdown(msg.content)"
-                    ></div>
-                </div>
-            </template>
-
-            {{-- Streaming indicator --}}
-            <template x-if="streaming && streamedContent">
-                <div class="flex justify-start">
-                    <div class="chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                         x-html="window.renderMarkdown(streamedContent)"></div>
-                </div>
-            </template>
-
-            <template x-if="streaming && !streamedContent">
-                <div class="flex justify-start">
-                    <div class="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
-                        <div class="flex items-center gap-1">
-                            <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 0ms"></div>
-                            <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 150ms"></div>
-                            <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 300ms"></div>
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </div>
-
-        {{-- Input --}}
-        <div class="border-t border-zinc-200 p-4 dark:border-zinc-700">
-            <form @submit.prevent="sendMessage()" class="flex gap-2">
-                <flux:input
-                    x-model="currentMessage"
-                    placeholder="{{ __('Type a message...') }}"
-                    x-bind:disabled="streaming"
-                    @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
-                    class="flex-1"
-                />
-                <flux:button type="submit" variant="primary" size="sm" x-bind:disabled="!currentMessage.trim() || streaming">
-                    <flux:icon.paper-airplane class="size-4" />
-                </flux:button>
-            </form>
-            <flux:text size="xs" class="mt-2 text-center text-zinc-400">
-                {{ __('Cmd+K to toggle') }}
-            </flux:text>
+    {{-- Header --}}
+    <div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+        <flux:heading size="sm">{{ __('Assistant') }}</flux:heading>
+        <div class="flex items-center gap-2">
+            <flux:button size="xs" variant="ghost" @click="newChat()" title="New conversation">
+                <flux:icon.plus class="size-4" />
+            </flux:button>
+            <flux:button size="xs" variant="ghost" @click="close()">
+                <flux:icon.x-mark class="size-4" />
+            </flux:button>
         </div>
     </div>
 
-    {{-- Backdrop --}}
-    <div
-        x-show="open"
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        class="fixed inset-0 z-40 bg-black/25"
-        @click="open = false; localStorage.setItem('chat-panel-open', 'false')"
-    ></div>
+    {{-- Messages --}}
+    <div x-ref="messageList" class="flex-1 space-y-4 overflow-y-auto p-4">
+        <template x-if="messages.length === 0 && !streaming">
+            <div class="flex h-full items-center justify-center">
+                <flux:text class="text-center text-zinc-400">
+                    {{ __('Ask me anything about your repos, agents, or work items.') }}
+                </flux:text>
+            </div>
+        </template>
+
+        <template x-for="(msg, index) in messages" :key="index">
+            <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                <div
+                    :class="msg.role === 'user'
+                        ? 'max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-4 py-2 text-sm text-white dark:bg-zinc-200 dark:text-zinc-900'
+                        : 'chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'"
+                    x-html="msg.role === 'user' ? msg.content : window.renderMarkdown(msg.content)"
+                ></div>
+            </div>
+        </template>
+
+        {{-- Streaming indicator --}}
+        <template x-if="streaming && streamedContent">
+            <div class="flex justify-start">
+                <div class="chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                     x-html="window.renderMarkdown(streamedContent)"></div>
+            </div>
+        </template>
+
+        <template x-if="streaming && !streamedContent">
+            <div class="flex justify-start">
+                <div class="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+                    <div class="flex items-center gap-1">
+                        <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 0ms"></div>
+                        <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 150ms"></div>
+                        <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    {{-- Input --}}
+    <div class="border-t border-zinc-200 p-4 dark:border-zinc-700">
+        <form @submit.prevent="sendMessage()" class="flex gap-2">
+            <flux:input
+                x-model="currentMessage"
+                placeholder="{{ __('Type a message...') }}"
+                x-bind:disabled="streaming"
+                @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
+                class="flex-1"
+            />
+            <flux:button type="submit" variant="primary" size="sm" x-bind:disabled="!currentMessage.trim() || streaming">
+                <flux:icon.paper-airplane class="size-4" />
+            </flux:button>
+        </form>
+        <flux:text size="xs" class="mt-2 text-center text-zinc-400">
+            {{ __('Cmd+K to toggle') }}
+        </flux:text>
+    </div>
 </div>
