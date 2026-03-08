@@ -105,26 +105,26 @@ class ToolRegistry
         'list_check_runs' => ['class' => ListCheckRunsTool::class, 'description' => 'List check runs', 'group' => 'CI / Status'],
 
         // Work Items
-        'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items'],
-        'delete_work_item' => ['class' => DeleteWorkItemTool::class, 'description' => 'Delete a work item', 'group' => 'Work Items'],
+        'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items', 'category' => 'pageant'],
+        'delete_work_item' => ['class' => DeleteWorkItemTool::class, 'description' => 'Delete a work item', 'group' => 'Work Items', 'category' => 'pageant'],
 
         // Agents
-        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents'],
+        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant'],
 
-        // Pageant — Repos (organization-scoped, no GitHub API needed)
-        'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Pageant — Repos', 'local' => true],
-        'get_repo' => ['class' => GetRepoTool::class, 'description' => 'Get a repo by ID', 'group' => 'Pageant — Repos', 'local' => true],
-        'update_repo' => ['class' => UpdateRepoTool::class, 'description' => 'Update a repo name', 'group' => 'Pageant — Repos', 'local' => true],
-        'delete_repo' => ['class' => DeleteRepoTool::class, 'description' => 'Delete a repo', 'group' => 'Pageant — Repos', 'local' => true],
+        // Repos (organization-scoped, no GitHub API needed)
+        'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Repos', 'local' => true],
+        'get_repo' => ['class' => GetRepoTool::class, 'description' => 'Get a repo by ID', 'group' => 'Repos', 'local' => true],
+        'update_repo' => ['class' => UpdateRepoTool::class, 'description' => 'Update a repo name', 'group' => 'Repos', 'local' => true],
+        'delete_repo' => ['class' => DeleteRepoTool::class, 'description' => 'Delete a repo', 'group' => 'Repos', 'local' => true],
 
-        // Pageant — Projects
-        'list_projects' => ['class' => ListProjectsTool::class, 'description' => 'List projects in the current organization', 'group' => 'Pageant — Projects', 'local' => true],
-        'get_project' => ['class' => GetProjectTool::class, 'description' => 'Get a project by ID', 'group' => 'Pageant — Projects', 'local' => true],
-        'create_project' => ['class' => CreateProjectTool::class, 'description' => 'Create a project', 'group' => 'Pageant — Projects', 'local' => true],
-        'update_project' => ['class' => UpdateProjectTool::class, 'description' => 'Update a project', 'group' => 'Pageant — Projects', 'local' => true],
-        'delete_project' => ['class' => DeleteProjectTool::class, 'description' => 'Delete a project', 'group' => 'Pageant — Projects', 'local' => true],
-        'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Pageant — Projects', 'local' => true],
-        'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Pageant — Projects', 'local' => true],
+        // Projects
+        'list_projects' => ['class' => ListProjectsTool::class, 'description' => 'List projects in the current organization', 'group' => 'Projects', 'local' => true],
+        'get_project' => ['class' => GetProjectTool::class, 'description' => 'Get a project by ID', 'group' => 'Projects', 'local' => true],
+        'create_project' => ['class' => CreateProjectTool::class, 'description' => 'Create a project', 'group' => 'Projects', 'local' => true],
+        'update_project' => ['class' => UpdateProjectTool::class, 'description' => 'Update a project', 'group' => 'Projects', 'local' => true],
+        'delete_project' => ['class' => DeleteProjectTool::class, 'description' => 'Delete a project', 'group' => 'Projects', 'local' => true],
+        'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Projects', 'local' => true],
+        'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Projects', 'local' => true],
     ];
 
     /**
@@ -216,7 +216,7 @@ class ToolRegistry
         $pageant = [];
 
         foreach (self::TOOL_MAP as $name => $entry) {
-            if (! empty($entry['local'])) {
+            if (! empty($entry['local']) || ($entry['category'] ?? null) === 'pageant') {
                 $pageant[$entry['group']][$name] = $entry['description'];
             } else {
                 $github[$entry['group']][$name] = $entry['description'];
