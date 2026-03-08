@@ -161,7 +161,7 @@ new #[Title('Repos')] class extends Component {
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Repos') }}</flux:heading>
             <flux:button variant="primary" wire:click="openImportModal">
-                {{ __('Add Repos') }}
+                {{ __('Import Repo') }}
             </flux:button>
         </div>
 
@@ -236,7 +236,7 @@ new #[Title('Repos')] class extends Component {
 
     <flux:modal wire:model="showImportModal" variant="flyout" class="w-[32rem]">
         <div class="space-y-6">
-            <flux:heading size="lg">{{ __('Add Repos from GitHub') }}</flux:heading>
+            <flux:heading size="lg">{{ __('Import Repo from GitHub') }}</flux:heading>
 
             @if ($this->installations->isEmpty())
                 <flux:text>{{ __('No GitHub App installations found. Install the GitHub App on your account or organization first.') }}</flux:text>
