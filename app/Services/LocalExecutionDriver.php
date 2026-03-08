@@ -15,8 +15,17 @@ class LocalExecutionDriver implements ExecutionDriver
     public function __construct(
         private readonly string $basePath,
     ) {
+        if (! is_dir($basePath)) {
+            mkdir($basePath, 0755, true);
+        }
+
         $resolved = realpath($basePath);
-        $this->resolvedBasePath = $resolved !== false ? $resolved : $basePath;
+
+        if ($resolved === false) {
+            throw new RuntimeException("Unable to resolve base path: {$basePath}");
+        }
+
+        $this->resolvedBasePath = $resolved;
     }
 
     public function exec(string $command, ?int $timeout = null): ExecutionResult
@@ -66,15 +75,21 @@ class LocalExecutionDriver implements ExecutionDriver
 
         $directory = dirname($resolvedPath);
 
-        if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
+        if (! is_dir($directory) && ! mkdir($directory, 0755, true)) {
+            throw new RuntimeException("Unable to create directory: {$directory}");
         }
 
-        file_put_contents($resolvedPath, $content);
+        if (file_put_contents($resolvedPath, $content) === false) {
+            throw new RuntimeException("Unable to write file: {$path}");
+        }
     }
 
     public function editFile(string $path, string $oldString, string $newString, bool $replaceAll = false): void
     {
+        if ($oldString === '') {
+            throw new InvalidArgumentException('old_string cannot be empty');
+        }
+
         $resolvedPath = $this->resolvePath($path);
 
         $content = file_get_contents($resolvedPath);
@@ -108,6 +123,8 @@ class LocalExecutionDriver implements ExecutionDriver
      */
     public function glob(string $pattern): array
     {
+        $this->validatePath($pattern);
+
         $fullPattern = $this->resolvedBasePath.'/'.$pattern;
         $matches = glob($fullPattern, GLOB_BRACE);
 
@@ -116,11 +133,16 @@ class LocalExecutionDriver implements ExecutionDriver
         }
 
         $basePrefixLength = strlen($this->resolvedBasePath) + 1;
+        $boundaryPrefix = $this->resolvedBasePath.'/';
 
-        return array_map(
-            fn (string $match): string => substr($match, $basePrefixLength),
-            $matches,
-        );
+        return array_values(array_filter(
+            array_map(
+                fn (string $match): ?string => str_starts_with($match, $boundaryPrefix)
+                    ? substr($match, $basePrefixLength)
+                    : null,
+                $matches,
+            ),
+        ));
     }
 
     /**
@@ -173,6 +195,12 @@ class LocalExecutionDriver implements ExecutionDriver
         $process->setTimeout(30);
         $process->run();
 
+        $exitCode = $process->getExitCode();
+
+        if ($exitCode === 2) {
+            throw new RuntimeException('grep error: '.$process->getErrorOutput());
+        }
+
         $output = trim($process->getOutput());
 
         if ($output === '') {
@@ -224,7 +252,7 @@ class LocalExecutionDriver implements ExecutionDriver
             $results[] = [
                 'name' => $entry,
                 'type' => is_dir($fullPath) ? 'directory' : 'file',
-                'size' => is_file($fullPath) ? filesize($fullPath) : 0,
+                'size' => is_file($fullPath) ? (int) filesize($fullPath) : 0,
             ];
         }
 
@@ -275,7 +303,7 @@ class LocalExecutionDriver implements ExecutionDriver
             throw new RuntimeException("File not found: {$path}");
         }
 
-        if (! str_starts_with($resolvedPath, $this->resolvedBasePath)) {
+        if ($resolvedPath !== $this->resolvedBasePath && ! str_starts_with($resolvedPath, $this->resolvedBasePath.'/')) {
             throw new InvalidArgumentException("Path traversal detected: {$path}");
         }
 
@@ -294,7 +322,7 @@ class LocalExecutionDriver implements ExecutionDriver
         $parentDir = dirname($fullPath);
         $realParent = realpath($parentDir);
 
-        if ($realParent !== false && ! str_starts_with($realParent, $this->resolvedBasePath)) {
+        if ($realParent !== false && $realParent !== $this->resolvedBasePath && ! str_starts_with($realParent, $this->resolvedBasePath.'/')) {
             throw new InvalidArgumentException("Path traversal detected: {$path}");
         }
 

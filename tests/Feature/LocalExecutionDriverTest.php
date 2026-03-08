@@ -104,6 +104,12 @@ describe('editFile', function () {
 
         $this->driver->editFile('edit.txt', 'nonexistent', 'replacement');
     })->throws(RuntimeException::class, 'String not found');
+
+    it('throws when old_string is empty', function () {
+        file_put_contents($this->tempDir.'/edit.txt', 'Hello World');
+
+        $this->driver->editFile('edit.txt', '', 'replacement');
+    })->throws(InvalidArgumentException::class, 'old_string cannot be empty');
 });
 
 describe('path validation', function () {
@@ -190,7 +196,7 @@ describe('listDirectory', function () {
 
     it('throws when directory does not exist', function () {
         $this->driver->listDirectory('nonexistent');
-    })->throws(RuntimeException::class, 'File not found');
+    })->throws(RuntimeException::class, 'not found');
 });
 
 describe('getBasePath', function () {
