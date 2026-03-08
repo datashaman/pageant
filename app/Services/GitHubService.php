@@ -48,6 +48,41 @@ class GitHubService
     }
 
     /**
+     * List all installations of this GitHub App using the App JWT.
+     *
+     * @return array<int, array{id: int, account: array{login: string, type: string}, permissions: array, events: array}>
+     */
+    public function listAppInstallations(): array
+    {
+        $jwt = $this->generateJwt();
+        $installations = [];
+        $page = 1;
+
+        do {
+            $response = Http::withHeaders([
+                'Authorization' => "Bearer {$jwt}",
+                'Accept' => 'application/vnd.github+json',
+            ])->get(self::API_BASE.'/app/installations', [
+                'per_page' => 100,
+                'page' => $page,
+            ]);
+
+            $response->throw();
+
+            $data = $response->json();
+
+            if (empty($data)) {
+                break;
+            }
+
+            $installations = array_merge($installations, $data);
+            $page++;
+        } while (count($data) === 100);
+
+        return $installations;
+    }
+
+    /**
      * @return array<int, array{id: int, name: string, full_name: string, html_url: string, description: ?string, private: bool}>
      */
     public function listRepositories(GithubInstallation $installation, int $perPage = 100): array

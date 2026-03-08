@@ -1,13 +1,17 @@
 <?php
 
 use App\Models\User;
+use App\Services\GitHubService;
 use Illuminate\Support\Facades\Http;
 use Laravel\Socialite\Facades\Socialite;
+use Mockery\MockInterface;
 
 it('allows login when email is in allowed list', function () {
     config(['app.allowed_emails' => 'allowed@example.com']);
 
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $socialiteUser = createSocialiteUser(email: 'allowed@example.com');
 
@@ -40,7 +44,9 @@ it('rejects login when email is not in allowed list', function () {
 it('allows any email when allowed list is empty', function () {
     config(['app.allowed_emails' => '']);
 
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $socialiteUser = createSocialiteUser(email: 'anyone@example.com');
 
@@ -57,7 +63,9 @@ it('allows any email when allowed list is empty', function () {
 it('supports multiple emails in allowed list', function () {
     config(['app.allowed_emails' => 'first@example.com, second@example.com']);
 
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $socialiteUser = createSocialiteUser(email: 'second@example.com');
 
@@ -74,7 +82,9 @@ it('supports multiple emails in allowed list', function () {
 it('performs case-insensitive email comparison', function () {
     config(['app.allowed_emails' => 'User@Example.COM']);
 
-    Http::fake(['https://api.github.com/user/installations' => Http::response([])]);
+    $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('listAppInstallations')->once()->andReturn([]);
+    });
 
     $socialiteUser = createSocialiteUser(email: 'user@example.com');
 
