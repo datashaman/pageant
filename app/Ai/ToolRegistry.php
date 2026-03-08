@@ -126,7 +126,7 @@ class ToolRegistry
         'reopen_work_item' => ['class' => ReopenWorkItemTool::class, 'description' => 'Reopen a closed work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
 
         // Agents
-        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'category' => 'pageant', 'flexible' => true],
+        'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'local' => true],
         'list_agents' => ['class' => ListAgentsTool::class, 'description' => 'List agents in the organization', 'group' => 'Agents', 'local' => true],
         'search_agents' => ['class' => SearchAgentsTool::class, 'description' => 'Search for agents matching work item requirements', 'group' => 'Agents', 'local' => true],
 

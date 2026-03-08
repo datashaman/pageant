@@ -5,9 +5,8 @@ namespace App\Ai\Tools;
 use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
-use App\Models\GithubInstallation;
 use App\Models\Repo;
-use App\Services\GitHubService;
+use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -15,9 +14,7 @@ use Laravel\Ai\Tools\Request;
 class CreateAgentTool implements Tool
 {
     public function __construct(
-        protected GitHubService $github,
-        protected ?GithubInstallation $installation = null,
-        protected ?string $repoFullName = null,
+        protected User $user,
     ) {}
 
     public function description(): string
@@ -27,14 +24,15 @@ class CreateAgentTool implements Tool
 
     public function handle(Request $request): string
     {
-        $repoFullName = $this->repoFullName ?? $request['repo'];
+        $organizationId = $this->user->currentOrganizationId()
+            ?? $this->user->organizations()->first()?->id;
 
-        $repo = Repo::where('source', 'github')
-            ->where('source_reference', $repoFullName)
-            ->firstOrFail();
+        if (! $organizationId) {
+            return json_encode(['error' => 'No organization found for the current user.']);
+        }
 
         $data = [
-            'organization_id' => $repo->organization_id,
+            'organization_id' => $organizationId,
             'name' => $request['name'],
             'description' => $request['description'] ?? '',
             'tools' => $request['tools'] ?? [],
@@ -53,39 +51,35 @@ class CreateAgentTool implements Tool
 
         $agent = Agent::create($data);
 
-        $repoIds = [$repo->id];
+        $repoNames = $request['repo_names'] ?? [];
 
-        if (! empty($request['repo_names'])) {
-            $additionalRepoIds = Repo::where('source', 'github')
-                ->whereIn('source_reference', $request['repo_names'])
-                ->where('organization_id', $repo->organization_id)
+        if (! empty($request['repo'])) {
+            array_unshift($repoNames, $request['repo']);
+        }
+
+        if (! empty($repoNames)) {
+            $repoIds = Repo::where('source', 'github')
+                ->whereIn('source_reference', array_unique($repoNames))
+                ->where('organization_id', $organizationId)
                 ->pluck('id')
                 ->all();
 
-            $repoIds = array_unique(array_merge($repoIds, $additionalRepoIds));
+            $agent->repos()->sync($repoIds);
         }
-
-        $agent->repos()->sync($repoIds);
 
         return json_encode($agent->load('repos')->toArray(), JSON_PRETTY_PRINT);
     }
 
     public function schema(JsonSchema $schema): array
     {
-        $fields = [];
-
-        if (! $this->repoFullName) {
-            $fields['repo'] = $schema->string()
-                ->description('The repository in owner/repo format.')
-                ->required();
-        }
-
-        return array_merge($fields, [
+        return [
             'name' => $schema->string()
                 ->description('The name of the agent.')
                 ->required(),
             'description' => $schema->string()
                 ->description('A description of what the agent does, used as its system instructions.'),
+            'repo' => $schema->string()
+                ->description('A repository in owner/repo format to attach the agent to. Optional — the agent will be created in the user\'s current organization regardless.'),
             'tools' => $schema->array()
                 ->description('Tool names the agent can use. Available: '.implode(', ', array_keys(ToolRegistry::available()))),
             'events' => $schema->array()
@@ -107,6 +101,6 @@ class CreateAgentTool implements Tool
             'repo_names' => $schema->array()
                 ->items($schema->string())
                 ->description('Repository full names (owner/repo) to attach the agent to.'),
-        ]);
+        ];
     }
 }

@@ -20,7 +20,7 @@ class CreateAgentTool extends Tool
     public function handle(Request $request): Response
     {
         $validated = $request->validate([
-            'repo' => 'required|string',
+            'repo' => 'nullable|string',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'tools' => 'nullable|array',
@@ -37,7 +37,27 @@ class CreateAgentTool extends Tool
             'repo_names.*' => 'string',
         ]);
 
-        $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
+        $organizationId = null;
+
+        if (! empty($validated['repo'])) {
+            $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->first();
+            $organizationId = $repo?->organization_id;
+        }
+
+        if (! $organizationId) {
+            $user = auth()->user();
+
+            if (! $user) {
+                return Response::text(json_encode(['error' => 'Authentication required to create agents.']));
+            }
+
+            $organizationId = $user->currentOrganizationId()
+                ?? $user->organizations()->first()?->id;
+        }
+
+        if (! $organizationId) {
+            return Response::text(json_encode(['error' => 'No organization found. Provide a repo or ensure you belong to an organization.']));
+        }
 
         $events = collect($validated['events'] ?? [])->map(function ($entry) {
             if (is_string($entry)) {
@@ -48,7 +68,7 @@ class CreateAgentTool extends Tool
         })->values()->toArray();
 
         $data = [
-            'organization_id' => $repo->organization_id,
+            'organization_id' => $organizationId,
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
             'tools' => $validated['tools'] ?? [],
@@ -67,19 +87,21 @@ class CreateAgentTool extends Tool
 
         $agent = Agent::create($data);
 
-        $repoIds = [$repo->id];
+        $repoNames = $validated['repo_names'] ?? [];
 
-        if (! empty($validated['repo_names'])) {
-            $additionalRepoIds = Repo::where('source', 'github')
-                ->whereIn('source_reference', $validated['repo_names'])
-                ->where('organization_id', $repo->organization_id)
+        if (! empty($validated['repo'])) {
+            array_unshift($repoNames, $validated['repo']);
+        }
+
+        if (! empty($repoNames)) {
+            $repoIds = Repo::where('source', 'github')
+                ->whereIn('source_reference', array_unique($repoNames))
+                ->where('organization_id', $organizationId)
                 ->pluck('id')
                 ->toArray();
 
-            $repoIds = array_unique(array_merge($repoIds, $additionalRepoIds));
+            $agent->repos()->sync($repoIds);
         }
-
-        $agent->repos()->sync($repoIds);
 
         return Response::text(json_encode($agent->load('repos')->toArray(), JSON_PRETTY_PRINT));
     }
@@ -91,8 +113,7 @@ class CreateAgentTool extends Tool
     {
         return [
             'repo' => $schema->string()
-                ->description('The repository in owner/repo format. The agent will be created in this repo\'s organization and attached to it.')
-                ->required(),
+                ->description('A repository in owner/repo format to attach the agent to. Optional — the agent will be created in the user\'s current organization if not provided.'),
             'name' => $schema->string()
                 ->description('The name of the agent.')
                 ->required(),

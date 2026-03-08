@@ -5,6 +5,7 @@ use App\Ai\Tools\CloseWorkItemTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateWorkItemTool;
 use App\Ai\Tools\ReopenWorkItemTool;
+use App\Models\User;
 
 it('includes flexible tools in availableForContext when no repo is selected', function () {
     $available = ToolRegistry::availableForContext(null);
@@ -39,13 +40,21 @@ it('includes all tools in availableForContext when a repo is selected', function
 });
 
 it('resolves flexible tools without a repo context', function () {
-    $tools = ToolRegistry::resolve(['create_work_item', 'close_work_item', 'reopen_work_item', 'create_agent'], null);
+    $tools = ToolRegistry::resolve(['create_work_item', 'close_work_item', 'reopen_work_item'], null);
 
-    expect($tools)->toHaveCount(4)
+    expect($tools)->toHaveCount(3)
         ->and($tools[0])->toBeInstanceOf(CreateWorkItemTool::class)
         ->and($tools[1])->toBeInstanceOf(CloseWorkItemTool::class)
-        ->and($tools[2])->toBeInstanceOf(ReopenWorkItemTool::class)
-        ->and($tools[3])->toBeInstanceOf(CreateAgentTool::class);
+        ->and($tools[2])->toBeInstanceOf(ReopenWorkItemTool::class);
+});
+
+it('resolves create_agent as a local tool with a user', function () {
+    $user = User::factory()->create();
+
+    $tools = ToolRegistry::resolve(['create_agent'], null, $user);
+
+    expect($tools)->toHaveCount(1)
+        ->and($tools[0])->toBeInstanceOf(CreateAgentTool::class);
 });
 
 it('requires repo parameter in schema when no repo context is provided', function () {
@@ -68,4 +77,15 @@ it('omits repo parameter in schema when repo context is provided', function () {
     $fields = $tool->schema($schema);
 
     expect($fields)->not->toHaveKey('repo');
+});
+
+it('does not require repo in create_agent schema', function () {
+    $user = User::factory()->create();
+    $tool = new CreateAgentTool($user);
+    $schema = new \Illuminate\JsonSchema\JsonSchemaTypeFactory;
+
+    $fields = $tool->schema($schema);
+
+    expect($fields)->toHaveKey('repo')
+        ->and($fields)->toHaveKey('name');
 });

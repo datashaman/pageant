@@ -1,15 +1,20 @@
 <?php
 
 use App\Ai\ToolRegistry;
+use App\Ai\Tools\CreateAgentTool as AiCreateAgentTool;
 use App\Mcp\Servers\PageantServer;
 use App\Mcp\Tools\CreateAgentTool;
 use App\Models\Agent;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
+use App\Models\User;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
+    $this->user = User::factory()->create(['current_organization_id' => $this->organization->id]);
+    $this->user->organizations()->attach($this->organization);
+    $this->actingAs($this->user);
     $this->installation = GithubInstallation::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
@@ -20,7 +25,7 @@ beforeEach(function () {
     ]);
 });
 
-it('creates an agent via MCP tool', function () {
+it('creates an agent via MCP tool with repo', function () {
     $response = PageantServer::tool(CreateAgentTool::class, [
         'repo' => 'acme/widgets',
         'name' => 'review-bot',
@@ -43,6 +48,22 @@ it('creates an agent via MCP tool', function () {
         ->and($agent->provider)->toBe('anthropic')
         ->and($agent->enabled)->toBeTrue()
         ->and($agent->repos->pluck('id'))->toContain($this->repo->id);
+});
+
+it('creates an agent via MCP tool without repo', function () {
+    $response = PageantServer::tool(CreateAgentTool::class, [
+        'name' => 'org-bot',
+        'description' => 'Manages organization tasks',
+    ]);
+
+    $response->assertOk()
+        ->assertSee('org-bot');
+
+    $agent = Agent::where('name', 'org-bot')->first();
+
+    expect($agent)->not->toBeNull()
+        ->and($agent->organization_id)->toBe($this->organization->id)
+        ->and($agent->repos)->toHaveCount(0);
 });
 
 it('creates an agent with subscription objects via MCP tool', function () {
@@ -68,7 +89,6 @@ it('creates an agent with subscription objects via MCP tool', function () {
 
 it('creates an agent with defaults via MCP tool', function () {
     $response = PageantServer::tool(CreateAgentTool::class, [
-        'repo' => 'acme/widgets',
         'name' => 'simple-bot',
     ]);
 
@@ -110,4 +130,48 @@ it('registers create_agent in the AI ToolRegistry', function () {
     $available = ToolRegistry::available();
 
     expect($available)->toHaveKey('create_agent');
+});
+
+it('creates an agent via AI tool without repo', function () {
+    $tool = new AiCreateAgentTool($this->user);
+
+    $result = $tool->handle(new \Laravel\Ai\Tools\Request([
+        'name' => 'no-repo-bot',
+        'description' => 'Agent without a repo',
+    ]));
+
+    $decoded = json_decode($result, true);
+
+    expect($decoded['name'])->toBe('no-repo-bot')
+        ->and($decoded['organization_id'])->toBe($this->organization->id)
+        ->and($decoded['repos'])->toBeEmpty();
+});
+
+it('creates an agent via AI tool with repo attachment', function () {
+    $tool = new AiCreateAgentTool($this->user);
+
+    $result = $tool->handle(new \Laravel\Ai\Tools\Request([
+        'name' => 'repo-bot',
+        'repo' => 'acme/widgets',
+    ]));
+
+    $decoded = json_decode($result, true);
+
+    expect($decoded['name'])->toBe('repo-bot')
+        ->and($decoded['repos'])->toHaveCount(1)
+        ->and($decoded['repos'][0]['source_reference'])->toBe('acme/widgets');
+});
+
+it('returns error via AI tool when user has no organization', function () {
+    $orphanUser = User::factory()->create();
+    $tool = new AiCreateAgentTool($orphanUser);
+
+    $result = $tool->handle(new \Laravel\Ai\Tools\Request([
+        'name' => 'orphan-bot',
+    ]));
+
+    $decoded = json_decode($result, true);
+
+    expect($decoded)->toHaveKey('error')
+        ->and($decoded['error'])->toContain('No organization');
 });
