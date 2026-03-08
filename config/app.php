@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Allowed Emails
+    |--------------------------------------------------------------------------
+    |
+    | A comma-separated list of email addresses allowed to log in via GitHub
+    | OAuth. If empty, all GitHub users can log in.
+    |
+    */
+
+    'allowed_emails' => env('ALLOWED_EMAILS', ''),
+
 ];
