@@ -143,13 +143,13 @@ new #[Title('Work Item')] class extends Component {
             </div>
 
             <div>
-                <flux:label>{{ __('Source') }}</flux:label>
-                <flux:text>{{ $workItem->source }}</flux:text>
+                <flux:label>{{ __('Board ID') }}</flux:label>
+                <flux:text>{{ $workItem->board_id ?: '—' }}</flux:text>
             </div>
 
             <div>
-                <flux:label>{{ __('Board ID') }}</flux:label>
-                <flux:text>{{ $workItem->board_id ?: '—' }}</flux:text>
+                <flux:label>{{ __('Source') }}</flux:label>
+                <flux:text>{{ $workItem->source }}</flux:text>
             </div>
 
             <div>
