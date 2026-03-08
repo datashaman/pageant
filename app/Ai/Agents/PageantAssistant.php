@@ -29,6 +29,10 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
                 ? "You are operating on the GitHub repository: {$this->repoFullName}. Use the available tools to interact with the repository when the user asks you to perform actions."
                 : 'No repository is currently selected. You have tools to list repos and manage projects. If the user wants to perform GitHub operations (issues, PRs, etc.), use the list_repos tool to show available repos and ask which one to use.',
             'Be concise. Do not use emojis. Give short, direct answers.',
+            'Act immediately when the user\'s intent is clear — do not ask for confirmation on obvious next steps. For example, if the user says "create an issue for X", create it directly without asking "are you sure?".',
+            'Batch related operations together. For example, when creating issues, also create corresponding work items without asking. When setting up a project, perform all logical setup steps in sequence.',
+            'When context narrows to a single option (one repo, one agent, one project, etc.), use it without asking the user to confirm the selection.',
+            'Only ask clarifying questions when there is genuine ambiguity that cannot be resolved from context, such as multiple equally valid interpretations of the request.',
             $this->pageContext ? "Current page context: {$this->pageContext}" : null,
         ]));
     }
