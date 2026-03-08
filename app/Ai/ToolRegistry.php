@@ -28,8 +28,10 @@ use App\Ai\Tools\ListCommentsTool;
 use App\Ai\Tools\ListIssueLabelsTool;
 use App\Ai\Tools\ListIssuesTool;
 use App\Ai\Tools\ListLabelsTool;
+use App\Ai\Tools\ListProjectsTool;
 use App\Ai\Tools\ListPullRequestFilesTool;
 use App\Ai\Tools\ListPullRequestsTool;
+use App\Ai\Tools\ListReposTool;
 use App\Ai\Tools\MergePullRequestTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
@@ -39,6 +41,7 @@ use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdatePullRequestTool;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
+use App\Models\User;
 use App\Services\GitHubService;
 use Laravel\Ai\Contracts\Tool;
 
@@ -98,33 +101,68 @@ class ToolRegistry
 
         // Agents
         'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents'],
+
+        // Pageant (organization-scoped, no GitHub API needed)
+        'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Pageant', 'local' => true],
+        'list_projects' => ['class' => ListProjectsTool::class, 'description' => 'List projects in the current organization', 'group' => 'Pageant', 'local' => true],
     ];
 
     /**
      * @param  array<int, string>  $toolNames
      * @return Tool[]
      */
-    public static function resolve(array $toolNames, string $repoFullName): array
+    public static function resolve(array $toolNames, ?string $repoFullName = null, ?User $user = null): array
     {
         if (empty($toolNames)) {
             return [];
         }
 
-        $github = app(GitHubService::class);
-        $repo = Repo::where('source', 'github')
-            ->where('source_reference', $repoFullName)
-            ->firstOrFail();
-        $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+        $github = null;
+        $installation = null;
+
+        $hasGithubTools = collect($toolNames)->contains(
+            fn (string $name) => isset(self::TOOL_MAP[$name]) && empty(self::TOOL_MAP[$name]['local'])
+        );
+
+        if ($hasGithubTools && $repoFullName) {
+            $github = app(GitHubService::class);
+            $repo = Repo::where('source', 'github')
+                ->where('source_reference', $repoFullName)
+                ->firstOrFail();
+            $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+        }
 
         $tools = [];
 
         foreach ($toolNames as $name) {
-            if (isset(self::TOOL_MAP[$name])) {
-                $tools[] = new (self::TOOL_MAP[$name]['class'])($github, $installation, $repoFullName);
+            if (! isset(self::TOOL_MAP[$name])) {
+                continue;
+            }
+
+            $entry = self::TOOL_MAP[$name];
+
+            if (! empty($entry['local'])) {
+                if ($user) {
+                    $tools[] = new ($entry['class'])($user);
+                }
+            } elseif ($github && $installation && $repoFullName) {
+                $tools[] = new ($entry['class'])($github, $installation, $repoFullName);
             }
         }
 
         return $tools;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function availableForContext(?string $repoFullName = null): array
+    {
+        return array_filter(
+            self::available(),
+            fn (string $description, string $name) => ! empty(self::TOOL_MAP[$name]['local']) || $repoFullName !== null,
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     /**

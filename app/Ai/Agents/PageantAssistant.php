@@ -27,7 +27,7 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
             'You help users create and configure agents, work items, issues, pull requests, and other GitHub operations.',
             $this->repoFullName
                 ? "You are operating on the GitHub repository: {$this->repoFullName}."
-                : 'No repository is currently selected. You can still answer general questions about Pageant, but repository-specific tools are unavailable until a repo is added.',
+                : 'No repository is currently selected. You can list repos and projects, but GitHub-specific tools are unavailable until a repo is selected.',
             'Use the available tools to interact with the repository when the user asks you to perform actions.',
             'Be concise and helpful in your responses.',
             $this->pageContext ? "Current page context: {$this->pageContext}" : null,
@@ -36,13 +36,10 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
 
     public function tools(): iterable
     {
-        if (! $this->repoFullName) {
-            return [];
-        }
-
         return ToolRegistry::resolve(
-            array_keys(ToolRegistry::available()),
+            array_keys(ToolRegistry::availableForContext($this->repoFullName)),
             $this->repoFullName,
+            $this->user,
         );
     }
 }
