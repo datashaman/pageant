@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\Repo;
 use App\Models\Skill;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -180,6 +181,9 @@ new #[Title('Create Agent')] class extends Component {
 
     public function save(): void
     {
+        $organizationId = auth()->user()->currentOrganizationId();
+        abort_unless($organizationId, 403);
+
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -188,10 +192,11 @@ new #[Title('Create Agent')] class extends Component {
             'permission_mode' => ['nullable', 'string'],
             'max_turns' => ['nullable', 'integer', 'min:1'],
             'isolation' => ['nullable', 'string'],
+            'selectedSkills' => ['array'],
+            'selectedSkills.*' => ['uuid', Rule::exists('skills', 'id')->where('organization_id', $organizationId)],
+            'selectedRepos' => ['array'],
+            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $organizationId)],
         ]);
-
-        $organizationId = auth()->user()->currentOrganizationId();
-        abort_unless($organizationId, 403);
 
         $data = [
             'organization_id' => $organizationId,

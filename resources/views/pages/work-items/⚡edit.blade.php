@@ -3,6 +3,7 @@
 use App\Models\Project;
 use App\Models\WorkItem;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -39,7 +40,7 @@ new #[Title('Edit Work Item')] class extends Component {
         $validated = $this->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'project_id' => ['nullable', 'uuid', 'exists:projects,id'],
+            'project_id' => ['nullable', 'uuid', Rule::exists('projects', 'id')->where('organization_id', $this->workItem->organization_id)],
         ]);
 
         if (empty($validated['project_id'])) {

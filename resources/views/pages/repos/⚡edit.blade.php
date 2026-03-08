@@ -7,6 +7,7 @@ use App\Models\Repo;
 use App\Models\Skill;
 use App\Services\GitHubService;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -115,11 +116,11 @@ new #[Title('Edit Repo')] class extends Component {
             'name' => ['required', 'string', 'max:255'],
             'setupScript' => ['nullable', 'string', 'max:65535'],
             'selectedSkills' => ['array'],
-            'selectedSkills.*' => ['uuid'],
+            'selectedSkills.*' => ['uuid', Rule::exists('skills', 'id')->where('organization_id', $this->repo->organization_id)],
             'selectedAgents' => ['array'],
-            'selectedAgents.*' => ['uuid'],
+            'selectedAgents.*' => ['uuid', Rule::exists('agents', 'id')->where('organization_id', $this->repo->organization_id)],
             'selectedProjects' => ['array'],
-            'selectedProjects.*' => ['uuid'],
+            'selectedProjects.*' => ['uuid', Rule::exists('projects', 'id')->where('organization_id', $this->repo->organization_id)],
         ]);
 
         $this->repo->update([

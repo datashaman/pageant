@@ -1,0 +1,189 @@
+<?php
+
+use App\Models\Agent;
+use App\Models\Organization;
+use App\Models\Project;
+use App\Models\Repo;
+use App\Models\Skill;
+use App\Models\User;
+use App\Models\WorkItem;
+
+beforeEach(function () {
+    $this->user = User::factory()->create();
+    $this->organization = Organization::factory()->create();
+    $this->user->organizations()->attach($this->organization);
+    $this->user->update(['current_organization_id' => $this->organization->id]);
+
+    $this->otherOrg = Organization::factory()->create();
+});
+
+it('rejects cross-org project_id when editing work items', function () {
+    $workItem = WorkItem::factory()->for($this->organization)->create([
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#1',
+    ]);
+    $otherProject = Project::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.edit', ['workItem' => $workItem])
+        ->set('title', 'Updated title')
+        ->set('project_id', $otherProject->id)
+        ->call('save')
+        ->assertHasErrors(['project_id']);
+});
+
+it('accepts same-org project_id when editing work items', function () {
+    $workItem = WorkItem::factory()->for($this->organization)->create([
+        'source' => 'github',
+        'source_reference' => 'acme/widgets#1',
+    ]);
+    $sameProject = Project::factory()->for($this->organization)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.edit', ['workItem' => $workItem])
+        ->set('title', 'Updated title')
+        ->set('project_id', $sameProject->id)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertRedirect();
+});
+
+it('rejects cross-org skills when editing agents', function () {
+    $agent = Agent::factory()->for($this->organization)->create();
+    $otherSkill = Skill::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.edit', ['agent' => $agent])
+        ->set('name', $agent->name)
+        ->set('selectedSkills', [$otherSkill->id])
+        ->call('update')
+        ->assertHasErrors(['selectedSkills.0']);
+});
+
+it('rejects cross-org repos when editing agents', function () {
+    $agent = Agent::factory()->for($this->organization)->create();
+    $otherRepo = Repo::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.edit', ['agent' => $agent])
+        ->set('name', $agent->name)
+        ->set('selectedRepos', [$otherRepo->id])
+        ->call('update')
+        ->assertHasErrors(['selectedRepos.0']);
+});
+
+it('rejects cross-org skills when creating agents', function () {
+    $otherSkill = Skill::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.create')
+        ->set('name', 'test-agent')
+        ->set('selectedSkills', [$otherSkill->id])
+        ->call('save')
+        ->assertHasErrors(['selectedSkills.0']);
+});
+
+it('rejects cross-org repos when creating agents', function () {
+    $otherRepo = Repo::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::agents.create')
+        ->set('name', 'test-agent')
+        ->set('selectedRepos', [$otherRepo->id])
+        ->call('save')
+        ->assertHasErrors(['selectedRepos.0']);
+});
+
+it('rejects cross-org agents when editing skills', function () {
+    $skill = Skill::factory()->for($this->organization)->create();
+    $otherAgent = Agent::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::skills.edit', ['skill' => $skill])
+        ->set('name', $skill->name)
+        ->set('selectedAgents', [$otherAgent->id])
+        ->call('save')
+        ->assertHasErrors(['selectedAgents.0']);
+});
+
+it('rejects cross-org repos when editing skills', function () {
+    $skill = Skill::factory()->for($this->organization)->create();
+    $otherRepo = Repo::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::skills.edit', ['skill' => $skill])
+        ->set('name', $skill->name)
+        ->set('selectedRepos', [$otherRepo->id])
+        ->call('save')
+        ->assertHasErrors(['selectedRepos.0']);
+});
+
+it('rejects cross-org agent_id when editing skills', function () {
+    $skill = Skill::factory()->for($this->organization)->create();
+    $otherAgent = Agent::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::skills.edit', ['skill' => $skill])
+        ->set('name', $skill->name)
+        ->set('agent_id', $otherAgent->id)
+        ->call('save')
+        ->assertHasErrors(['agent_id']);
+});
+
+it('rejects cross-org agents when creating skills', function () {
+    $otherAgent = Agent::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::skills.create')
+        ->set('name', 'test-skill')
+        ->set('selectedAgents', [$otherAgent->id])
+        ->call('save')
+        ->assertHasErrors(['selectedAgents.0']);
+});
+
+it('rejects cross-org repos when creating skills', function () {
+    $otherRepo = Repo::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::skills.create')
+        ->set('name', 'test-skill')
+        ->set('selectedRepos', [$otherRepo->id])
+        ->call('save')
+        ->assertHasErrors(['selectedRepos.0']);
+});
+
+it('rejects cross-org skills when editing repos', function () {
+    $repo = Repo::factory()->for($this->organization)->create();
+    $otherSkill = Skill::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::repos.edit', ['repo' => $repo])
+        ->set('name', $repo->name)
+        ->set('selectedSkills', [$otherSkill->id])
+        ->call('save')
+        ->assertHasErrors(['selectedSkills.0']);
+});
+
+it('rejects cross-org agents when editing repos', function () {
+    $repo = Repo::factory()->for($this->organization)->create();
+    $otherAgent = Agent::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::repos.edit', ['repo' => $repo])
+        ->set('name', $repo->name)
+        ->set('selectedAgents', [$otherAgent->id])
+        ->call('save')
+        ->assertHasErrors(['selectedAgents.0']);
+});
+
+it('rejects cross-org projects when editing repos', function () {
+    $repo = Repo::factory()->for($this->organization)->create();
+    $otherProject = Project::factory()->for($this->otherOrg)->create();
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::repos.edit', ['repo' => $repo])
+        ->set('name', $repo->name)
+        ->set('selectedProjects', [$otherProject->id])
+        ->call('save')
+        ->assertHasErrors(['selectedProjects.0']);
+});
