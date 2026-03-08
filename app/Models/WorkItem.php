@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkItem extends Model
 {
@@ -42,5 +43,18 @@ class WorkItem extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function plans(): HasMany
+    {
+        return $this->hasMany(Plan::class);
+    }
+
+    public function activePlan(): ?Plan
+    {
+        return $this->plans()
+            ->whereIn('status', ['pending', 'approved', 'running'])
+            ->latest()
+            ->first();
     }
 }

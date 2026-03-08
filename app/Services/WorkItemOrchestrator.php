@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Services;
+
+use App\Ai\Agents\GitHubWebhookAgent;
+use App\Contracts\ExecutionDriver;
+use App\Models\Plan;
+use App\Models\PlanStep;
+use App\Models\WorkItem;
+use Illuminate\Support\Facades\Log;
+use Laravel\Ai\Ai;
+use Laravel\Ai\Contracts\ConversationStore;
+use Laravel\Ai\Prompts\AgentPrompt;
+
+class WorkItemOrchestrator
+{
+    public function __construct(
+        protected WorktreeManager $worktreeManager,
+        protected ConversationStore $conversationStore,
+    ) {}
+
+    public function execute(Plan $plan): void
+    {
+        if (! $plan->isApproved()) {
+            throw new \InvalidArgumentException('Plan must be approved before execution.');
+        }
+
+        $plan->update([
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+
+        $workItem = $plan->workItem;
+        $driver = $this->resolveDriver($workItem);
+
+        try {
+            foreach ($plan->steps as $step) {
+                if ($step->status !== 'pending') {
+                    continue;
+                }
+
+                $this->executeStep($step, $workItem, $driver);
+
+                if ($step->isFailed()) {
+                    $plan->update([
+                        'status' => 'failed',
+                        'completed_at' => now(),
+                    ]);
+
+                    return;
+                }
+            }
+
+            $plan->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Plan execution failed', [
+                'plan_id' => $plan->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $plan->update([
+                'status' => 'failed',
+                'completed_at' => now(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    public function cancel(Plan $plan): void
+    {
+        $plan->steps()
+            ->where('status', 'pending')
+            ->update(['status' => 'skipped']);
+
+        $plan->update([
+            'status' => 'cancelled',
+            'completed_at' => now(),
+        ]);
+    }
+
+    protected function executeStep(PlanStep $step, WorkItem $workItem, ?ExecutionDriver $driver): void
+    {
+        $step->update([
+            'status' => 'running',
+            'started_at' => now(),
+        ]);
+
+        $conversationId = $this->conversationStore->storeConversation(
+            null,
+            "Step {$step->order}: {$step->description}",
+        );
+
+        $step->update(['conversation_id' => $conversationId]);
+
+        $priorContext = $this->buildPriorStepsContext($step);
+        $prompt = implode("\n\n", array_filter([
+            $priorContext,
+            "## Your Task\n\n{$step->description}",
+        ]));
+
+        $repoFullName = $this->extractRepoFullName($workItem);
+
+        $agent = new GitHubWebhookAgent(
+            $step->agent,
+            $repoFullName ?? '',
+            $conversationId,
+            $driver,
+        );
+
+        try {
+            $response = $agent->prompt($prompt);
+
+            $provider = Ai::textProviderFor($agent, $agent->provider());
+            $model = $agent->model() ?? $provider->defaultTextModel();
+            $agentPrompt = new AgentPrompt($agent, $prompt, [], $provider, $model);
+
+            $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
+            $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
+
+            $step->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+                'result' => $this->summarizeResponse($response),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Plan step failed', [
+                'step_id' => $step->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            $step->update([
+                'status' => 'failed',
+                'completed_at' => now(),
+                'result' => "Failed: {$e->getMessage()}",
+            ]);
+        }
+    }
+
+    protected function buildPriorStepsContext(PlanStep $step): ?string
+    {
+        $priorSteps = $step->plan->steps()
+            ->where('order', '<', $step->order)
+            ->whereIn('status', ['completed', 'failed', 'skipped'])
+            ->get();
+
+        if ($priorSteps->isEmpty()) {
+            return null;
+        }
+
+        $lines = ['## Prior Steps'];
+
+        foreach ($priorSteps as $prior) {
+            $icon = match ($prior->status) {
+                'completed' => 'DONE',
+                'failed' => 'FAILED',
+                'skipped' => 'SKIPPED',
+                default => '?',
+            };
+
+            $result = $prior->result ? " — {$prior->result}" : '';
+            $lines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    protected function resolveDriver(WorkItem $workItem): ?ExecutionDriver
+    {
+        if (! $workItem->worktree_path) {
+            return null;
+        }
+
+        try {
+            return $this->worktreeManager->createDriver($workItem);
+        } catch (\Throwable $e) {
+            Log::warning('Could not create execution driver for work item', [
+                'work_item_id' => $workItem->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    protected function extractRepoFullName(WorkItem $workItem): ?string
+    {
+        if (! $workItem->source_reference) {
+            return null;
+        }
+
+        return preg_replace('/#\d+$/', '', $workItem->source_reference);
+    }
+
+    protected function summarizeResponse(mixed $response): string
+    {
+        $text = is_string($response) ? $response : (string) $response;
+
+        if (strlen($text) > 500) {
+            return substr($text, 0, 497).'...';
+        }
+
+        return $text;
+    }
+}
