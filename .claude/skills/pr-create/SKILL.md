@@ -574,18 +574,18 @@ The user merged or closed the PR while Copilot review was being addressed. The f
 
 ### Step 13: Re-monitor CI After Review Fixes
 
-If code changes were made in Step 12, return to **Step 9** to monitor the new CI run triggered by the push.
-
-After CI passes again, check if Copilot has posted new comments on the latest changes:
+If code changes were made in Step 12, return to **Step 9** to monitor the new CI run triggered by the push. **After CI passes, do NOT go back to Step 11** (full Copilot polling). Instead, do a single quick check for new Copilot comments:
 
 ```bash
-# Check for new comments since the last push
+# Quick check for new comments since the review fix push (no polling/waiting)
 gh api repos/{owner}/{repo}/pulls/{number}/comments --jq '.[] | select(.user.login | test("copilot"; "i")) | select(.created_at > "[last-push-timestamp]") | "\(.id) \(.path):\(.line) \(.body)"'
 ```
 
 If new Copilot comments appear, return to **Step 12**. Otherwise proceed to **Step 14**.
 
 **If no code changes were made** (all comments dismissed), proceed directly to **Step 14**.
+
+**IMPORTANT:** Do NOT re-enter the full Step 11 polling loop after review fixes. Copilot has already reviewed the PR — it may or may not review follow-up commits. A single check is sufficient; do not wait/poll for a review that may never come.
 
 ### Step 14: Ensure Branch is Up to Date
 
