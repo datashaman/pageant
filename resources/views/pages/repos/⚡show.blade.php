@@ -72,6 +72,13 @@ new #[Title('View Repo')] class extends Component {
                 </div>
             @endif
 
+            @if ($repo->setup_script)
+                <div>
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Setup Script') }}</flux:heading>
+                    <pre class="mt-1 overflow-x-auto rounded-lg bg-zinc-100 p-4 text-sm dark:bg-zinc-800"><code>{{ $repo->setup_script }}</code></pre>
+                </div>
+            @endif
+
             @if ($repo->skills->isNotEmpty())
                 <div>
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Skills') }}</flux:heading>

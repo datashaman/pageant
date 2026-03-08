@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\Agent;
+use App\Models\GithubInstallation;
 use App\Models\Project;
 use App\Models\Repo;
 use App\Models\Skill;
+use App\Services\GitHubService;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -13,10 +15,22 @@ new #[Title('Edit Repo')] class extends Component {
     public Repo $repo;
 
     public string $name = '';
+    public ?string $setupScript = null;
 
     public array $selectedSkills = [];
     public array $selectedAgents = [];
     public array $selectedProjects = [];
+
+    /**
+     * Known setup files to look for when suggesting a setup script.
+     *
+     * @var array<int, string>
+     */
+    private const SETUP_FILES = [
+        '.github/copilot-setup-steps.yml',
+        'codex-setup.sh',
+        '.devcontainer/devcontainer.json',
+    ];
 
     public function mount(Repo $repo): void
     {
@@ -24,6 +38,7 @@ new #[Title('Edit Repo')] class extends Component {
         abort_unless($userOrgIds->contains($this->repo->organization_id), 403);
 
         $this->name = $repo->name;
+        $this->setupScript = $repo->setup_script;
 
         $this->selectedSkills = $repo->skills->pluck('id')->toArray();
         $this->selectedAgents = $repo->agents->pluck('id')->toArray();
@@ -48,10 +63,59 @@ new #[Title('Edit Repo')] class extends Component {
         return Project::query()->where('organization_id', $this->repo->organization_id)->get();
     }
 
+    public function suggestSetupScript(): void
+    {
+        if ($this->repo->source !== 'github') {
+            session()->flash('setup-suggestion', __('Setup script suggestions are only available for GitHub repos.'));
+
+            return;
+        }
+
+        $installation = GithubInstallation::where('organization_id', $this->repo->organization_id)->first();
+
+        if (! $installation) {
+            session()->flash('setup-suggestion', __('No GitHub installation found for this organization.'));
+
+            return;
+        }
+
+        $github = app(GitHubService::class);
+        $found = [];
+
+        foreach (self::SETUP_FILES as $filePath) {
+            try {
+                $content = $github->getFileContents($installation, $this->repo->source_reference, $filePath);
+
+                if ($content !== null) {
+                    $found[$filePath] = $content;
+                }
+            } catch (\Throwable) {
+                // File not found or inaccessible — skip
+            }
+        }
+
+        if (empty($found)) {
+            session()->flash('setup-suggestion', __('No setup files found in the repository (:files).', [
+                'files' => implode(', ', self::SETUP_FILES),
+            ]));
+
+            return;
+        }
+
+        $suggestion = '';
+
+        foreach ($found as $filePath => $content) {
+            $suggestion .= "# From {$filePath}\n\n{$content}\n\n";
+        }
+
+        $this->setupScript = trim($suggestion);
+    }
+
     public function save(): void
     {
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
+            'setupScript' => ['nullable', 'string', 'max:65535'],
             'selectedSkills' => ['array'],
             'selectedSkills.*' => ['uuid'],
             'selectedAgents' => ['array'],
@@ -62,6 +126,7 @@ new #[Title('Edit Repo')] class extends Component {
 
         $this->repo->update([
             'name' => $validated['name'],
+            'setup_script' => $validated['setupScript'],
         ]);
 
         $this->repo->skills()->sync($this->selectedSkills);
@@ -90,6 +155,17 @@ new #[Title('Edit Repo')] class extends Component {
                     <flux:link href="{{ $repo->source_url }}" target="_blank">{{ $repo->source_reference }}</flux:link>
                 @else
                     <flux:text>{{ $repo->source_reference }}</flux:text>
+                @endif
+            </div>
+
+            <div class="space-y-2">
+                <flux:textarea wire:model="setupScript" :label="__('Setup Script')" :description="__('Shell script to initialize the environment when agents work on this repo (install deps, seed DB, etc.).')" rows="10" class="font-mono text-sm" />
+                <flux:button size="sm" wire:click.prevent="suggestSetupScript" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="suggestSetupScript">{{ __('Suggest from repo') }}</span>
+                    <span wire:loading wire:target="suggestSetupScript">{{ __('Checking repo...') }}</span>
+                </flux:button>
+                @if (session('setup-suggestion'))
+                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ session('setup-suggestion') }}</flux:text>
                 @endif
             </div>
 
