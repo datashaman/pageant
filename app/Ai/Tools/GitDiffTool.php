@@ -18,14 +18,22 @@ class GitDiffTool implements Tool
 
     public function handle(Request $request): string
     {
+        $branch = $request['branch'] ?? null;
+
+        if (isset($branch) && str_starts_with($branch, '-')) {
+            return json_encode([
+                'error' => 'Invalid branch parameter: must not start with -',
+            ], JSON_PRETTY_PRINT);
+        }
+
         $command = 'git diff';
 
         if ($request['staged'] ?? false) {
             $command .= ' --staged';
         }
 
-        if ($request['branch'] ?? null) {
-            $command .= ' '.escapeshellarg($request['branch']);
+        if ($branch) {
+            $command .= ' '.escapeshellarg($branch);
         }
 
         if ($request['path'] ?? null) {
@@ -33,6 +41,13 @@ class GitDiffTool implements Tool
         }
 
         $result = $this->driver->exec($command);
+
+        if (! $result->isSuccessful()) {
+            return json_encode([
+                'error' => trim($result->stderr) ?: 'Command failed',
+                'exit_code' => $result->exitCode,
+            ], JSON_PRETTY_PRINT);
+        }
 
         return json_encode([
             'diff' => $result->stdout,

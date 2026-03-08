@@ -26,14 +26,22 @@ class GitDiffTool extends Tool
             'path' => 'nullable|string',
         ]);
 
+        $branch = $validated['branch'] ?? null;
+
+        if (isset($branch) && str_starts_with($branch, '-')) {
+            return Response::text(json_encode([
+                'error' => 'Invalid branch parameter: must not start with -',
+            ], JSON_PRETTY_PRINT));
+        }
+
         $command = 'git diff';
 
         if ($validated['staged'] ?? false) {
             $command .= ' --staged';
         }
 
-        if ($validated['branch'] ?? null) {
-            $command .= ' '.escapeshellarg($validated['branch']);
+        if ($branch) {
+            $command .= ' '.escapeshellarg($branch);
         }
 
         if ($validated['path'] ?? null) {
@@ -41,6 +49,13 @@ class GitDiffTool extends Tool
         }
 
         $result = $this->driver->exec($command);
+
+        if (! $result->isSuccessful()) {
+            return Response::text(json_encode([
+                'error' => trim($result->stderr) ?: 'Command failed',
+                'exit_code' => $result->exitCode,
+            ], JSON_PRETTY_PRINT));
+        }
 
         return Response::text(json_encode([
             'diff' => $result->stdout,

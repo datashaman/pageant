@@ -22,6 +22,13 @@ class GitStatusTool extends Tool
     {
         $result = $this->driver->exec('git status --porcelain=v1');
 
+        if (! $result->isSuccessful()) {
+            return Response::text(json_encode([
+                'error' => trim($result->stderr) ?: 'Command failed',
+                'exit_code' => $result->exitCode,
+            ], JSON_PRETTY_PRINT));
+        }
+
         return Response::text(json_encode([
             'status' => $result->stdout,
             'clean' => trim($result->stdout) === '',

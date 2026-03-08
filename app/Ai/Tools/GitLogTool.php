@@ -18,13 +18,21 @@ class GitLogTool implements Tool
 
     public function handle(Request $request): string
     {
+        $branch = $request['branch'] ?? null;
+
+        if (isset($branch) && str_starts_with($branch, '-')) {
+            return json_encode([
+                'error' => 'Invalid branch parameter: must not start with -',
+            ], JSON_PRETTY_PRINT);
+        }
+
         $limit = $request['limit'] ?? 10;
 
         $command = 'git log --format=%H%n%h%n%an%n%ae%n%ai%n%s%n---';
         $command .= ' -n '.escapeshellarg((string) $limit);
 
-        if ($request['branch'] ?? null) {
-            $command .= ' '.escapeshellarg($request['branch']);
+        if ($branch) {
+            $command .= ' '.escapeshellarg($branch);
         }
 
         if ($request['path'] ?? null) {
@@ -32,6 +40,13 @@ class GitLogTool implements Tool
         }
 
         $result = $this->driver->exec($command);
+
+        if (! $result->isSuccessful()) {
+            return json_encode([
+                'error' => trim($result->stderr) ?: 'Command failed',
+                'exit_code' => $result->exitCode,
+            ], JSON_PRETTY_PRINT);
+        }
 
         $commits = [];
         $entries = array_filter(explode("---\n", $result->stdout));

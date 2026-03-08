@@ -19,6 +19,14 @@ class GitPushTool implements Tool
     public function handle(Request $request): string
     {
         $branchResult = $this->driver->exec('git rev-parse --abbrev-ref HEAD');
+
+        if (! $branchResult->isSuccessful()) {
+            return json_encode([
+                'error' => trim($branchResult->stderr) ?: 'Failed to determine current branch',
+                'exit_code' => $branchResult->exitCode,
+            ], JSON_PRETTY_PRINT);
+        }
+
         $branch = trim($branchResult->stdout);
 
         $command = 'git push';
@@ -29,7 +37,7 @@ class GitPushTool implements Tool
 
         $trackingResult = $this->driver->exec('git config branch.'.escapeshellarg($branch).'.remote');
 
-        if (trim($trackingResult->stdout) === '') {
+        if (! $trackingResult->isSuccessful() || trim($trackingResult->stdout) === '') {
             $command .= ' -u origin '.escapeshellarg($branch);
         }
 

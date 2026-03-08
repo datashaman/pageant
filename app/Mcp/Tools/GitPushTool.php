@@ -8,9 +8,11 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
 #[Description('Push commits to the remote repository.')]
+#[IsDestructive]
 #[IsOpenWorld]
 class GitPushTool extends Tool
 {
@@ -23,6 +25,14 @@ class GitPushTool extends Tool
         ]);
 
         $branchResult = $this->driver->exec('git rev-parse --abbrev-ref HEAD');
+
+        if (! $branchResult->isSuccessful()) {
+            return Response::text(json_encode([
+                'error' => trim($branchResult->stderr) ?: 'Failed to determine current branch',
+                'exit_code' => $branchResult->exitCode,
+            ], JSON_PRETTY_PRINT));
+        }
+
         $branch = trim($branchResult->stdout);
 
         $command = 'git push';
@@ -33,7 +43,7 @@ class GitPushTool extends Tool
 
         $trackingResult = $this->driver->exec('git config branch.'.escapeshellarg($branch).'.remote');
 
-        if (trim($trackingResult->stdout) === '') {
+        if (! $trackingResult->isSuccessful() || trim($trackingResult->stdout) === '') {
             $command .= ' -u origin '.escapeshellarg($branch);
         }
 

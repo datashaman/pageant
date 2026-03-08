@@ -28,7 +28,7 @@ class GitCommitTool extends Tool
 
         if ($files) {
             $paths = array_map('escapeshellarg', $files);
-            $addResult = $this->driver->exec('git add '.implode(' ', $paths));
+            $addResult = $this->driver->exec('git add -- '.implode(' ', $paths));
         } else {
             $addResult = $this->driver->exec('git add -A');
         }
@@ -51,6 +51,13 @@ class GitCommitTool extends Tool
         }
 
         $hashResult = $this->driver->exec('git rev-parse --short HEAD');
+
+        if (! $hashResult->isSuccessful()) {
+            return Response::text(json_encode([
+                'error' => trim($hashResult->stderr) ?: 'Failed to get commit hash',
+                'exit_code' => $hashResult->exitCode,
+            ], JSON_PRETTY_PRINT));
+        }
 
         return Response::text(json_encode([
             'hash' => trim($hashResult->stdout),

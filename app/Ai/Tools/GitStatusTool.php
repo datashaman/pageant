@@ -20,6 +20,13 @@ class GitStatusTool implements Tool
     {
         $result = $this->driver->exec('git status --porcelain=v1');
 
+        if (! $result->isSuccessful()) {
+            return json_encode([
+                'error' => trim($result->stderr) ?: 'Command failed',
+                'exit_code' => $result->exitCode,
+            ], JSON_PRETTY_PRINT);
+        }
+
         return json_encode([
             'status' => $result->stdout,
             'clean' => trim($result->stdout) === '',
