@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Jobs\ExecutePlan;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\WorkItemOrchestrator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -17,7 +18,7 @@ class ResumePlanTool implements Tool
 
     public function description(): string
     {
-        return 'Resume a paused or failed plan, continuing from the first pending/failed step.';
+        return 'Resume a paused or failed plan, continuing from the first pending step.';
     }
 
     public function handle(Request $request): string
@@ -31,12 +32,8 @@ class ResumePlanTool implements Tool
             ]);
         }
 
-        $plan->resetForResume();
-
-        $plan->update([
-            'status' => 'approved',
-            'completed_at' => null,
-        ]);
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $orchestrator->prepareForResume($plan);
 
         ExecutePlan::dispatch($plan);
 

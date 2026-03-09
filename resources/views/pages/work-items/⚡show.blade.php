@@ -76,13 +76,7 @@ new #[Title('Work Item')] class extends Component {
             ->findOrFail($planId);
 
         if ($plan->isResumable()) {
-            $plan->resetForResume();
-
-            $plan->update([
-                'status' => 'approved',
-                'completed_at' => null,
-            ]);
-
+            app(WorkItemOrchestrator::class)->prepareForResume($plan);
             ExecutePlan::dispatch($plan);
         }
 

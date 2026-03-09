@@ -154,6 +154,18 @@ describe('WorkItemOrchestrator::resume', function () {
             ->toThrow(InvalidArgumentException::class, 'Plan must be failed or paused to resume');
     });
 
+    it('rejects running plans', function () {
+        $plan = Plan::factory()->running()->create([
+            'organization_id' => $this->organization->id,
+            'work_item_id' => $this->workItem->id,
+        ]);
+
+        $orchestrator = app(WorkItemOrchestrator::class);
+
+        expect(fn () => $orchestrator->resume($plan))
+            ->toThrow(InvalidArgumentException::class, 'Plan must be failed or paused to resume');
+    });
+
     it('skips completed steps and attempts to re-execute from the failed step', function () {
         $plan = Plan::factory()->failed()->create([
             'organization_id' => $this->organization->id,

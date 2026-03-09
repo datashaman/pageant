@@ -90,19 +90,22 @@ class WorkItemOrchestrator
         }
     }
 
+    public function prepareForResume(Plan $plan): void
+    {
+        $plan->resetForResume();
+        $plan->update([
+            'status' => 'approved',
+            'completed_at' => null,
+        ]);
+    }
+
     public function resume(Plan $plan): void
     {
         if (! $plan->isResumable()) {
             throw new \InvalidArgumentException('Plan must be failed or paused to resume.');
         }
 
-        $plan->resetForResume();
-
-        $plan->update([
-            'status' => 'approved',
-            'completed_at' => null,
-        ]);
-
+        $this->prepareForResume($plan);
         $this->execute($plan);
     }
 
