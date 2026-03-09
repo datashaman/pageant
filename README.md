@@ -1,6 +1,6 @@
 # Pageant
 
-Pageant is a GitHub App integration platform that connects repositories with AI agents via the Model Context Protocol (MCP). It provides 62 tools across three MCP servers, real-time webhook event handling, work item tracking with automated status reconciliation, and a web interface for managing agents, repositories, skills, and projects.
+Pageant is a GitHub App integration platform that connects repositories with AI agents via the Model Context Protocol (MCP). It provides 62 tools across three MCP servers, real-time webhook event handling, work item tracking with automated status reconciliation, and a web interface for managing agents, repositories, skills, and projects. The platform includes advanced agent capabilities: multi-model routing, conversation compression, failure-aware retry policies, checkpoint-based plan recovery, structural codebase indexing, dynamic prompt assembly, and cross-session agent memory.
 
 ## Features
 
@@ -8,7 +8,17 @@ Pageant is a GitHub App integration platform that connects repositories with AI 
   - **GitHub Server** (`/mcp/github`) — 27 tools for repository operations: issues, PRs, branches, labels, CI status, and search
   - **Pageant Server** (`/mcp/pageant`) — 23 tools for repos, projects, work items, agents, skills, and skill registry
   - **Worktree Server** (`/mcp/worktree`) — 12 tools for file operations, shell commands, and git within worktrees
-- **AI Agent Management** — Create agents with configurable tool access, event subscriptions, providers (Anthropic/OpenAI), permission modes, and skill attachments
+- **AI Agent Management** — Create agents with configurable tool access, event subscriptions, providers (Anthropic/OpenAI/Gemini), permission modes, and skill attachments
+- **Multi-Model Routing** — Agents use a secondary model (cheapest/smartest/specific) for cost-optimized validation, webhook filtering, and plan step verification
+- **BYOK (Bring Your Own Key)** — Users can supply their own API keys for Anthropic, OpenAI, and Gemini providers
+- **Agent Memory** — Cross-session learning from plan outcomes; memories scored by recency and importance, pruned automatically
+- **Conversation Compression** — Long-running agent conversations are compressed when approaching context limits, preserving user messages and summarizing older content
+- **Failure Classification & Retry** — Exceptions are categorized (rate limit, API error, timeout, etc.) with per-category retry policies using exponential backoff
+- **Checkpoint Plan Recovery** — Plans can resume from partial steps after failures instead of restarting from scratch
+- **Structural Codebase Indexing** — Tree-sitter-style parsing of PHP, JS, TS, and Python files to build token-counted structural maps cached per commit
+- **Dynamic Prompt Assembly** — Layered system prompts built from organization policies, repo instructions, agent config, skill contexts, and execution state
+- **Webhook Relevance Filtering** — Pre-screens webhook events for relevance using secondary models before dispatching to agents
+- **Graceful Degradation** — Plans emit partial progress events and broadcast status when hitting turn/step limits
 - **Skill Registry** — Import skills from public registries (official MCP Registry, Smithery) or create custom skills
 - **GitHub Webhooks** — Real-time event handling for issues, pull requests, comments, reviews, and pushes
 - **Work Items** — Bridge GitHub issues to internal project tracking with status reconciliation, plans, and conversation history
@@ -159,7 +169,7 @@ Pageant handles the following GitHub webhook events and dispatches them to subsc
 | `push` | `GitHubPushReceived` | Push to a branch |
 | `installation` | *(handled directly)* | App installed, uninstalled, suspended, unsuspended |
 
-Internal events: `WorkItemCreated`, `WorkItemDeleted`, `PlanStepCompleted`, `PlanStepFailed`, `PlanCompleted`, `PlanFailed`.
+Internal events: `WorkItemCreated`, `WorkItemDeleted`, `PlanStepCompleted`, `PlanStepFailed`, `PlanStepPartial`, `PlanCompleted`, `PlanFailed`, `PlanLimitReached`.
 
 When an event is received:
 
@@ -177,7 +187,8 @@ When an event is received:
 ```
 User
 ├── organizations [BelongsToMany] → Organization
-└── currentOrganization [BelongsTo] → Organization
+├── currentOrganization [BelongsTo] → Organization
+└── apiKeys [HasMany] → UserApiKey
 
 Organization
 ├── users [BelongsToMany] → User
@@ -186,13 +197,17 @@ Organization
 ├── skills [HasMany] → Skill
 ├── projects [HasMany] → Project
 ├── workItems [HasMany] → WorkItem
-└── githubInstallation [HasOne] → GithubInstallation
+├── agentMemories [HasMany] → AgentMemory
+├── githubInstallation [HasOne] → GithubInstallation
+└── policies — Organization-level constraints for prompt assembly
 
 Repo
 ├── organization [BelongsTo] → Organization
 ├── agents [BelongsToMany] → Agent
 ├── skills [BelongsToMany] → Skill
 ├── projects [BelongsToMany] → Project
+├── indices [HasMany] → RepoIndex
+├── latestIndex — Most recent structural index
 ├── setup_script — Bash script run during worktree provisioning
 └── inferProjectId() — Returns project ID if repo belongs to exactly one project
 
@@ -202,8 +217,9 @@ Agent
 ├── skills [BelongsToMany] → Skill
 ├── tools — JSON array of tool identifiers
 ├── events — JSON array of event subscriptions
-├── provider — LLM provider (anthropic/openai)
+├── provider — LLM provider (anthropic/openai/gemini)
 ├── model — Model name or "inherit" (displays as "Default")
+├── secondary_model — Cost-optimized model for validation/filtering (cheapest/smartest/specific)
 ├── permission_mode — Command execution policy
 └── max_turns — Max conversation turns
 
@@ -226,6 +242,35 @@ WorkItem
 ├── project [BelongsTo] → Project
 ├── plans [HasMany] → Plan
 └── status — open/closed, reconciled with GitHub issue state
+
+PlanStep
+├── plan [BelongsTo] → Plan
+├── failure_category — FailureCategory enum (RateLimit, GithubApi, ToolError, etc.)
+├── retry_attempts — Number of retries attempted
+├── validation_status — pass/fail/uncertain from secondary model
+├── validation_reason — Explanation of validation result
+├── progress_summary — Human-readable progress description
+└── turns_used — Conversation turns consumed
+
+UserApiKey
+├── user [BelongsTo] → User
+├── provider — API provider (anthropic, openai, gemini)
+├── key — Encrypted API key
+└── validated_at — Last successful validation timestamp
+
+AgentMemory
+├── organization [BelongsTo] → Organization
+├── repo [BelongsTo] → Repo
+├── agent [BelongsTo] → Agent
+├── content — Learned insight from plan execution
+├── importance — Float score for retrieval ranking
+└── metadata — Source plan/work item context
+
+RepoIndex
+├── repo [BelongsTo] → Repo
+├── commit_hash — Git commit the index was built from
+├── structure — Parsed structural map (classes, methods, functions)
+└── token_count — Token budget consumed by the index
 ```
 
 ### Authentication Flow
@@ -259,8 +304,39 @@ The built-in chat assistant provides context-aware AI help:
 1. GitHub sends a webhook to `/webhooks/github`
 2. The webhook controller verifies the signature and dispatches a Laravel event
 3. Event listeners find agents subscribed to that event type for the affected repo
-4. Agent jobs are dispatched with the event context
-5. Agents can execute plans with steps, using worktrees for code operations
+4. `WebhookRelevanceFilter` pre-screens events using the agent's secondary model — irrelevant events are skipped
+5. Agent jobs are dispatched with event context and dynamically assembled system prompts
+6. `PromptAssembler` builds layered prompts: org policies → repo instructions → agent config → skill contexts → codebase index → execution state
+7. Agents execute plans with steps, using worktrees for code operations
+8. `PlanStepValidator` verifies step outputs using the secondary model
+9. On failure, `FailureClassifier` categorizes the error and `RetryPolicy` determines retry strategy with exponential backoff
+10. Plans can resume from checkpoints (partial steps) instead of restarting
+11. `ConversationCompressor` compresses context when approaching token limits
+12. On completion/failure, `StoreAgentMemory` records learnings for future runs
+
+### Agent Memory
+
+- `AgentMemoryService` stores insights from completed and failed plans
+- Memories are scored by composite of recency (40%) and importance (60%)
+- Retrieved memories are injected into prompts within a 500-token budget
+- `PruneAgentMemories` command (`agent-memories:prune`) removes memories older than the configured retention period (default 90 days)
+- Scheduled daily via `routes/console.php`
+
+### Multi-Model Routing
+
+Agents support a `secondary_model` setting for cost-optimized operations:
+
+- **Webhook relevance filtering** — Checks if an event is worth processing before invoking the primary model
+- **Plan step validation** — Verifies step outputs against expected outcomes
+- **Conversation compression** — Summarizes older messages when context fills up
+
+The secondary model can be set to `cheapest` (auto-select cheapest available), `smartest` (auto-select most capable), or a specific model name. User-provided API keys (BYOK) are injected when available.
+
+### Structural Codebase Indexing
+
+- `RepoIndexer` parses PHP, JavaScript, TypeScript, and Python files to extract structural maps (classes, methods, functions, interfaces, traits, enums)
+- Indexes are cached per commit hash in `RepoIndex` — only rebuilt when the repo changes
+- Token-counted summaries are included in agent prompts for codebase awareness
 
 ### Worktree Management
 

@@ -204,6 +204,11 @@ The server uses the `mcp:use` scope.
 | `PASSPORT_PRIVATE_KEY` | Passport private key (alternative to key files) | — |
 | `PASSPORT_PUBLIC_KEY` | Passport public key (alternative to key files) | — |
 | `PASSPORT_CONNECTION` | Passport database connection | default |
+| `AGENT_MEMORY_RETENTION_DAYS` | Days to retain agent memory entries | `90` |
+| `CONVERSATION_COMPRESSION_CONTEXT_WINDOW` | Max tokens for conversation context | `200000` |
+| `CONVERSATION_COMPRESSION_THRESHOLD` | Percentage of context window before compression triggers | `0.8` |
+| `CONVERSATION_COMPRESSION_PROVIDER` | Provider for compression summaries | `anthropic` |
+| `CONVERSATION_COMPRESSION_MODEL` | Model for compression summaries | `claude-haiku-4-5-20251001` |
 
 ---
 
