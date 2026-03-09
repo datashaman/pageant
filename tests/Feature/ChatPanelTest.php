@@ -38,7 +38,10 @@ it('renders the chat input as a textarea for multi-line messages', function () {
     $response->assertOk()
         ->assertSeeHtml('<textarea')
         ->assertSeeHtml('x-ref="chatInput"')
-        ->assertSeeHtml('resizeTextarea()');
+        ->assertSeeHtml('@keydown.enter.prevent')
+        ->assertSeeHtml('sendMessage()')
+        ->assertSeeHtml('$event.shiftKey')
+        ->assertSeeHtml('@input="resizeTextarea()"');
 });
 
 it('requires authentication for the stream endpoint', function () {
