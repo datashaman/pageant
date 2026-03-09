@@ -37,7 +37,10 @@ new #[Title('Dashboard')] class extends Component {
     #[Computed]
     public function workItemCount(): int
     {
-        return WorkItem::query()->forCurrentOrganization()->count();
+        return WorkItem::query()
+            ->forCurrentOrganization()
+            ->where('status', 'open')
+            ->count();
     }
 }; ?>
 
