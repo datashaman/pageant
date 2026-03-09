@@ -110,6 +110,73 @@ describe('SkillRegistryService', function () {
         expect($results)->toHaveCount(1)
             ->and($results->first()['registry'])->toBe('mcp-registry');
     });
+
+    it('defaults to a page size of 10', function () {
+        $servers = [];
+        for ($i = 0; $i < 15; $i++) {
+            $servers[] = [
+                'server' => [
+                    'name' => "mcp/server-{$i}",
+                    'description' => "Server {$i}",
+                    'repository' => ['url' => "https://github.com/mcp/server-{$i}"],
+                    'version' => '1.0.0',
+                ],
+            ];
+        }
+
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => $servers,
+                'metadata' => ['count' => 15],
+            ]),
+        ]);
+
+        $service = new SkillRegistryService;
+        $results = $service->search('test');
+
+        expect($results)->toHaveCount(10);
+    });
+
+    it('sorts results alphabetically by name', function () {
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => [
+                    [
+                        'server' => [
+                            'name' => 'mcp/zebra',
+                            'description' => 'Zebra server',
+                            'repository' => ['url' => 'https://github.com/mcp/zebra'],
+                            'version' => '1.0.0',
+                        ],
+                    ],
+                    [
+                        'server' => [
+                            'name' => 'mcp/alpha',
+                            'description' => 'Alpha server',
+                            'repository' => ['url' => 'https://github.com/mcp/alpha'],
+                            'version' => '1.0.0',
+                        ],
+                    ],
+                    [
+                        'server' => [
+                            'name' => 'mcp/middle',
+                            'description' => 'Middle server',
+                            'repository' => ['url' => 'https://github.com/mcp/middle'],
+                            'version' => '1.0.0',
+                        ],
+                    ],
+                ],
+                'metadata' => ['count' => 3],
+            ]),
+        ]);
+
+        $service = new SkillRegistryService;
+        $results = $service->search('test');
+
+        expect($results[0]['name'])->toBe('mcp/alpha')
+            ->and($results[1]['name'])->toBe('mcp/middle')
+            ->and($results[2]['name'])->toBe('mcp/zebra');
+    });
 });
 
 describe('Skills Registry UI', function () {

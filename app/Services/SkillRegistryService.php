@@ -25,7 +25,7 @@ class SkillRegistryService
      *     version: string|null,
      * }>
      */
-    public function search(string $query, int $limit = 20): Collection
+    public function search(string $query, int $limit = 10): Collection
     {
         $results = collect();
 
@@ -36,7 +36,7 @@ class SkillRegistryService
             $results = $results->merge($this->searchSmithery($query, $limit, $smitheryKey));
         }
 
-        return $results->take($limit);
+        return $results->sortBy('name')->values()->take($limit);
     }
 
     /**
