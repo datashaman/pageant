@@ -313,7 +313,7 @@ new #[Title('Create Agent')] class extends Component {
                                     <flux:heading size="xs" class="mb-2">{{ $section['label'] }}</flux:heading>
                                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                         @foreach ($section['checkboxes'] as $checkbox)
-                                            <flux:checkbox :label="$checkbox['label']" :value="$checkbox['value']" :description="$checkbox['value']" />
+                                            <flux:checkbox :label="$checkbox['label']" :value="$checkbox['value']" />
                                         @endforeach
                                     </div>
 
