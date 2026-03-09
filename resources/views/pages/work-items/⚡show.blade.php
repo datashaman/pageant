@@ -107,7 +107,7 @@ new #[Title('Work Item')] class extends Component {
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <flux:button size="md" href="{{ route('work-items.index') }}" wire:navigate>
+                <flux:button href="{{ route('work-items.index') }}" wire:navigate>
                     {{ __('Back') }}
                 </flux:button>
                 <flux:heading size="xl">{{ $workItem->title }}</flux:heading>
@@ -116,7 +116,7 @@ new #[Title('Work Item')] class extends Component {
                 </flux:badge>
             </div>
             <div class="flex items-center gap-2">
-                <flux:button size="md" href="{{ route('work-items.edit', $workItem) }}" wire:navigate>
+                <flux:button href="{{ route('work-items.edit', $workItem) }}" wire:navigate>
                     {{ __('Edit') }}
                 </flux:button>
                 @if ($workItem->isOpen())

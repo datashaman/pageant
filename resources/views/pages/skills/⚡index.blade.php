@@ -66,10 +66,10 @@ new #[Title('Skills')] class extends Component {
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Skills') }}</flux:heading>
             <div class="flex items-center gap-2">
-                <flux:button size="md" href="{{ route('skills.registry') }}" wire:navigate>
+                <flux:button href="{{ route('skills.registry') }}" wire:navigate>
                     {{ __('Browse Registry') }}
                 </flux:button>
-                <flux:button size="md" variant="primary" href="{{ route('skills.create') }}" wire:navigate>
+                <flux:button variant="primary" href="{{ route('skills.create') }}" wire:navigate>
                     {{ __('Create Skill') }}
                 </flux:button>
             </div>

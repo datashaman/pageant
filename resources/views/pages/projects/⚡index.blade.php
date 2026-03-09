@@ -63,7 +63,7 @@ new #[Title('Projects')] class extends Component {
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Projects') }}</flux:heading>
 
-            <flux:button size="md" href="{{ route('projects.create') }}" wire:navigate variant="primary">
+            <flux:button href="{{ route('projects.create') }}" wire:navigate variant="primary">
                 {{ __('Create Project') }}
             </flux:button>
         </div>
