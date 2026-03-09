@@ -26,6 +26,7 @@ beforeEach(function () {
 
     $mock = Mockery::mock(GitHubService::class);
     $mock->shouldReceive('listIssues')->andReturn([]);
+    $mock->shouldReceive('getIssue')->andReturn(['number' => 1, 'state' => 'open']);
     app()->instance(GitHubService::class, $mock);
 });
 
@@ -79,6 +80,47 @@ it('shows the work item detail page', function () {
         ->get(route('work-items.show', $this->workItem))
         ->assertOk()
         ->assertSee($this->workItem->title);
+});
+
+it('hides empty optional fields on work item detail page', function () {
+    $workItem = WorkItem::factory()->for($this->organization)->create([
+        'description' => '',
+        'board_id' => '',
+        'source' => 'github',
+        'source_reference' => '',
+        'source_url' => null,
+        'project_id' => null,
+    ]);
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.show', ['workItem' => $workItem])
+        ->assertDontSee('Board ID')
+        ->assertDontSee('Source Reference')
+        ->assertDontSee('Source URL')
+        ->assertDontSee('Project')
+        ->assertDontSee('Description');
+});
+
+it('shows populated optional fields on work item detail page', function () {
+    $workItem = WorkItem::factory()->for($this->organization)->forProject($this->project)->create([
+        'description' => 'A detailed description',
+        'board_id' => 'BOARD-123',
+        'source' => 'github',
+        'source_reference' => 'org/repo#5',
+        'source_url' => 'https://github.com/org/repo/issues/5',
+    ]);
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.show', ['workItem' => $workItem])
+        ->assertSee('Board ID')
+        ->assertSee('BOARD-123')
+        ->assertSee('Source Reference')
+        ->assertSee('org/repo#5')
+        ->assertSee('Source URL')
+        ->assertSee('Project')
+        ->assertSee($this->project->name)
+        ->assertSee('Description')
+        ->assertSee('A detailed description');
 });
 
 it('can update a work item', function () {

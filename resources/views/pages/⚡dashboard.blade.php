@@ -46,29 +46,44 @@ new #[Title('Dashboard')] class extends Component {
         <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
 
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="{{ route('projects.index') }}" wire:navigate class="rounded-xl border border-neutral-200 p-6 transition hover:bg-zinc-50 dark:border-neutral-700 dark:hover:bg-zinc-700/50">
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Projects') }}</flux:heading>
-                <flux:heading size="xl" class="mt-2">{{ $this->projectCount }}</flux:heading>
+            <a href="{{ route('projects.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+                <div class="flex items-center gap-3">
+                    <flux:icon name="rectangle-stack" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Projects') }}</flux:heading>
+                </div>
+                <flux:heading size="xl" class="mt-3">{{ $this->projectCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('repos.index') }}" wire:navigate class="rounded-xl border border-neutral-200 p-6 transition hover:bg-zinc-50 dark:border-neutral-700 dark:hover:bg-zinc-700/50">
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repos') }}</flux:heading>
-                <flux:heading size="xl" class="mt-2">{{ $this->repoCount }}</flux:heading>
+            <a href="{{ route('repos.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+                <div class="flex items-center gap-3">
+                    <flux:icon name="folder-git-2" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repos') }}</flux:heading>
+                </div>
+                <flux:heading size="xl" class="mt-3">{{ $this->repoCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('work-items.index') }}" wire:navigate class="rounded-xl border border-neutral-200 p-6 transition hover:bg-zinc-50 dark:border-neutral-700 dark:hover:bg-zinc-700/50">
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Work Items') }}</flux:heading>
-                <flux:heading size="xl" class="mt-2">{{ $this->workItemCount }}</flux:heading>
+            <a href="{{ route('work-items.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+                <div class="flex items-center gap-3">
+                    <flux:icon name="clipboard-document-list" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Work Items') }}</flux:heading>
+                </div>
+                <flux:heading size="xl" class="mt-3">{{ $this->workItemCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('agents.index') }}" wire:navigate class="rounded-xl border border-neutral-200 p-6 transition hover:bg-zinc-50 dark:border-neutral-700 dark:hover:bg-zinc-700/50">
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Agents') }}</flux:heading>
-                <flux:heading size="xl" class="mt-2">{{ $this->agentCount }}</flux:heading>
+            <a href="{{ route('agents.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+                <div class="flex items-center gap-3">
+                    <flux:icon name="cpu-chip" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Agents') }}</flux:heading>
+                </div>
+                <flux:heading size="xl" class="mt-3">{{ $this->agentCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('skills.index') }}" wire:navigate class="rounded-xl border border-neutral-200 p-6 transition hover:bg-zinc-50 dark:border-neutral-700 dark:hover:bg-zinc-700/50">
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Skills') }}</flux:heading>
-                <flux:heading size="xl" class="mt-2">{{ $this->skillCount }}</flux:heading>
+            <a href="{{ route('skills.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+                <div class="flex items-center gap-3">
+                    <flux:icon name="bolt" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Skills') }}</flux:heading>
+                </div>
+                <flux:heading size="xl" class="mt-3">{{ $this->skillCount }}</flux:heading>
             </a>
         </div>
     </div>
