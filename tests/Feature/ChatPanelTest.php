@@ -519,6 +519,54 @@ it('rejects resuming a conversation owned by another user', function () {
         ->assertForbidden();
 });
 
+it('sends an error message and stores it when streaming throws an exception', function () {
+    PageantAssistant::fake([
+        fn () => throw new \RuntimeException('API connection failed'),
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Create an issue please',
+        ]);
+
+    $response->assertOk();
+
+    $content = $response->streamedContent();
+
+    expect($content)
+        ->toContain('text_delta')
+        ->toContain('Sorry, something went wrong');
+
+    preg_match('/data: \{"conversation_id":"([^"]+)"\}/', $content, $matches);
+    expect($matches)->not->toBeEmpty('Expected conversation_id in SSE stream');
+    $conversationId = $matches[1];
+
+    $assistantMessages = DB::table('agent_conversation_messages')
+        ->where('conversation_id', $conversationId)
+        ->where('role', 'assistant')
+        ->get();
+
+    expect($assistantMessages)->toHaveCount(1);
+    expect($assistantMessages->first()->content)->toContain('Sorry, something went wrong');
+});
+
+it('always emits DONE marker even after stream errors', function () {
+    PageantAssistant::fake([
+        fn () => throw new \RuntimeException('Provider error'),
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->post(route('chat.stream'), [
+            'message' => 'Do something',
+        ]);
+
+    $response->assertOk();
+
+    $content = $response->streamedContent();
+
+    expect($content)->toContain('[DONE]');
+});
+
 it('does not return conversation messages for another user', function () {
     $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
     $conversationId = $store->storeConversation($this->user->id, 'Test chat');

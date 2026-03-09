@@ -71,6 +71,16 @@ class ChatController extends Controller
                     echo 'data: '.((string) $event)."\n\n";
                     $flush();
                 }
+            } catch (\Throwable $e) {
+                report($e);
+
+                $errorMessage = 'Sorry, something went wrong while processing your request. Please try again.';
+                echo 'data: '.json_encode(['type' => 'text_delta', 'delta' => $errorMessage])."\n\n";
+                $flush();
+
+                if ($fullText === '') {
+                    $fullText = $errorMessage;
+                }
             } finally {
                 if ($fullText !== '' && $conversationId = $assistant->currentConversation()) {
                     $this->storeAssistantMessage($conversationId, $user->id, $fullText);

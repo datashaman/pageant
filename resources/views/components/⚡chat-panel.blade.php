@@ -163,14 +163,7 @@ new class extends Component
                 const decoder = new TextDecoder();
                 let buffer = '';
 
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
-
+                const processLines = (lines) => {
                     for (const line of lines) {
                         if (! line.startsWith('data: ')) continue;
 
@@ -190,6 +183,22 @@ new class extends Component
                             // Skip unparseable lines
                         }
                     }
+                };
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    processLines(lines);
+                }
+
+                // Process any remaining data in the buffer after the stream ends
+                if (buffer.trim()) {
+                    processLines([buffer]);
                 }
             } catch (error) {
                 if (! this.streamedContent) {
@@ -204,6 +213,26 @@ new class extends Component
                 if (this.streamedContent) {
                     this.messages.push({ role: 'assistant', content: this.streamedContent });
                     this.streamedContent = '';
+                } else if (this.conversationId) {
+                    // No streamed content received — reload messages from server
+                    // to recover assistant replies persisted during tool-call flows
+                    try {
+                        const res = await fetch(`{{ route('chat.messages') }}?conversation_id=${this.conversationId}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '{{ csrf_token() }}',
+                            },
+                        });
+                        if (res.ok) {
+                            const serverMessages = await res.json();
+                            this.messages = serverMessages.map(m => ({
+                                role: m.role,
+                                content: m.content,
+                            }));
+                        }
+                    } catch (e) {
+                        // Ignore fetch errors for fallback reload
+                    }
                 }
 
                 this.streaming = false;
@@ -211,6 +240,7 @@ new class extends Component
                     const ref = this.$refs.chatInput;
                     const input = ref?.tagName === 'INPUT' ? ref : ref?.querySelector('input');
                     input?.focus();
+                    this.scrollToBottom();
                 });
             }
         },
