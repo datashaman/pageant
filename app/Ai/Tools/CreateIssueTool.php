@@ -8,7 +8,6 @@ use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
@@ -75,7 +74,7 @@ class CreateIssueTool implements Tool
             [
                 'project_id' => $repo->inferProjectId(),
                 'title' => $issue['title'],
-                'description' => Str::limit($issue['body'] ?? '', 252),
+                'description' => $issue['body'] ?? '',
                 'source_url' => $issue['html_url'] ?? '',
             ]
         );
