@@ -21,7 +21,7 @@ it('creates a default planning agent when an organization is created', function 
     expect($agent->organization_id)->toBe($organization->id);
     expect($agent->isolation)->toBe('worktree');
     expect($agent->max_turns)->toBe(20);
-    expect($agent->tools)->toContain('read_file', 'glob', 'grep', 'list_directory', 'create_plan', 'add_plan_step');
+    expect($agent->tools)->toContain('read_file', 'glob', 'grep', 'list_directory', 'create_plan', 'add_plan_step', 'git_log', 'git_diff', 'git_status');
     expect($agent->tools)->not->toContain('write_file', 'edit_file', 'bash', 'git_commit', 'git_push');
     expect($agent->events)->toBe([]);
 });
@@ -37,7 +37,7 @@ it('does not overwrite an existing planning agent on organization creation', fun
 
     expect($organization->planning_agent_id)->toBe($existingAgent->id);
 
-    // Should still only have 1 agent in the org (the factory-created one belongs to a different org)
+    // The factory-created agent belongs to a different org, so this org should have 0 agents
     expect($organization->agents()->count())->toBe(0);
 });
 
