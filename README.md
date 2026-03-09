@@ -1,11 +1,11 @@
 # Pageant
 
-Pageant is a GitHub App integration platform that connects repositories with AI agents via the Model Context Protocol (MCP). It provides 70+ tools across three MCP servers, real-time webhook event handling, work item tracking with automated status reconciliation, and a web interface for managing agents, repositories, skills, and projects.
+Pageant is a GitHub App integration platform that connects repositories with AI agents via the Model Context Protocol (MCP). It provides 62 tools across three MCP servers, real-time webhook event handling, work item tracking with automated status reconciliation, and a web interface for managing agents, repositories, skills, and projects.
 
 ## Features
 
 - **MCP Servers**:
-  - **GitHub Server** (`/mcp/github`) — 32 tools for repository operations: issues, PRs, branches, labels, CI status, and search
+  - **GitHub Server** (`/mcp/github`) — 27 tools for repository operations: issues, PRs, branches, labels, CI status, and search
   - **Pageant Server** (`/mcp/pageant`) — 23 tools for repos, projects, work items, agents, skills, and skill registry
   - **Worktree Server** (`/mcp/worktree`) — 12 tools for file operations, shell commands, and git within worktrees
 - **AI Agent Management** — Create agents with configurable tool access, event subscriptions, providers (Anthropic/OpenAI), permission modes, and skill attachments
@@ -20,7 +20,7 @@ Pageant is a GitHub App integration platform that connects repositories with AI 
 
 ## Tech Stack
 
-- PHP 8.5+ / Laravel 12
+- PHP 8.4+ / Laravel 12
 - Livewire 4 / Flux UI 2
 - Tailwind CSS 4
 - Laravel Passport (OAuth 2.1)

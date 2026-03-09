@@ -2,7 +2,7 @@
 
 ## What Is This Project?
 
-Pageant is a **Laravel 12 GitHub App integration platform** that connects GitHub repositories with AI agents via the **Model Context Protocol (MCP)**. It exposes 70+ MCP tools across three servers (GitHub, Pageant, Worktree), handles real-time GitHub webhooks, provides work item tracking with automated status reconciliation, and offers a web UI for managing agents, repositories, skills, projects, and a built-in chat assistant.
+Pageant is a **Laravel 12 GitHub App integration platform** that connects GitHub repositories with AI agents via the **Model Context Protocol (MCP)**. It exposes 62 MCP tools across three servers (GitHub, Pageant, Worktree), handles real-time GitHub webhooks, provides work item tracking with automated status reconciliation, and offers a web UI for managing agents, repositories, skills, projects, and a built-in chat assistant.
 
 ---
 
@@ -10,7 +10,7 @@ Pageant is a **Laravel 12 GitHub App integration platform** that connects GitHub
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | PHP 8.5+, Laravel 12 |
+| Backend | PHP 8.4+, Laravel 12 |
 | Auth | Laravel Passport (OAuth 2.1), Laravel Fortify, Laravel Socialite (GitHub OAuth) |
 | MCP | `laravel/mcp` v0, `laravel/ai` |
 | Frontend | Livewire 4, Flux UI 2 (free), Tailwind CSS 4, Alpine.js, Vite 7 |
@@ -38,7 +38,7 @@ app/
   Listeners/         # Event listeners (SyncWorkItemStatus, auto-discovered)
   Mcp/
     Servers/         # MCP server definitions (GitHubServer, PageantServer, WorktreeServer)
-    Tools/           # Individual MCP tool classes (57 tools)
+    Tools/           # Individual MCP tool classes (62 tools)
   Models/            # Eloquent models (User, Organization, Agent, Repo, Skill, Project, WorkItem, Plan, GithubInstallation)
   Providers/         # Service providers
   Services/          # Business logic (GitHubService, WorktreeManager, WorkItemOrchestrator, RepoInstructionsService, SkillRegistryService)
@@ -199,7 +199,7 @@ php artisan passport:keys
 
 ### PHP
 
-- PHP 8.5+ features: constructor property promotion, enums, named arguments, match expressions.
+- PHP 8.4+ features: constructor property promotion, enums, named arguments, match expressions.
 - Always use explicit return type declarations.
 - Use curly braces for all control structures.
 - Prefer PHPDoc blocks over inline comments.
@@ -300,7 +300,7 @@ Work items track GitHub issues and keep status in sync:
 
 ## MCP Servers
 
-### GitHub Server (`/mcp/github`) — 32 tools
+### GitHub Server (`/mcp/github`) — 27 tools
 Requires `repo` parameter as `owner/repo`. Uses GitHub App installation tokens. Groups: Issues, Pull Requests, Comments, Branches, Labels, CI/CD Status, Search.
 
 ### Pageant Server (`/mcp/pageant`) — 23 tools

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- PHP 8.5+
+- PHP 8.4+
 - Composer
 - Node.js & npm
 - A GitHub App (not OAuth App)
@@ -155,7 +155,7 @@ The MCP and OAuth routes are excluded from CSRF verification in `bootstrap/app.p
 Pageant exposes three MCP servers:
 
 ```bash
-# GitHub operations (issues, PRs, branches, files, labels, CI, search)
+# GitHub operations (issues, PRs, branches, labels, CI, search)
 claude mcp add --transport sse pageant-github https://your-domain.com/mcp/github
 
 # Pageant operations (repos, projects, work items, agents, skills, skill registry)
