@@ -162,6 +162,21 @@ it('can close a work item from the show page', function () {
     expect($this->workItem->fresh()->status)->toBe('closed');
 });
 
+it('can close a work item that has no linked project', function () {
+    $workItemWithoutProject = WorkItem::factory()->for($this->organization)->create([
+        'project_id' => null,
+        'source' => 'github',
+        'source_reference' => 'org/repo#99',
+    ]);
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.show', ['workItem' => $workItemWithoutProject])
+        ->call('close')
+        ->assertDispatched('close-modal', id: 'confirm-close');
+
+    expect($workItemWithoutProject->fresh()->status)->toBe('closed');
+});
+
 it('can reopen a closed work item from the show page', function () {
     $this->workItem->update(['status' => 'closed']);
 
