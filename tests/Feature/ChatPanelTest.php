@@ -581,6 +581,138 @@ it('always emits DONE marker even after stream errors', function () {
     expect($content)->toContain('[DONE]');
 });
 
+it('persists tool calls and tool results from assistant messages', function () {
+    $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
+    $conversationId = $store->storeConversation($this->user->id, 'Tool test chat');
+
+    $toolCalls = [
+        ['id' => 'tc_001', 'name' => 'list_repos', 'arguments' => ['org' => 'acme']],
+    ];
+    $toolResults = [
+        ['id' => 'tc_001', 'name' => 'list_repos', 'result' => ['repos' => ['widgets', 'gadgets']], 'arguments' => ['org' => 'acme']],
+    ];
+
+    DB::table('agent_conversation_messages')->insert([
+        'id' => \Illuminate\Support\Str::uuid7()->toString(),
+        'conversation_id' => $conversationId,
+        'user_id' => $this->user->id,
+        'agent' => PageantAssistant::class,
+        'role' => 'assistant',
+        'content' => 'Here are your repos.',
+        'attachments' => '[]',
+        'tool_calls' => json_encode($toolCalls),
+        'tool_results' => json_encode($toolResults),
+        'usage' => '[]',
+        'meta' => '[]',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->actingAs($this->user)
+        ->getJson(route('chat.messages', ['conversation_id' => $conversationId]))
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.tool_calls.0.id', 'tc_001')
+        ->assertJsonPath('0.tool_calls.0.name', 'list_repos')
+        ->assertJsonPath('0.tool_results.0.result.repos', ['widgets', 'gadgets']);
+});
+
+it('reconstructs conversation messages with tool context for the AI', function () {
+    $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
+    $conversationId = $store->storeConversation($this->user->id, 'Tool context chat');
+
+    DB::table('agent_conversation_messages')->insert([
+        'id' => \Illuminate\Support\Str::uuid7()->toString(),
+        'conversation_id' => $conversationId,
+        'user_id' => $this->user->id,
+        'agent' => PageantAssistant::class,
+        'role' => 'user',
+        'content' => 'List my repos',
+        'attachments' => '[]',
+        'tool_calls' => '[]',
+        'tool_results' => '[]',
+        'usage' => '[]',
+        'meta' => '[]',
+        'created_at' => now()->subSeconds(2),
+        'updated_at' => now()->subSeconds(2),
+    ]);
+
+    DB::table('agent_conversation_messages')->insert([
+        'id' => \Illuminate\Support\Str::uuid7()->toString(),
+        'conversation_id' => $conversationId,
+        'user_id' => $this->user->id,
+        'agent' => PageantAssistant::class,
+        'role' => 'assistant',
+        'content' => 'Here are your repos.',
+        'attachments' => '[]',
+        'tool_calls' => json_encode([
+            ['id' => 'tc_001', 'name' => 'list_repos', 'arguments' => ['org' => 'acme']],
+        ]),
+        'tool_results' => json_encode([
+            ['id' => 'tc_001', 'name' => 'list_repos', 'arguments' => ['org' => 'acme'], 'result' => ['repos' => ['widgets']]],
+        ]),
+        'usage' => '[]',
+        'meta' => '[]',
+        'created_at' => now()->subSecond(),
+        'updated_at' => now()->subSecond(),
+    ]);
+
+    $assistant = new PageantAssistant(
+        user: $this->user,
+        repoFullName: 'acme/widgets',
+    );
+    $assistant->resumeConversation($conversationId);
+
+    $messages = $assistant->messages();
+
+    expect($messages)->toHaveCount(3);
+
+    expect($messages[0])->toBeInstanceOf(\Laravel\Ai\Messages\Message::class);
+    expect($messages[0]->role->value)->toBe('user');
+
+    expect($messages[1])->toBeInstanceOf(\Laravel\Ai\Messages\AssistantMessage::class);
+    expect($messages[1]->content)->toBe('Here are your repos.');
+    expect($messages[1]->toolCalls)->toHaveCount(1);
+    expect($messages[1]->toolCalls->first()->name)->toBe('list_repos');
+
+    expect($messages[2])->toBeInstanceOf(\Laravel\Ai\Messages\ToolResultMessage::class);
+    expect($messages[2]->toolResults)->toHaveCount(1);
+    expect($messages[2]->toolResults->first()->name)->toBe('list_repos');
+});
+
+it('returns plain messages when assistant has no tool calls', function () {
+    $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
+    $conversationId = $store->storeConversation($this->user->id, 'No tools chat');
+
+    DB::table('agent_conversation_messages')->insert([
+        'id' => \Illuminate\Support\Str::uuid7()->toString(),
+        'conversation_id' => $conversationId,
+        'user_id' => $this->user->id,
+        'agent' => PageantAssistant::class,
+        'role' => 'assistant',
+        'content' => 'Just a text reply.',
+        'attachments' => '[]',
+        'tool_calls' => '[]',
+        'tool_results' => '[]',
+        'usage' => '[]',
+        'meta' => '[]',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $assistant = new PageantAssistant(
+        user: $this->user,
+    );
+    $assistant->resumeConversation($conversationId);
+
+    $messages = $assistant->messages();
+
+    expect($messages)->toHaveCount(1);
+    expect($messages[0])->toBeInstanceOf(\Laravel\Ai\Messages\AssistantMessage::class);
+    expect($messages[0]->content)->toBe('Just a text reply.');
+    expect($messages[0]->toolCalls)->toBeEmpty();
+});
+
 it('does not return conversation messages for another user', function () {
     $store = resolve(\Laravel\Ai\Contracts\ConversationStore::class);
     $conversationId = $store->storeConversation($this->user->id, 'Test chat');

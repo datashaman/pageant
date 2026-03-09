@@ -59,13 +59,32 @@ class ChatController extends Controller
             };
 
             $fullText = '';
+            $toolCalls = [];
+            $toolResults = [];
 
             try {
                 foreach ($streamable as $event) {
                     $decoded = json_decode((string) $event, true);
 
-                    if (is_array($decoded) && ($decoded['type'] ?? '') === 'text_delta') {
-                        $fullText .= $decoded['delta'] ?? '';
+                    if (is_array($decoded)) {
+                        $eventType = $decoded['type'] ?? '';
+
+                        if ($eventType === 'text_delta') {
+                            $fullText .= $decoded['delta'] ?? '';
+                        } elseif ($eventType === 'tool_call') {
+                            $toolCalls[] = [
+                                'id' => $decoded['tool_id'] ?? '',
+                                'name' => $decoded['tool_name'] ?? '',
+                                'arguments' => $decoded['arguments'] ?? [],
+                            ];
+                        } elseif ($eventType === 'tool_result') {
+                            $toolResults[] = [
+                                'id' => $decoded['tool_id'] ?? '',
+                                'name' => $decoded['tool_name'] ?? '',
+                                'result' => $decoded['result'] ?? null,
+                                'arguments' => $decoded['arguments'] ?? [],
+                            ];
+                        }
                     }
 
                     echo 'data: '.((string) $event)."\n\n";
@@ -80,8 +99,8 @@ class ChatController extends Controller
 
                 $fullText .= $errorMessage;
             } finally {
-                if ($fullText !== '' && $conversationId = $assistant->currentConversation()) {
-                    $this->storeAssistantMessage($conversationId, $user->id, $fullText);
+                if (($fullText !== '' || $toolCalls !== [] || $toolResults !== []) && $conversationId = $assistant->currentConversation()) {
+                    $this->storeAssistantMessage($conversationId, $user->id, $fullText, $toolCalls, $toolResults);
                 }
             }
 
@@ -140,8 +159,11 @@ class ChatController extends Controller
      * Store the assistant response captured from the stream.
      *
      * Called from a finally block so partial content is preserved even on error.
+     *
+     * @param  array<int, array{id: string, name: string, arguments: array<string, mixed>}>  $toolCalls
+     * @param  array<int, array{id: string, name: string, result: mixed, arguments: array<string, mixed>}>  $toolResults
      */
-    protected function storeAssistantMessage(string $conversationId, int $userId, string $text): void
+    protected function storeAssistantMessage(string $conversationId, int $userId, string $text, array $toolCalls = [], array $toolResults = []): void
     {
         DB::table('agent_conversation_messages')->insert([
             'id' => Str::uuid7()->toString(),
@@ -151,8 +173,8 @@ class ChatController extends Controller
             'role' => 'assistant',
             'content' => $text,
             'attachments' => '[]',
-            'tool_calls' => '[]',
-            'tool_results' => '[]',
+            'tool_calls' => json_encode($toolCalls),
+            'tool_results' => json_encode($toolResults),
             'usage' => '[]',
             'meta' => '[]',
             'created_at' => now(),
@@ -266,7 +288,13 @@ class ChatController extends Controller
             ->where('conversation_id', $request->input('conversation_id'))
             ->where('user_id', $request->user()->id)
             ->orderBy('created_at')
-            ->get(['role', 'content']);
+            ->get(['role', 'content', 'tool_calls', 'tool_results'])
+            ->map(function ($message) {
+                $message->tool_calls = json_decode($message->tool_calls, true) ?: [];
+                $message->tool_results = json_decode($message->tool_results, true) ?: [];
+
+                return $message;
+            });
 
         return response()->json($messages);
     }

@@ -5,11 +5,18 @@ namespace App\Ai\Agents;
 use App\Ai\ToolRegistry;
 use App\Models\User;
 use App\Services\RepoInstructionsService;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent as AgentContract;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
+use Laravel\Ai\Messages\AssistantMessage;
+use Laravel\Ai\Messages\Message;
+use Laravel\Ai\Messages\ToolResultMessage;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\Responses\Data\ToolCall;
+use Laravel\Ai\Responses\Data\ToolResult;
 
 class PageantAssistant implements AgentContract, Conversational, HasTools
 {
@@ -48,6 +55,60 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
         } catch (\Throwable) {
             return '';
         }
+    }
+
+    /**
+     * Get the list of messages comprising the conversation so far.
+     *
+     * Overrides the default implementation to reconstruct AssistantMessage
+     * and ToolResultMessage objects with full tool context, so the AI
+     * retains tool interaction history across conversation turns.
+     */
+    public function messages(): iterable
+    {
+        if (! $this->conversationId) {
+            return [];
+        }
+
+        return DB::table('agent_conversation_messages')
+            ->where('conversation_id', $this->conversationId)
+            ->orderByDesc('created_at')
+            ->limit($this->maxConversationMessages())
+            ->get()
+            ->reverse()
+            ->values()
+            ->flatMap(function ($row) {
+                $messages = new Collection;
+
+                if ($row->role === 'assistant') {
+                    $toolCallsData = json_decode($row->tool_calls, true) ?: [];
+                    $toolCalls = (new Collection($toolCallsData))->map(fn (array $tc) => new ToolCall(
+                        id: $tc['id'] ?? '',
+                        name: $tc['name'] ?? '',
+                        arguments: $tc['arguments'] ?? [],
+                    ));
+
+                    $messages->push(new AssistantMessage($row->content ?? '', $toolCalls));
+
+                    $toolResultsData = json_decode($row->tool_results, true) ?: [];
+
+                    if ($toolResultsData !== []) {
+                        $toolResults = (new Collection($toolResultsData))->map(fn (array $tr) => new ToolResult(
+                            id: $tr['id'] ?? '',
+                            name: $tr['name'] ?? '',
+                            arguments: $tr['arguments'] ?? [],
+                            result: $tr['result'] ?? null,
+                        ));
+
+                        $messages->push(new ToolResultMessage($toolResults));
+                    }
+                } else {
+                    $messages->push(new Message($row->role, $row->content));
+                }
+
+                return $messages;
+            })
+            ->all();
     }
 
     /**
