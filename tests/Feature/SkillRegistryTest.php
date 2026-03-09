@@ -23,10 +23,12 @@ describe('SkillRegistryService', function () {
             'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
-                        'name' => 'io.github.user/test-server',
-                        'description' => 'A test MCP server',
-                        'repository' => ['url' => 'https://github.com/user/test-server'],
-                        'version' => '1.0.0',
+                        'server' => [
+                            'name' => 'io.github.user/test-server',
+                            'description' => 'A test MCP server',
+                            'repository' => ['url' => 'https://github.com/user/test-server'],
+                            'version' => '1.0.0',
+                        ],
                     ],
                 ],
                 'metadata' => ['count' => 1],
@@ -90,10 +92,12 @@ describe('SkillRegistryService', function () {
             'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
-                        'name' => 'mcp/server',
-                        'description' => 'MCP server',
-                        'repository' => ['url' => 'https://github.com/mcp/server'],
-                        'version' => '1.0.0',
+                        'server' => [
+                            'name' => 'mcp/server',
+                            'description' => 'MCP server',
+                            'repository' => ['url' => 'https://github.com/mcp/server'],
+                            'version' => '1.0.0',
+                        ],
                     ],
                 ],
                 'metadata' => ['count' => 1],
@@ -128,10 +132,12 @@ describe('Skills Registry UI', function () {
             'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
-                        'name' => 'io.github.user/filesystem',
-                        'description' => 'Filesystem access server',
-                        'repository' => ['url' => 'https://github.com/user/filesystem'],
-                        'version' => '1.0.0',
+                        'server' => [
+                            'name' => 'io.github.user/filesystem',
+                            'description' => 'Filesystem access server',
+                            'repository' => ['url' => 'https://github.com/user/filesystem'],
+                            'version' => '1.0.0',
+                        ],
                     ],
                 ],
                 'metadata' => ['count' => 1],
@@ -151,10 +157,12 @@ describe('Skills Registry UI', function () {
             'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
-                        'name' => 'io.github.user/filesystem',
-                        'description' => 'Filesystem access server',
-                        'repository' => ['url' => 'https://github.com/user/filesystem'],
-                        'version' => '1.0.0',
+                        'server' => [
+                            'name' => 'io.github.user/filesystem',
+                            'description' => 'Filesystem access server',
+                            'repository' => ['url' => 'https://github.com/user/filesystem'],
+                            'version' => '1.0.0',
+                        ],
                     ],
                 ],
                 'metadata' => ['count' => 1],
@@ -182,10 +190,12 @@ describe('Skills Registry UI', function () {
             'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
-                        'name' => 'io.github.user/filesystem',
-                        'description' => 'Filesystem access server',
-                        'repository' => ['url' => 'https://github.com/user/filesystem'],
-                        'version' => '1.0.0',
+                        'server' => [
+                            'name' => 'io.github.user/filesystem',
+                            'description' => 'Filesystem access server',
+                            'repository' => ['url' => 'https://github.com/user/filesystem'],
+                            'version' => '1.0.0',
+                        ],
                     ],
                 ],
                 'metadata' => ['count' => 1],
@@ -220,10 +230,12 @@ describe('AI Tools', function () {
             'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
-                        'name' => 'io.github.user/slack',
-                        'description' => 'Slack integration',
-                        'repository' => ['url' => 'https://github.com/user/slack'],
-                        'version' => '1.0.0',
+                        'server' => [
+                            'name' => 'io.github.user/slack',
+                            'description' => 'Slack integration',
+                            'repository' => ['url' => 'https://github.com/user/slack'],
+                            'version' => '1.0.0',
+                        ],
                     ],
                 ],
                 'metadata' => ['count' => 1],
