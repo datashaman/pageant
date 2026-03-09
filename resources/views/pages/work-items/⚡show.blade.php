@@ -75,8 +75,14 @@ new #[Title('Work Item')] class extends Component {
         $plan = Plan::where('organization_id', $this->workItem->organization_id)
             ->findOrFail($planId);
 
-        if ($plan->isPaused()) {
-            $plan->update(['status' => 'approved']);
+        if ($plan->isResumable()) {
+            $plan->resetForResume();
+
+            $plan->update([
+                'status' => 'approved',
+                'completed_at' => null,
+            ]);
+
             ExecutePlan::dispatch($plan);
         }
 
@@ -238,6 +244,10 @@ new #[Title('Work Item')] class extends Component {
                                 </flux:button>
                                 <flux:button size="sm" variant="ghost" wire:click="cancelPlan('{{ $plan->id }}')">
                                     {{ __('Cancel') }}
+                                </flux:button>
+                            @elseif ($plan->isFailed())
+                                <flux:button size="sm" variant="primary" wire:click="resumePlan('{{ $plan->id }}')">
+                                    {{ __('Resume') }}
                                 </flux:button>
                             @endif
                         </div>
