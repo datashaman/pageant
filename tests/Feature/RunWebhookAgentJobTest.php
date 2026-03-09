@@ -7,6 +7,7 @@ use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
 use App\Models\WorkItem;
+use App\Services\WebhookRelevanceFilter;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Messages\MessageRole;
 
@@ -21,6 +22,11 @@ beforeEach(function () {
         'source' => 'github',
         'source_reference' => 'acme/widgets',
     ]);
+
+    $filter = Mockery::mock(WebhookRelevanceFilter::class);
+    $filter->shouldReceive('isRelevant')
+        ->andReturn(['relevant' => true, 'reason' => 'Test default.']);
+    $this->relevanceFilter = $filter;
 });
 
 it('constructs GitHubWebhookAgent and calls prompt with event context', function () {
@@ -36,7 +42,7 @@ it('constructs GitHubWebhookAgent and calls prompt with event context', function
     $eventContext = "Event: push\nRepository: acme/widgets\nRef: refs/heads/main";
 
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets');
-    $job->handle(app(ConversationStore::class));
+    $job->handle(app(ConversationStore::class), $this->relevanceFilter);
 
     GitHubWebhookAgent::assertPrompted(function ($prompt) {
         return str_contains($prompt->prompt, 'Event: push')
@@ -64,7 +70,7 @@ it('creates a conversation and persists messages when work item exists', functio
     $eventContext = "Event: issue_comment\nRepository: acme/widgets\nIssue #42: Fix the login bug";
 
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 42);
-    $job->handle(app(ConversationStore::class));
+    $job->handle(app(ConversationStore::class), $this->relevanceFilter);
 
     $workItem->refresh();
 
@@ -103,7 +109,7 @@ it('continues existing conversation when conversation_id is set', function () {
     $eventContext = "Event: issue_comment\nRepository: acme/widgets\nNew comment on #42";
 
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 42);
-    $job->handle($store);
+    $job->handle($store, $this->relevanceFilter);
 
     $workItem->refresh();
 
@@ -129,7 +135,7 @@ it('does not persist conversation when no work item matches', function () {
     $eventContext = "Event: push\nRepository: acme/widgets";
 
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 99);
-    $job->handle(app(ConversationStore::class));
+    $job->handle(app(ConversationStore::class), $this->relevanceFilter);
 
     GitHubWebhookAgent::assertPrompted(fn ($prompt) => str_contains($prompt->prompt, 'Event: push'));
 });
@@ -147,7 +153,7 @@ it('does not persist conversation when no issue number provided', function () {
     $eventContext = "Event: push\nRepository: acme/widgets";
 
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets');
-    $job->handle(app(ConversationStore::class));
+    $job->handle(app(ConversationStore::class), $this->relevanceFilter);
 
     GitHubWebhookAgent::assertPrompted(fn ($prompt) => str_contains($prompt->prompt, 'Event: push'));
 });
