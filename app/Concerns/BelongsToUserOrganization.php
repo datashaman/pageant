@@ -18,13 +18,12 @@ trait BelongsToUserOrganization
     {
         $user ??= auth()->user();
 
-        $organizationIds = $user->organizations()->pluck('organizations.id');
         $orgId = $user->currentOrganizationId();
 
-        if ($orgId && $organizationIds->contains($orgId)) {
+        if ($orgId) {
             return $query->where('organization_id', $orgId);
         }
 
-        return $query->whereIn('organization_id', $organizationIds);
+        return $query->whereIn('organization_id', $user->organizations()->pluck('organizations.id'));
     }
 }
