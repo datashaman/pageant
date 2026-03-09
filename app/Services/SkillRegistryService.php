@@ -27,9 +27,7 @@ class SkillRegistryService
      */
     public function search(string $query, int $limit = 10): Collection
     {
-        $results = collect();
-
-        $results = $results->merge($this->searchMcpRegistry($query, $limit));
+        $results = $this->searchMcpRegistry($query, $limit);
 
         $smitheryKey = config('services.smithery.api_key');
         if ($smitheryKey) {

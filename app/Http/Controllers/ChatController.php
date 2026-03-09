@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Ai\Agents\PageantAssistant;
 use App\Models\Repo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\ConversationStore;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ChatController extends Controller
 {
-    public function stream(Request $request)
+    public function stream(Request $request): StreamedResponse
     {
         $request->validate([
             'message' => ['required', 'string', 'max:10000'],
@@ -221,11 +223,6 @@ class ChatController extends Controller
         return $exists ? $candidate : null;
     }
 
-    /**
-     * Format structured page context into a readable string for the assistant.
-     *
-     * @param  array<string, mixed>  $context
-     */
     /** @var list<string> */
     private const CONTEXT_DISPLAY_KEYS = [
         'repo_id', 'repo_name', 'repo_source', 'repo_source_reference',
@@ -278,7 +275,7 @@ class ChatController extends Controller
         return implode('. ', $lines);
     }
 
-    public function messages(Request $request)
+    public function messages(Request $request): JsonResponse
     {
         $request->validate([
             'conversation_id' => ['required', 'string', 'max:36'],

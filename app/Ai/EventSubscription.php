@@ -79,16 +79,16 @@ class EventSubscription
                 return false;
             }
 
-            $matched = false;
+            $matchesBranch = false;
 
             foreach ($this->filters['branches'] as $pattern) {
                 if (fnmatch($pattern, $branch)) {
-                    $matched = true;
+                    $matchesBranch = true;
                     break;
                 }
             }
 
-            if (! $matched) {
+            if (! $matchesBranch) {
                 return false;
             }
         }
