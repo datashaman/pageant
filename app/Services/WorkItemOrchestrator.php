@@ -136,6 +136,7 @@ class WorkItemOrchestrator
             $repoFullName ?? '',
             $conversationId,
             $driver,
+            $step,
         );
 
         try {

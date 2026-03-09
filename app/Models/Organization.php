@@ -21,6 +21,7 @@ class Organization extends Model
     protected $fillable = [
         'name',
         'slug',
+        'policies',
         'command_allowlist',
         'command_denylist',
         'planning_agent_id',
