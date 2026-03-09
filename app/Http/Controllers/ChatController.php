@@ -161,7 +161,7 @@ class ChatController extends Controller
      * Called from a finally block so partial content is preserved even on error.
      *
      * @param  array<int, array{id: string, name: string, arguments: array<string, mixed>}>  $toolCalls
-     * @param  array<int, array{id: string, name: string, result: mixed}>  $toolResults
+     * @param  array<int, array{id: string, name: string, result: mixed, arguments: array<string, mixed>}>  $toolResults
      */
     protected function storeAssistantMessage(string $conversationId, int $userId, string $text, array $toolCalls = [], array $toolResults = []): void
     {

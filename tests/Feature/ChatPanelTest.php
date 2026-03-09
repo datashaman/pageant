@@ -589,7 +589,7 @@ it('persists tool calls and tool results from assistant messages', function () {
         ['id' => 'tc_001', 'name' => 'list_repos', 'arguments' => ['org' => 'acme']],
     ];
     $toolResults = [
-        ['id' => 'tc_001', 'name' => 'list_repos', 'result' => ['repos' => ['widgets', 'gadgets']]],
+        ['id' => 'tc_001', 'name' => 'list_repos', 'result' => ['repos' => ['widgets', 'gadgets']], 'arguments' => ['org' => 'acme']],
     ];
 
     DB::table('agent_conversation_messages')->insert([
@@ -633,8 +633,8 @@ it('reconstructs conversation messages with tool context for the AI', function (
         'tool_results' => '[]',
         'usage' => '[]',
         'meta' => '[]',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'created_at' => now()->subSeconds(2),
+        'updated_at' => now()->subSeconds(2),
     ]);
 
     DB::table('agent_conversation_messages')->insert([
@@ -653,8 +653,8 @@ it('reconstructs conversation messages with tool context for the AI', function (
         ]),
         'usage' => '[]',
         'meta' => '[]',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'created_at' => now()->subSecond(),
+        'updated_at' => now()->subSecond(),
     ]);
 
     $assistant = new PageantAssistant(
