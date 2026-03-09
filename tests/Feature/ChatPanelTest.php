@@ -122,6 +122,20 @@ it('includes proactive behavior directives in instructions', function () {
         ->toContain('genuine ambiguity');
 });
 
+it('instructs the assistant not to narrate internal tool calls', function () {
+    $assistant = new PageantAssistant(
+        user: $this->user,
+        repoFullName: 'acme/widgets',
+    );
+
+    $instructions = $assistant->instructions();
+
+    expect($instructions)
+        ->toContain('Never narrate or announce internal tool calls')
+        ->toContain('Resolve context silently')
+        ->toContain('present only the final result');
+});
+
 it('includes rich page context in assistant instructions', function () {
     $context = 'User is viewing a work item. work item id: abc-123. work item title: Fix login bug. project: My Project';
 
