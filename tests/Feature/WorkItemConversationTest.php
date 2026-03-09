@@ -1,6 +1,7 @@
 <?php
 
 use App\Events\WorkItemCreated;
+use App\Jobs\GeneratePlan;
 use App\Jobs\RunWebhookAgent;
 use App\Listeners\HandleWorkItemCreated;
 use App\Models\Agent;
@@ -138,7 +139,8 @@ it('does not dispatch agents when none subscribe to work_item_created', function
     $listener = new HandleWorkItemCreated;
     $listener->handle(new WorkItemCreated($workItem, 'acme/widgets', 12345));
 
-    Queue::assertNothingPushed();
+    Queue::assertNotPushed(RunWebhookAgent::class);
+    Queue::assertPushed(GeneratePlan::class);
 });
 
 it('passes issue number through listeners for issue events', function () {
