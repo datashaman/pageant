@@ -31,6 +31,16 @@ it('renders the chat panel for authenticated users', function () {
         ->assertSeeHtml('toggle-chat-panel');
 });
 
+it('renders the chat input as a textarea for multi-line messages', function () {
+    $response = $this->actingAs($this->user)
+        ->get(route('dashboard'));
+
+    $response->assertOk()
+        ->assertSeeHtml('<textarea')
+        ->assertSeeHtml('x-ref="chatInput"')
+        ->assertSeeHtml('resizeTextarea()');
+});
+
 it('requires authentication for the stream endpoint', function () {
     $this->postJson(route('chat.stream'), [
         'message' => 'Hello',

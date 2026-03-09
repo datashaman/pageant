@@ -128,9 +128,8 @@ new class extends Component
 
             this.$nextTick(() => {
                 this.scrollToBottom();
-                const ref = this.$refs.chatInput;
-                const input = ref?.tagName === 'INPUT' ? ref : ref?.querySelector('input');
-                input?.focus();
+                this.resizeTextarea();
+                this.$refs.chatInput?.focus();
             });
 
             const streamTimeout = 120000;
@@ -237,9 +236,7 @@ new class extends Component
 
                 this.streaming = false;
                 this.$nextTick(() => {
-                    const ref = this.$refs.chatInput;
-                    const input = ref?.tagName === 'INPUT' ? ref : ref?.querySelector('input');
-                    input?.focus();
+                    this.$refs.chatInput?.focus();
                     this.scrollToBottom();
                 });
             }
@@ -255,6 +252,14 @@ new class extends Component
                 this.transcriptCopied = true;
                 setTimeout(() => this.transcriptCopied = false, 1500);
             });
+        },
+
+        resizeTextarea() {
+            const textarea = this.$refs.chatInput;
+            if (! textarea) return;
+            textarea.style.height = 'auto';
+            const maxHeight = parseInt(getComputedStyle(textarea).lineHeight) * 6;
+            textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
         },
 
         newChat() {
@@ -368,15 +373,17 @@ new class extends Component
 
     {{-- Input --}}
     <div class="border-t border-zinc-200 p-4 dark:border-zinc-700">
-        <form @submit.prevent="sendMessage()" class="flex gap-2">
-            <flux:input
+        <form @submit.prevent="sendMessage()" class="flex items-end gap-2">
+            <textarea
                 x-ref="chatInput"
                 x-model="currentMessage"
                 placeholder="{{ __('Type a message...') }}"
                 x-bind:disabled="streaming"
-                @keydown.enter.prevent="if (!$event.shiftKey) sendMessage()"
-                class="flex-1"
-            />
+                @keydown.enter.prevent="if (!$event.shiftKey) sendMessage(); else { currentMessage += '\n'; $nextTick(() => resizeTextarea()); }"
+                @input="resizeTextarea()"
+                rows="1"
+                class="flex-1 resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
+            ></textarea>
             <flux:button type="submit" variant="primary" size="sm" x-bind:disabled="!currentMessage.trim() || streaming">
                 <flux:icon.paper-airplane class="size-4" />
             </flux:button>
