@@ -19,16 +19,12 @@ class ApiKeyValidator
     protected function validateAnthropic(string $apiKey): bool
     {
         try {
-            $response = Http::withHeaders([
+            $response = Http::timeout(10)->withHeaders([
                 'x-api-key' => $apiKey,
                 'anthropic-version' => '2023-06-01',
-            ])->post('https://api.anthropic.com/v1/messages', [
-                'model' => 'claude-haiku-4-5-20251001',
-                'max_tokens' => 1,
-                'messages' => [['role' => 'user', 'content' => 'hi']],
-            ]);
+            ])->get('https://api.anthropic.com/v1/models');
 
-            return $response->status() !== 401;
+            return $response->successful();
         } catch (\Throwable) {
             return false;
         }
@@ -37,10 +33,10 @@ class ApiKeyValidator
     protected function validateOpenAi(string $apiKey): bool
     {
         try {
-            $response = Http::withToken($apiKey)
+            $response = Http::timeout(10)->withToken($apiKey)
                 ->get('https://api.openai.com/v1/models');
 
-            return $response->status() !== 401;
+            return $response->successful();
         } catch (\Throwable) {
             return false;
         }
@@ -49,9 +45,10 @@ class ApiKeyValidator
     protected function validateGemini(string $apiKey): bool
     {
         try {
-            $response = Http::get("https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}");
+            $response = Http::timeout(10)
+                ->get("https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}");
 
-            return $response->status() !== 400 && $response->status() !== 403;
+            return $response->successful();
         } catch (\Throwable) {
             return false;
         }

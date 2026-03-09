@@ -80,10 +80,14 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        $ownerIds = $organization->users()->pluck('users.id');
+        $owner = $organization->users()->orderBy('users.id')->first();
+
+        if (! $owner) {
+            return;
+        }
 
         $userApiKey = UserApiKey::query()
-            ->whereIn('user_id', $ownerIds)
+            ->where('user_id', $owner->id)
             ->where('provider', $providerName)
             ->valid()
             ->latest('validated_at')
