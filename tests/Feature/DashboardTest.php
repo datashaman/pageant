@@ -71,7 +71,7 @@ test('work item count shows only open items', function () {
     $user->organizations()->attach($organization);
     $user->update(['current_organization_id' => $organization->id]);
 
-    WorkItem::factory()->for($organization)->create(['status' => 'open']);
+    WorkItem::factory()->for($organization)->create();
     WorkItem::factory()->for($organization)->closed()->create();
     WorkItem::factory()->for($organization)->closed()->create();
 
