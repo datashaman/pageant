@@ -21,6 +21,7 @@ class WorkItemOrchestrator
     public function __construct(
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
+        protected ?ConversationCompressor $compressor = null,
     ) {}
 
     public function execute(Plan $plan): void
@@ -137,6 +138,10 @@ class WorkItemOrchestrator
             $conversationId,
             $driver,
         );
+
+        $compressor = $this->compressor ?? ConversationCompressor::fromConfig();
+        $executionContext = "Plan: {$step->plan->id}, Step {$step->order}: {$step->description}";
+        $agent->withCompressor($compressor, $executionContext);
 
         try {
             $response = $agent->prompt($prompt);
