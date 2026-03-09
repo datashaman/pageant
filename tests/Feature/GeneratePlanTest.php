@@ -10,6 +10,8 @@ use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\Repo;
 use App\Models\WorkItem;
+use App\Services\AgentMemoryService;
+use App\Services\RepoIndexer;
 use App\Services\WorktreeManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -86,7 +88,7 @@ describe('GeneratePlan job', function () {
         ]);
 
         $job = new GeneratePlan($workItem, 'acme/widgets');
-        $job->handle(app(WorktreeManager::class));
+        $job->handle(app(WorktreeManager::class), app(RepoIndexer::class), app(AgentMemoryService::class));
 
         expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(1);
     });
@@ -104,7 +106,7 @@ describe('GeneratePlan job', function () {
         ]);
 
         $job = new GeneratePlan($workItem, 'acme/widgets');
-        $job->handle(app(WorktreeManager::class));
+        $job->handle(app(WorktreeManager::class), app(RepoIndexer::class), app(AgentMemoryService::class));
 
         expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
 
@@ -135,7 +137,7 @@ describe('GeneratePlan job', function () {
             ->andThrow(new RuntimeException('Clone failed'));
 
         $job = new GeneratePlan($workItem, 'acme/widgets');
-        $job->handle($mockManager);
+        $job->handle($mockManager, app(RepoIndexer::class), app(AgentMemoryService::class));
 
         expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
 
@@ -167,7 +169,7 @@ describe('GeneratePlan job', function () {
             ->andReturn($mockDriver);
 
         $job = new GeneratePlan($workItem, 'acme/widgets');
-        $job->handle($mockManager);
+        $job->handle($mockManager, app(RepoIndexer::class), app(AgentMemoryService::class));
 
         Log::shouldHaveReceived('error')
             ->withArgs(fn ($message) => str_contains($message, 'agent execution failed'))

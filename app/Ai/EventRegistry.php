@@ -103,6 +103,22 @@ class EventRegistry
             'actions' => [],
             'filters' => [],
         ],
+        'plan_step_partial' => [
+            'label' => 'Plans',
+            'description' => 'Plan step partially completed due to limits',
+            'group' => 'Plans',
+            'category' => 'pageant',
+            'actions' => [],
+            'filters' => [],
+        ],
+        'plan_limit_reached' => [
+            'label' => 'Plans',
+            'description' => 'Plan reached execution limits with partial progress',
+            'group' => 'Plans',
+            'category' => 'pageant',
+            'actions' => [],
+            'filters' => [],
+        ],
     ];
 
     /**

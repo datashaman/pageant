@@ -95,4 +95,25 @@ class Plan extends Model
     {
         return $this->status === 'cancelled';
     }
+
+    public function isResumable(): bool
+    {
+        return $this->isFailed() || $this->isPaused();
+    }
+
+    /**
+     * Reset failed and skipped steps to pending so the plan can be resumed.
+     * Completed steps are left untouched.
+     */
+    public function resetForResume(): void
+    {
+        $this->steps()
+            ->whereIn('status', ['failed', 'skipped'])
+            ->update([
+                'status' => 'pending',
+                'started_at' => null,
+                'completed_at' => null,
+                'result' => null,
+            ]);
+    }
 }

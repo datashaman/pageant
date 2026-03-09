@@ -5,7 +5,10 @@ namespace App\Jobs;
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\Plan;
+use App\Models\Repo;
 use App\Models\WorkItem;
+use App\Services\AgentMemoryService;
+use App\Services\RepoIndexer;
 use App\Services\WorktreeManager;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,7 +29,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return "generate-plan:{$this->workItem->id}";
     }
 
-    public function handle(WorktreeManager $worktreeManager): void
+    public function handle(WorktreeManager $worktreeManager, RepoIndexer $repoIndexer, AgentMemoryService $memoryService): void
     {
         if ($this->workItem->activePlan()) {
             return;
@@ -54,6 +57,8 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
+        $structuralMap = $this->buildStructuralMap($repoIndexer);
+
         $webhookAgent = new GitHubWebhookAgent(
             $agent,
             $this->repoFullName,
@@ -62,7 +67,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         );
 
         try {
-            $response = $webhookAgent->prompt($this->buildPrompt());
+            $response = $webhookAgent->prompt($this->buildPrompt($structuralMap, $memoryService));
             $this->savePlan($response);
         } catch (\Throwable $e) {
             Log::error('GeneratePlan: agent execution failed', [
@@ -91,21 +96,66 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
     }
 
-    protected function buildPrompt(): string
+    /**
+     * Build the structural map for the repository, if possible.
+     */
+    protected function buildStructuralMap(RepoIndexer $repoIndexer): ?string
+    {
+        try {
+            $repo = Repo::where('source', 'github')
+                ->where('source_reference', $this->repoFullName)
+                ->where('organization_id', $this->workItem->organization_id)
+                ->first();
+
+            if (! $repo || ! $this->workItem->worktree_path) {
+                return null;
+            }
+
+            $index = $repoIndexer->index($repo, $this->workItem->worktree_path);
+
+            return $index->structural_map ?: null;
+        } catch (\Throwable $e) {
+            Log::warning('GeneratePlan: structural map generation failed', [
+                'work_item_id' => $this->workItem->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    protected function buildPrompt(?string $structuralMap, AgentMemoryService $memoryService): string
     {
         $parts = [
             'You are researching a codebase to create an execution plan for a work item.',
             'Use the available tools to explore the codebase and understand the relevant context.',
-            '',
-            '## Work Item',
-            "Title: {$this->workItem->title}",
-            "Description: {$this->workItem->description}",
-            "Source: {$this->workItem->source}",
-            "Source Reference: {$this->workItem->source_reference}",
         ];
+
+        if ($structuralMap) {
+            $parts[] = '';
+            $parts[] = $structuralMap;
+        }
+
+        $parts[] = '';
+        $parts[] = '## Work Item';
+        $parts[] = "Title: {$this->workItem->title}";
+        $parts[] = "Description: {$this->workItem->description}";
+        $parts[] = "Source: {$this->workItem->source}";
+        $parts[] = "Source Reference: {$this->workItem->source_reference}";
 
         if ($this->workItem->source_url) {
             $parts[] = "Source URL: {$this->workItem->source_url}";
+        }
+
+        $repoId = $memoryService->resolveRepoIdFromWorkItem($this->workItem);
+        $memoryContext = $memoryService->buildContext(
+            $this->workItem->organization_id,
+            $repoId,
+        );
+
+        if ($memoryContext) {
+            $parts[] = '';
+            $parts[] = $memoryContext;
         }
 
         $parts[] = '';
@@ -118,6 +168,9 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $parts[] = '   - A recommended sequence of steps to implement the work item';
         $parts[] = '   - Any potential risks or considerations';
         $parts[] = '4. Be specific and actionable in your plan.';
+        if ($memoryContext) {
+            $parts[] = '5. Consider any prior learnings listed above when making your plan.';
+        }
 
         return implode("\n", $parts);
     }
