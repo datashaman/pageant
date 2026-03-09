@@ -3,12 +3,15 @@
 namespace App\Services;
 
 use App\Models\Agent;
-use App\Models\UserApiKey;
-use Laravel\Ai\Ai;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\AnonymousAgent;
 
 class WebhookRelevanceFilter
 {
+    public function __construct(
+        protected AgentModelResolver $modelResolver,
+    ) {}
+
     /**
      * Pre-screen a webhook payload for relevance using the agent's secondary (cheap) model.
      *
@@ -46,12 +49,10 @@ class WebhookRelevanceFilter
         );
 
         $providerName = $agent->provider;
-        $originalKey = config("ai.providers.{$providerName}.key");
+        $originalKey = $this->modelResolver->injectUserApiKey($agent, $providerName);
 
         try {
-            $this->injectUserApiKey($agent, $providerName);
-
-            $resolvedModel = $this->resolveSecondaryModel($anonymousAgent, $agent, $providerName);
+            $resolvedModel = $this->modelResolver->resolveSecondaryModel($anonymousAgent, $agent, $providerName);
             $response = $anonymousAgent->prompt($prompt, provider: $providerName, model: $resolvedModel);
             $text = trim((string) $response);
 
@@ -66,49 +67,17 @@ class WebhookRelevanceFilter
                 'reason' => $reason,
             ];
         } catch (\Throwable $e) {
+            Log::warning('Webhook relevance check failed, defaulting to relevant', [
+                'agent_id' => $agent->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return [
                 'relevant' => true,
-                'reason' => "Relevance check failed ({$e->getMessage()}), defaulting to relevant.",
+                'reason' => 'Relevance check could not be performed, defaulting to relevant.',
             ];
         } finally {
-            config(["ai.providers.{$providerName}.key" => $originalKey]);
-        }
-    }
-
-    protected function resolveSecondaryModel(AnonymousAgent $anonymousAgent, Agent $agent, string $providerName): string
-    {
-        $provider = Ai::textProviderFor($anonymousAgent, $providerName);
-
-        return match ($agent->secondary_model) {
-            'cheapest' => $provider->cheapestTextModel(),
-            'smartest' => $provider->smartestTextModel(),
-            default => $agent->secondary_model,
-        };
-    }
-
-    protected function injectUserApiKey(Agent $agent, string $providerName): void
-    {
-        $organization = $agent->organization;
-
-        if (! $organization) {
-            return;
-        }
-
-        $owner = $organization->users()->orderBy('users.id')->first();
-
-        if (! $owner) {
-            return;
-        }
-
-        $userApiKey = UserApiKey::query()
-            ->where('user_id', $owner->id)
-            ->where('provider', $providerName)
-            ->valid()
-            ->latest('validated_at')
-            ->first();
-
-        if ($userApiKey) {
-            config(["ai.providers.{$providerName}.key" => $userApiKey->api_key]);
+            $this->modelResolver->restoreApiKey($providerName, $originalKey);
         }
     }
 }

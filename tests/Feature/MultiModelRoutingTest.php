@@ -93,7 +93,9 @@ it('has secondary_model defaulting to cheapest on agent', function () {
         'organization_id' => $this->organization->id,
     ]);
 
-    expect($agent->secondary_model)->toBe('cheapest');
+    // Verify the DB column default, not just the factory default
+    $freshAgent = Agent::find($agent->id);
+    expect($freshAgent->secondary_model)->toBe('cheapest');
 });
 
 it('allows setting secondary_model on agent', function () {

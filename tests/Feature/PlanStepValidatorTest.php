@@ -91,7 +91,7 @@ it('returns uncertain when the model call fails', function () {
     );
 
     expect($result['status'])->toBe('uncertain');
-    expect($result['reason'])->toContain('Validation failed');
+    expect($result['reason'])->toBe('Validation could not be performed.');
 });
 
 it('constructs the prompt with step and plan context', function () {

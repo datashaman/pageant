@@ -2,14 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\Agent;
 use App\Models\PlanStep;
-use App\Models\UserApiKey;
-use Laravel\Ai\Ai;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\AnonymousAgent;
 
 class PlanStepValidator
 {
+    public function __construct(
+        protected AgentModelResolver $modelResolver,
+    ) {}
+
     /**
      * Validate a plan step's output using the agent's secondary (cheap) model.
      *
@@ -42,12 +44,10 @@ class PlanStepValidator
         );
 
         $providerName = $agent->provider;
-        $originalKey = config("ai.providers.{$providerName}.key");
+        $originalKey = $this->modelResolver->injectUserApiKey($agent, $providerName);
 
         try {
-            $this->injectUserApiKey($agent, $providerName);
-
-            $resolvedModel = $this->resolveSecondaryModel($anonymousAgent, $agent, $providerName);
+            $resolvedModel = $this->modelResolver->resolveSecondaryModel($anonymousAgent, $agent, $providerName);
             $response = $anonymousAgent->prompt($prompt, provider: $providerName, model: $resolvedModel);
             $text = trim((string) $response);
 
@@ -66,49 +66,17 @@ class PlanStepValidator
                 'reason' => $reason,
             ];
         } catch (\Throwable $e) {
+            Log::warning('Plan step validation failed', [
+                'step_id' => $step->id,
+                'error' => $e->getMessage(),
+            ]);
+
             return [
                 'status' => 'uncertain',
-                'reason' => "Validation failed ({$e->getMessage()}), skipping validation.",
+                'reason' => 'Validation could not be performed.',
             ];
         } finally {
-            config(["ai.providers.{$providerName}.key" => $originalKey]);
-        }
-    }
-
-    protected function resolveSecondaryModel(AnonymousAgent $anonymousAgent, Agent $agent, string $providerName): string
-    {
-        $provider = Ai::textProviderFor($anonymousAgent, $providerName);
-
-        return match ($agent->secondary_model) {
-            'cheapest' => $provider->cheapestTextModel(),
-            'smartest' => $provider->smartestTextModel(),
-            default => $agent->secondary_model,
-        };
-    }
-
-    protected function injectUserApiKey(Agent $agent, string $providerName): void
-    {
-        $organization = $agent->organization;
-
-        if (! $organization) {
-            return;
-        }
-
-        $owner = $organization->users()->orderBy('users.id')->first();
-
-        if (! $owner) {
-            return;
-        }
-
-        $userApiKey = UserApiKey::query()
-            ->where('user_id', $owner->id)
-            ->where('provider', $providerName)
-            ->valid()
-            ->latest('validated_at')
-            ->first();
-
-        if ($userApiKey) {
-            config(["ai.providers.{$providerName}.key" => $userApiKey->api_key]);
+            $this->modelResolver->restoreApiKey($providerName, $originalKey);
         }
     }
 }

@@ -41,7 +41,7 @@ class WorkItemOrchestrator
             'started_at' => now(),
         ]);
 
-        $plan->load('steps.agent.skills');
+        $plan->load(['steps.agent.skills', 'workItem']);
 
         $workItem = $plan->workItem;
         $driver = $this->resolveDriver($workItem);
@@ -224,8 +224,9 @@ class WorkItemOrchestrator
                 $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
                 $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
 
+                $fullText = is_string($response) ? $response : (string) $response;
                 $summarized = $this->summarizeResponse($response);
-                $validation = $this->validateStep($step, $summarized);
+                $validation = $this->validateStep($step, $fullText);
 
                 $step->update([
                     'status' => 'completed',
