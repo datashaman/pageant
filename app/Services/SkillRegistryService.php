@@ -65,7 +65,8 @@ class SkillRegistryService
             $data = $response->json();
             $servers = $data['servers'] ?? [];
 
-            return collect($servers)->map(function (array $server) {
+            return collect($servers)->map(function (array $entry) {
+                $server = $entry['server'] ?? $entry;
                 $name = $server['name'] ?? '';
                 $description = $server['description'] ?? '';
                 $repoUrl = $server['repository']['url'] ?? null;
