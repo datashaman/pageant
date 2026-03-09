@@ -91,53 +91,7 @@ describe('GeneratePlan job', function () {
         expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(1);
     });
 
-    it('skips when no matching repo exists', function () {
-        Log::spy();
-
-        $workItem = WorkItem::factory()->create([
-            'organization_id' => $this->organization->id,
-            'source' => 'github',
-            'source_reference' => 'unknown/repo#42',
-        ]);
-
-        $job = new GeneratePlan($workItem, 'unknown/repo');
-        $job->handle(app(WorktreeManager::class));
-
-        expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn ($message) => str_contains($message, 'no matching repo found'))
-            ->once();
-    });
-
-    it('scopes repo lookup to work item organization', function () {
-        Log::spy();
-
-        $otherOrg = Organization::factory()->create();
-        Repo::factory()->create([
-            'organization_id' => $otherOrg->id,
-            'source' => 'github',
-            'source_reference' => 'acme/widgets',
-        ]);
-
-        $newOrg = Organization::factory()->create();
-        $workItem = WorkItem::factory()->create([
-            'organization_id' => $newOrg->id,
-            'source' => 'github',
-            'source_reference' => 'acme/widgets#42',
-        ]);
-
-        $job = new GeneratePlan($workItem, 'acme/widgets');
-        $job->handle(app(WorktreeManager::class));
-
-        expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
-
-        Log::shouldHaveReceived('info')
-            ->withArgs(fn ($message) => str_contains($message, 'no matching repo found'))
-            ->once();
-    });
-
-    it('skips when no enabled agent is attached to the repo', function () {
+    it('skips when organization has no planning agent configured', function () {
         Log::spy();
 
         $workItem = WorkItem::factory()->create([
@@ -152,30 +106,8 @@ describe('GeneratePlan job', function () {
         expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
 
         Log::shouldHaveReceived('info')
-            ->withArgs(fn ($message) => str_contains($message, 'no enabled agent found'))
+            ->withArgs(fn ($message) => str_contains($message, 'no planning agent configured'))
             ->once();
-    });
-
-    it('skips disabled agents when resolving planning agent', function () {
-        Log::spy();
-
-        $disabledAgent = Agent::factory()->create([
-            'organization_id' => $this->organization->id,
-            'enabled' => false,
-            'tools' => ['read_file', 'glob'],
-        ]);
-        $this->repo->agents()->attach($disabledAgent);
-
-        $workItem = WorkItem::factory()->create([
-            'organization_id' => $this->organization->id,
-            'source' => 'github',
-            'source_reference' => 'acme/widgets#42',
-        ]);
-
-        $job = new GeneratePlan($workItem, 'acme/widgets');
-        $job->handle(app(WorktreeManager::class));
-
-        expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
     });
 
     it('skips when worktree provisioning fails', function () {
@@ -186,7 +118,7 @@ describe('GeneratePlan job', function () {
             'enabled' => true,
             'tools' => ['read_file', 'glob'],
         ]);
-        $this->repo->agents()->attach($agent);
+        $this->organization->update(['planning_agent_id' => $agent->id]);
 
         $workItem = WorkItem::factory()->create([
             'organization_id' => $this->organization->id,
@@ -217,7 +149,7 @@ describe('GeneratePlan job', function () {
             'enabled' => true,
             'tools' => ['read_file', 'glob'],
         ]);
-        $this->repo->agents()->attach($agent);
+        $this->organization->update(['planning_agent_id' => $agent->id]);
 
         $workItem = WorkItem::factory()->create([
             'organization_id' => $this->organization->id,

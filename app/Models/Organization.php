@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -19,6 +20,7 @@ class Organization extends Model
         'slug',
         'command_allowlist',
         'command_denylist',
+        'planning_agent_id',
     ];
 
     /**
@@ -30,6 +32,11 @@ class Organization extends Model
             'command_allowlist' => 'array',
             'command_denylist' => 'array',
         ];
+    }
+
+    public function planningAgent(): BelongsTo
+    {
+        return $this->belongsTo(Agent::class, 'planning_agent_id');
     }
 
     public function users(): BelongsToMany

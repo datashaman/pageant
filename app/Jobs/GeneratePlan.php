@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\Plan;
-use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\WorktreeManager;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
@@ -33,26 +32,12 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        $repo = Repo::where('source', 'github')
-            ->where('source_reference', $this->repoFullName)
-            ->where('organization_id', $this->workItem->organization_id)
-            ->first();
-
-        if (! $repo) {
-            Log::info('GeneratePlan skipped: no matching repo found', [
-                'work_item_id' => $this->workItem->id,
-                'repo_full_name' => $this->repoFullName,
-            ]);
-
-            return;
-        }
-
-        $agent = $this->resolvePlanningAgent($repo);
+        $agent = $this->resolvePlanningAgent();
 
         if (! $agent) {
-            Log::info('GeneratePlan skipped: no enabled agent found for repo', [
+            Log::info('GeneratePlan skipped: organization has no planning agent configured', [
                 'work_item_id' => $this->workItem->id,
-                'repo_full_name' => $this->repoFullName,
+                'organization_id' => $this->workItem->organization_id,
             ]);
 
             return;
@@ -87,11 +72,9 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
     }
 
-    protected function resolvePlanningAgent(Repo $repo): ?Agent
+    protected function resolvePlanningAgent(): ?Agent
     {
-        return $repo->agents()
-            ->where('enabled', true)
-            ->first();
+        return $this->workItem->organization->planningAgent;
     }
 
     protected function provisionDriver(WorktreeManager $worktreeManager): ?\App\Contracts\ExecutionDriver
