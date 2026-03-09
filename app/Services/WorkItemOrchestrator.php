@@ -21,6 +21,7 @@ class WorkItemOrchestrator
     public function __construct(
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
+        protected FailureClassifier $failureClassifier = new FailureClassifier,
     ) {}
 
     public function execute(Plan $plan): void
@@ -127,6 +128,7 @@ class WorkItemOrchestrator
         $prompt = implode("\n\n", array_filter([
             $priorContext,
             "## Your Task\n\n{$step->description}",
+            $this->retryCapInstructions(),
         ]));
 
         $repoFullName = $this->extractRepoFullName($workItem);
@@ -138,37 +140,96 @@ class WorkItemOrchestrator
             $driver,
         );
 
-        try {
-            $response = $agent->prompt($prompt);
+        $this->attemptStepWithRetry($step, $agent, $prompt, $conversationId);
+    }
 
-            $provider = Ai::textProviderFor($agent, $agent->provider());
-            $model = $agent->model() ?? $provider->defaultTextModel();
-            $agentPrompt = new AgentPrompt($agent, $prompt, [], $provider, $model);
+    protected function attemptStepWithRetry(PlanStep $step, GitHubWebhookAgent $agent, string $prompt, string $conversationId): void
+    {
+        $attempt = 0;
+        $lastException = null;
 
-            $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
-            $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
+        while (true) {
+            $attempt++;
 
-            $step->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'result' => $this->summarizeResponse($response),
-            ]);
+            try {
+                $response = $agent->prompt($prompt);
 
-            PlanStepCompleted::dispatch($step);
-        } catch (\Throwable $e) {
-            Log::error('Plan step failed', [
-                'step_id' => $step->id,
-                'error' => $e->getMessage(),
-            ]);
+                $provider = Ai::textProviderFor($agent, $agent->provider());
+                $model = $agent->model() ?? $provider->defaultTextModel();
+                $agentPrompt = new AgentPrompt($agent, $prompt, [], $provider, $model);
 
-            $step->update([
-                'status' => 'failed',
-                'completed_at' => now(),
-                'result' => "Failed: {$e->getMessage()}",
-            ]);
+                $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
+                $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
 
-            PlanStepFailed::dispatch($step);
+                $step->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    'result' => $this->summarizeResponse($response),
+                    'retry_attempts' => $attempt - 1,
+                ]);
+
+                PlanStepCompleted::dispatch($step);
+
+                return;
+            } catch (\Throwable $e) {
+                $lastException = $e;
+                $category = $this->failureClassifier->classify($e);
+                $policy = RetryPolicy::forCategory($category);
+
+                Log::warning('Plan step attempt failed', [
+                    'step_id' => $step->id,
+                    'attempt' => $attempt,
+                    'failure_category' => $category->value,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if ($attempt >= $policy->maxAttempts) {
+                    break;
+                }
+
+                $delay = $policy->delayForAttempt($attempt);
+
+                if ($delay > 0) {
+                    sleep($delay);
+                }
+
+                $step->update(['retry_attempts' => $attempt]);
+            }
         }
+
+        $category = $this->failureClassifier->classify($lastException);
+
+        Log::error('Plan step failed after retries', [
+            'step_id' => $step->id,
+            'attempts' => $attempt,
+            'failure_category' => $category->value,
+            'error' => $lastException->getMessage(),
+        ]);
+
+        $step->update([
+            'status' => 'failed',
+            'completed_at' => now(),
+            'result' => "Failed: {$lastException->getMessage()}",
+            'failure_category' => $category,
+            'retry_attempts' => $attempt - 1,
+        ]);
+
+        PlanStepFailed::dispatch($step);
+    }
+
+    protected function retryCapInstructions(): string
+    {
+        $lines = ['## Retry Policies'];
+
+        foreach (RetryPolicy::defaults() as $category => $policy) {
+            $label = str_replace('_', ' ', $category);
+            $lines[] = "- {$label}: max {$policy->maxAttempts} attempts, {$policy->backoffSeconds}s initial backoff (x{$policy->backoffMultiplier})";
+        }
+
+        $lines[] = '';
+        $lines[] = 'If you encounter transient errors (rate limits, timeouts), the system will automatically retry with backoff. Do not retry manually within your tool calls.';
+
+        return implode("\n", $lines);
     }
 
     protected const MAX_PRIOR_STEPS = 3;
