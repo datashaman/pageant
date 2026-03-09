@@ -5,7 +5,9 @@ namespace App\Ai\Agents;
 use App\Ai\ToolRegistry;
 use App\Contracts\ExecutionDriver;
 use App\Models\Agent;
-use App\Services\RepoInstructionsService;
+use App\Models\PlanStep;
+use App\Services\ConversationCompressor;
+use App\Services\PromptAssembler;
 use Laravel\Ai\Contracts\Agent as AgentContract;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\ConversationStore;
@@ -16,64 +18,55 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 {
     use Promptable;
 
+    protected ?ConversationCompressor $compressor = null;
+
+    protected ?string $executionContext = null;
+
     public function __construct(
         protected Agent $agentModel,
         protected string $repoFullName,
         protected ?string $conversationId = null,
         protected ?ExecutionDriver $driver = null,
+        protected ?PlanStep $planStep = null,
     ) {}
+
+    /**
+     * Enable conversation compression for this agent.
+     */
+    public function withCompressor(ConversationCompressor $compressor, ?string $executionContext = null): static
+    {
+        $this->compressor = $compressor;
+        $this->executionContext = $executionContext;
+
+        return $this;
+    }
 
     public function instructions(): string
     {
-        $parts = [
-            $this->agentModel->description,
-            "You are operating on the GitHub repository: {$this->repoFullName}.",
-            'Use the available tools to interact with the repository.',
-        ];
+        $this->agentModel->loadMissing('organization');
 
-        $skillContexts = $this->agentModel->skills
-            ->where('enabled', true)
-            ->pluck('context')
-            ->filter()
-            ->values();
+        $activeTools = $this->resolveActiveToolNames();
 
-        if ($skillContexts->isNotEmpty()) {
-            $parts[] = "## Skills\n\n".$skillContexts->implode("\n\n---\n\n");
-        }
-
-        $repoInstructions = $this->loadRepoInstructions();
-
-        if ($repoInstructions !== '') {
-            $parts[] = $repoInstructions;
-        }
-
-        return implode("\n\n", $parts);
+        return app(PromptAssembler::class)->assemble([
+            'agent' => $this->agentModel,
+            'organization' => $this->agentModel->organization,
+            'repoFullName' => $this->repoFullName,
+            'planStep' => $this->planStep,
+            'activeTools' => $activeTools,
+            'worktreePath' => $this->driver?->getBasePath(),
+            'worktreeBranch' => null,
+        ]);
     }
 
     protected const MAX_CONVERSATION_MESSAGES = 20;
 
-    protected function loadRepoInstructions(): string
+    /**
+     * @return array<int, string>
+     */
+    protected function resolveActiveToolNames(): array
     {
-        try {
-            return app(RepoInstructionsService::class)->loadForRepo($this->repoFullName);
-        } catch (\Throwable) {
-            return '';
-        }
-    }
+        $this->agentModel->loadMissing('skills');
 
-    public function messages(): iterable
-    {
-        if (! $this->conversationId) {
-            return [];
-        }
-
-        return resolve(ConversationStore::class)
-            ->getLatestConversationMessages($this->conversationId, static::MAX_CONVERSATION_MESSAGES)
-            ->all();
-    }
-
-    public function tools(): iterable
-    {
         $agentTools = $this->agentModel->tools ?? [];
 
         $skillTools = $this->agentModel->skills
@@ -85,8 +78,30 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
             ->values()
             ->all();
 
+        return array_unique(array_merge($agentTools, $skillTools));
+    }
+
+    public function messages(): iterable
+    {
+        if (! $this->conversationId) {
+            return [];
+        }
+
+        $messages = resolve(ConversationStore::class)
+            ->getLatestConversationMessages($this->conversationId, static::MAX_CONVERSATION_MESSAGES)
+            ->all();
+
+        if ($this->compressor && $this->compressor->needsCompression($messages)) {
+            $messages = $this->compressor->compress($messages, $this->executionContext);
+        }
+
+        return $messages;
+    }
+
+    public function tools(): iterable
+    {
         return ToolRegistry::resolve(
-            array_unique(array_merge($agentTools, $skillTools)),
+            $this->resolveActiveToolNames(),
             $this->repoFullName,
             driver: $this->driver,
         );
@@ -99,8 +114,9 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 
     public function model(): ?string
     {
-        $model = $this->agentModel->model;
-
-        return $model === 'inherit' ? null : $model;
+        return match ($this->agentModel->model) {
+            'inherit', 'cheapest', 'smartest' => null,
+            default => $this->agentModel->model,
+        };
     }
 }

@@ -24,11 +24,25 @@ class AgentFactory extends Factory
             'description' => fake()->sentence(),
             'tools' => [],
             'events' => [],
-            'provider' => fake()->randomElement(['anthropic', 'openai']),
+            'provider' => fake()->randomElement(['anthropic', 'openai', 'gemini']),
             'model' => 'inherit',
             'permission_mode' => fake()->randomElement(['full', 'limited']),
             'max_turns' => fake()->numberBetween(1, 100),
             'background' => false,
         ];
+    }
+
+    public function cheapest(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'model' => 'cheapest',
+        ]);
+    }
+
+    public function smartest(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'model' => 'smartest',
+        ]);
     }
 }

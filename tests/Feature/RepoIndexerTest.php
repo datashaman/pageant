@@ -383,7 +383,7 @@ describe('GeneratePlan integration', function () {
         $reflection = new ReflectionMethod($job, 'buildPrompt');
         $structuralMap = "# Repo Structure\n\n## src/App.php\n- class App\n  - public run(): void";
 
-        $prompt = $reflection->invoke($job, $structuralMap);
+        $prompt = $reflection->invoke($job, $structuralMap, app(\App\Services\AgentMemoryService::class));
 
         expect($prompt)
             ->toContain('# Repo Structure')
@@ -404,7 +404,7 @@ describe('GeneratePlan integration', function () {
         );
 
         $reflection = new ReflectionMethod($job, 'buildPrompt');
-        $prompt = $reflection->invoke($job, null);
+        $prompt = $reflection->invoke($job, null, app(\App\Services\AgentMemoryService::class));
 
         expect($prompt)
             ->not->toContain('# Repo Structure')
