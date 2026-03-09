@@ -30,10 +30,9 @@ it('disables providers without server key or user BYOK key on create form', func
 it('enables provider when user has a valid BYOK key', function () {
     config(['ai.providers.gemini.key' => null]);
 
-    UserApiKey::factory()->create([
+    UserApiKey::factory()->valid()->create([
         'user_id' => $this->user->id,
         'provider' => 'gemini',
-        'is_valid' => true,
     ]);
 
     $component = Livewire\Livewire::actingAs($this->user)
