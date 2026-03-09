@@ -67,6 +67,11 @@ class ReconcileWorkItemStatuses implements ShouldBeUniqueUntilProcessing, Should
                         'source_reference' => $workItem->source_reference,
                         'error' => $e->getMessage(),
                     ]);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to reconcile work item status', [
+                        'source_reference' => $workItem->source_reference,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         });
