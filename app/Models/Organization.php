@@ -81,4 +81,9 @@ class Organization extends Model
     {
         return $this->hasOne(GithubInstallation::class);
     }
+
+    public function agentMemories(): HasMany
+    {
+        return $this->hasMany(AgentMemory::class);
+    }
 }
