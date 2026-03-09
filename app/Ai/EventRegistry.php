@@ -4,13 +4,14 @@ namespace App\Ai;
 
 class EventRegistry
 {
-    /** @var array<string, array{label: string, description: string, group: string, actions: string[], filters: string[]}> */
+    /** @var array<string, array{label: string, description: string, group: string, category: string, actions: string[], filters: string[]}> */
     private const EVENT_MAP = [
         // Code
         'push' => [
             'label' => 'Code',
             'description' => 'Pushed',
             'group' => 'Code',
+            'category' => 'github',
             'actions' => [],
             'filters' => ['branches'],
         ],
@@ -20,6 +21,7 @@ class EventRegistry
             'label' => 'Issues',
             'description' => 'Issue opened, closed, labeled, etc.',
             'group' => 'Issues',
+            'category' => 'github',
             'actions' => ['opened', 'edited', 'closed', 'reopened', 'labeled', 'unlabeled', 'assigned', 'unassigned', 'locked', 'unlocked', 'transferred', 'milestoned', 'demilestoned', 'pinned', 'unpinned', 'deleted'],
             'filters' => ['labels'],
         ],
@@ -27,6 +29,7 @@ class EventRegistry
             'label' => 'Comments',
             'description' => 'Comment on an issue or PR',
             'group' => 'Issues',
+            'category' => 'github',
             'actions' => ['created', 'edited', 'deleted'],
             'filters' => ['labels'],
         ],
@@ -36,6 +39,7 @@ class EventRegistry
             'label' => 'Pull Requests',
             'description' => 'PR opened, closed, synchronized, etc.',
             'group' => 'Pull Requests',
+            'category' => 'github',
             'actions' => ['opened', 'edited', 'closed', 'reopened', 'synchronize', 'labeled', 'unlabeled', 'review_requested', 'ready_for_review', 'converted_to_draft', 'locked', 'unlocked'],
             'filters' => ['labels', 'base_branch'],
         ],
@@ -43,6 +47,7 @@ class EventRegistry
             'label' => 'Reviews',
             'description' => 'Review submitted on a PR',
             'group' => 'Pull Requests',
+            'category' => 'github',
             'actions' => ['submitted', 'edited', 'dismissed'],
             'filters' => ['labels', 'base_branch'],
         ],
@@ -52,6 +57,7 @@ class EventRegistry
             'label' => 'Work Items',
             'description' => 'Created',
             'group' => 'Work Items',
+            'category' => 'pageant',
             'actions' => [],
             'filters' => [],
         ],
@@ -59,6 +65,7 @@ class EventRegistry
             'label' => 'Work Items',
             'description' => 'Deleted',
             'group' => 'Work Items',
+            'category' => 'pageant',
             'actions' => [],
             'filters' => [],
         ],
@@ -68,6 +75,7 @@ class EventRegistry
             'label' => 'Plans',
             'description' => 'Plan step completed successfully',
             'group' => 'Plans',
+            'category' => 'pageant',
             'actions' => [],
             'filters' => [],
         ],
@@ -75,6 +83,7 @@ class EventRegistry
             'label' => 'Plans',
             'description' => 'Plan step failed',
             'group' => 'Plans',
+            'category' => 'pageant',
             'actions' => [],
             'filters' => [],
         ],
@@ -82,6 +91,7 @@ class EventRegistry
             'label' => 'Plans',
             'description' => 'Plan completed successfully',
             'group' => 'Plans',
+            'category' => 'pageant',
             'actions' => [],
             'filters' => [],
         ],
@@ -89,6 +99,7 @@ class EventRegistry
             'label' => 'Plans',
             'description' => 'Plan failed',
             'group' => 'Plans',
+            'category' => 'pageant',
             'actions' => [],
             'filters' => [],
         ],
@@ -172,5 +183,25 @@ class EventRegistry
         }
 
         return $groups;
+    }
+
+    /**
+     * @return array<string, array<string, array<string, array{label: string, description: string, actions: string[], filters: string[]}>>>
+     */
+    public static function groupedByCategory(): array
+    {
+        $categories = [];
+
+        foreach (self::EVENT_MAP as $name => $entry) {
+            $category = $entry['category'];
+            $categories[$category][$entry['group']][$name] = [
+                'label' => $entry['label'],
+                'description' => $entry['description'],
+                'actions' => $entry['actions'],
+                'filters' => $entry['filters'],
+            ];
+        }
+
+        return $categories;
     }
 }
