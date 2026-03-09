@@ -143,7 +143,7 @@ class WorkItemOrchestrator
 
         $step->update(['conversation_id' => $conversationId]);
 
-        $priorContext = $this->buildPriorStepsContext($step);
+        $priorContext = null;
         $prompt = implode("\n\n", array_filter([
             $priorContext,
             "## Your Task\n\n{$step->description}",
@@ -157,6 +157,7 @@ class WorkItemOrchestrator
             $repoFullName ?? '',
             $conversationId,
             $driver,
+            $step,
         );
 
         $this->attemptStepWithRetry($step, $agent, $prompt, $conversationId);
