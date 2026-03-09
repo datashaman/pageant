@@ -62,6 +62,8 @@ class RepoIndexer
             return $existing;
         }
 
+        RepoIndex::where('repo_id', $repo->id)->delete();
+
         $structuralMap = $this->buildStructuralMap($repoPath);
 
         return RepoIndex::create([
@@ -124,7 +126,7 @@ class RepoIndexer
             ->run('git rev-parse HEAD');
 
         if (! $result->successful()) {
-            return hash('sha1', (string) time());
+            return 'no-git-history';
         }
 
         return trim($result->output());
@@ -237,7 +239,7 @@ class RepoIndexer
                 continue;
             }
 
-            [$tokenId, $tokenValue] = $token;
+            $tokenId = $token[0];
 
             if ($tokenId === T_NAMESPACE) {
                 $namespace = $this->collectNamespace($tokens, $i, $tokenCount);
@@ -554,6 +556,8 @@ class RepoIndexer
             if ($token[0] === T_STATIC) {
                 return true;
             }
+
+            break;
         }
 
         return false;
@@ -719,9 +723,10 @@ class RepoIndexer
             }
         }
 
-        if (preg_match_all('/(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>/m', $content, $matches, PREG_SET_ORDER)) {
+        if (preg_match_all('/(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/m', $content, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $structures[] = "fn {$match[1]}()";
+                $params = $this->simplifyJsParams($match[2] ?? '');
+                $structures[] = "fn {$match[1]}({$params})";
             }
         }
 

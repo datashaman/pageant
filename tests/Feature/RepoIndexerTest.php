@@ -349,7 +349,7 @@ describe('index caching', function () {
         $index = $this->indexer->index($repo, $this->tempDir);
 
         expect($index->commit_hash)->toBe('new_commit_hash_padding_to_40_chars_____')
-            ->and(RepoIndex::where('repo_id', $repo->id)->count())->toBe(2);
+            ->and(RepoIndex::where('repo_id', $repo->id)->count())->toBe(1);
     });
 
     it('estimates token count correctly', function () {
