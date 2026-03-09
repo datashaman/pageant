@@ -24,6 +24,7 @@ class Agent extends Model
         'events',
         'provider',
         'model',
+        'secondary_model',
         'permission_mode',
         'max_turns',
         'background',

@@ -26,6 +26,7 @@ class AgentFactory extends Factory
             'events' => [],
             'provider' => fake()->randomElement(['anthropic', 'openai', 'gemini']),
             'model' => 'inherit',
+            'secondary_model' => 'cheapest',
             'permission_mode' => fake()->randomElement(['full', 'limited']),
             'max_turns' => fake()->numberBetween(1, 100),
             'background' => false,

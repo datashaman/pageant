@@ -21,6 +21,7 @@ class WorkItemOrchestrator
     public function __construct(
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
+        protected PlanStepValidator $planStepValidator,
     ) {}
 
     public function execute(Plan $plan): void
@@ -148,10 +149,16 @@ class WorkItemOrchestrator
             $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
             $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
 
+            $summarized = $this->summarizeResponse($response);
+
+            $validation = $this->validateStep($step, $summarized);
+
             $step->update([
                 'status' => 'completed',
                 'completed_at' => now(),
-                'result' => $this->summarizeResponse($response),
+                'result' => $summarized,
+                'validation_status' => $validation['status'],
+                'validation_reason' => $validation['reason'],
             ]);
 
             PlanStepCompleted::dispatch($step);
@@ -248,6 +255,35 @@ class WorkItemOrchestrator
         }
 
         return preg_replace('/#\d+$/', '', $workItem->source_reference);
+    }
+
+    /**
+     * Validate a completed plan step using the secondary model.
+     *
+     * @return array{status: string, reason: string}
+     */
+    protected function validateStep(PlanStep $step, string $stepResult): array
+    {
+        $planContext = "Plan: {$step->plan->workItem->title}";
+        $priorContext = $this->buildPriorStepsContext($step);
+
+        if ($priorContext) {
+            $planContext .= "\n\n{$priorContext}";
+        }
+
+        try {
+            return $this->planStepValidator->validate($step, $stepResult, $planContext);
+        } catch (\Throwable $e) {
+            Log::warning('Plan step validation failed', [
+                'step_id' => $step->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => 'uncertain',
+                'reason' => 'Validation could not be performed.',
+            ];
+        }
     }
 
     protected function summarizeResponse(mixed $response): string

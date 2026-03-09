@@ -23,6 +23,8 @@ class PlanStep extends Model
         'completed_at',
         'result',
         'conversation_id',
+        'validation_status',
+        'validation_reason',
     ];
 
     protected function casts(): array
