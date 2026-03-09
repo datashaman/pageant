@@ -165,23 +165,23 @@ class ToolRegistry
         'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Projects', 'local' => true],
         'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Projects', 'local' => true],
 
-        // Worktree - File Tools
-        'read_file' => ['class' => ReadFileTool::class, 'description' => 'Read file contents from the worktree', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
-        'write_file' => ['class' => WriteFileTool::class, 'description' => 'Create or overwrite a file in the worktree', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
-        'edit_file' => ['class' => EditFileTool::class, 'description' => 'Edit a file using exact string replacement', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
-        'glob' => ['class' => GlobTool::class, 'description' => 'Find files by glob pattern', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
-        'grep' => ['class' => GrepTool::class, 'description' => 'Search file contents with regex', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
-        'list_directory' => ['class' => ListDirectoryTool::class, 'description' => 'List files and directories', 'group' => 'Worktree Files', 'worktree' => true, 'category' => 'worktree'],
+        // Worktree - Files
+        'read_file' => ['class' => ReadFileTool::class, 'description' => 'Read file contents from the worktree', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
+        'write_file' => ['class' => WriteFileTool::class, 'description' => 'Create or overwrite a file in the worktree', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
+        'edit_file' => ['class' => EditFileTool::class, 'description' => 'Edit a file using exact string replacement', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
+        'glob' => ['class' => GlobTool::class, 'description' => 'Find files by glob pattern', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
+        'grep' => ['class' => GrepTool::class, 'description' => 'Search file contents with regex', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
+        'list_directory' => ['class' => ListDirectoryTool::class, 'description' => 'List files and directories', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
 
-        // Worktree - Command
-        'bash' => ['class' => BashTool::class, 'description' => 'Execute a shell command in the worktree', 'group' => 'Worktree Commands', 'worktree' => true, 'category' => 'worktree'],
+        // Worktree - Commands
+        'bash' => ['class' => BashTool::class, 'description' => 'Execute a shell command in the worktree', 'group' => 'Commands', 'worktree' => true, 'category' => 'worktree'],
 
         // Worktree - Git
-        'git_status' => ['class' => GitStatusTool::class, 'description' => 'Show working tree status', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_diff' => ['class' => GitDiffTool::class, 'description' => 'Show changes in the worktree', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_commit' => ['class' => GitCommitTool::class, 'description' => 'Stage and commit changes', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_push' => ['class' => GitPushTool::class, 'description' => 'Push commits to remote', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_log' => ['class' => GitLogTool::class, 'description' => 'View commit history', 'group' => 'Worktree Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_status' => ['class' => GitStatusTool::class, 'description' => 'Show working tree status', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_diff' => ['class' => GitDiffTool::class, 'description' => 'Show changes in the worktree', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_commit' => ['class' => GitCommitTool::class, 'description' => 'Stage and commit changes', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_push' => ['class' => GitPushTool::class, 'description' => 'Push commits to remote', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
+        'git_log' => ['class' => GitLogTool::class, 'description' => 'View commit history', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
     ];
 
     /**
