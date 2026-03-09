@@ -13,7 +13,6 @@ beforeEach(function () {
 
 function makeRequestException(int $status): RequestException
 {
-    $psrResponse = new \GuzzleHttp\Psr7\Response($status);
     $response = new Response(new \GuzzleHttp\Psr7\Response($status));
 
     return new RequestException($response);

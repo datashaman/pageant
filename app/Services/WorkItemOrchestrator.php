@@ -21,7 +21,7 @@ class WorkItemOrchestrator
     public function __construct(
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
-        protected FailureClassifier $failureClassifier = new FailureClassifier,
+        protected FailureClassifier $failureClassifier,
     ) {}
 
     public function execute(Plan $plan): void
@@ -187,13 +187,17 @@ class WorkItemOrchestrator
                     break;
                 }
 
+                if ($step->plan->fresh()->isPaused() || $step->plan->isCancelled()) {
+                    return;
+                }
+
                 $delay = $policy->delayForAttempt($attempt);
 
                 if ($delay > 0) {
                     sleep($delay);
                 }
 
-                $step->update(['retry_attempts' => $attempt]);
+                $step->update(['retry_attempts' => $attempt - 1]);
             }
         }
 
