@@ -6,9 +6,11 @@ use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\UserApiKey;
 use App\Models\WorkItem;
+use App\Services\WebhookRelevanceFilter;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Ai;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Prompts\AgentPrompt;
@@ -35,8 +37,20 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return $key;
     }
 
-    public function handle(ConversationStore $store): void
+    public function handle(ConversationStore $store, WebhookRelevanceFilter $relevanceFilter): void
     {
+        $relevance = $relevanceFilter->isRelevant($this->agent, $this->eventContext, $this->repoFullName);
+
+        if (! $relevance['relevant']) {
+            Log::info('Webhook event filtered as irrelevant', [
+                'agent_id' => $this->agent->id,
+                'repo' => $this->repoFullName,
+                'reason' => $relevance['reason'],
+            ]);
+
+            return;
+        }
+
         $workItem = $this->resolveWorkItem();
         $conversationId = $this->resolveConversationId($workItem, $store);
 

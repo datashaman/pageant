@@ -28,6 +28,8 @@ class PlanStep extends Model
         'conversation_id',
         'failure_category',
         'retry_attempts',
+        'validation_status',
+        'validation_reason',
     ];
 
     protected function casts(): array

@@ -26,6 +26,7 @@ class WorkItemOrchestrator
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
         protected FailureClassifier $failureClassifier,
+        protected PlanStepValidator $planStepValidator,
         protected ?ConversationCompressor $compressor = null,
     ) {}
 
@@ -40,7 +41,7 @@ class WorkItemOrchestrator
             'started_at' => now(),
         ]);
 
-        $plan->load('steps.agent.skills');
+        $plan->load(['steps.agent.skills', 'workItem']);
 
         $workItem = $plan->workItem;
         $driver = $this->resolveDriver($workItem);
@@ -223,11 +224,17 @@ class WorkItemOrchestrator
                 $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
                 $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
 
+                $fullText = is_string($response) ? $response : (string) $response;
+                $summarized = $this->summarizeResponse($response);
+                $validation = $this->validateStep($step, $fullText);
+
                 $step->update([
                     'status' => 'completed',
                     'completed_at' => now(),
-                    'result' => $this->summarizeResponse($response),
+                    'result' => $summarized,
                     'retry_attempts' => $attempt - 1,
+                    'validation_status' => $validation['status'],
+                    'validation_reason' => $validation['reason'],
                 ]);
 
                 PlanStepCompleted::dispatch($step);
@@ -463,6 +470,35 @@ class WorkItemOrchestrator
         }
 
         return preg_replace('/#\d+$/', '', $workItem->source_reference);
+    }
+
+    /**
+     * Validate a completed plan step using the secondary model.
+     *
+     * @return array{status: string, reason: string}
+     */
+    protected function validateStep(PlanStep $step, string $stepResult): array
+    {
+        $planContext = "Plan: {$step->plan->workItem->title}";
+        $priorContext = $this->buildPriorStepsContext($step);
+
+        if ($priorContext) {
+            $planContext .= "\n\n{$priorContext}";
+        }
+
+        try {
+            return $this->planStepValidator->validate($step, $stepResult, $planContext);
+        } catch (\Throwable $e) {
+            Log::warning('Plan step validation failed', [
+                'step_id' => $step->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => 'uncertain',
+                'reason' => 'Validation could not be performed.',
+            ];
+        }
     }
 
     protected function summarizeResponse(mixed $response): string
