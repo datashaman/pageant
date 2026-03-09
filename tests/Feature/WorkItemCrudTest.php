@@ -26,6 +26,7 @@ beforeEach(function () {
 
     $mock = Mockery::mock(GitHubService::class);
     $mock->shouldReceive('listIssues')->andReturn([]);
+    $mock->shouldReceive('getIssue')->andReturn(['number' => 1, 'state' => 'open']);
     app()->instance(GitHubService::class, $mock);
 });
 
