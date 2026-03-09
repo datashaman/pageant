@@ -134,20 +134,40 @@ it('can update a work item', function () {
     expect($this->workItem->fresh()->title)->toBe('Updated Work Item');
 });
 
-it('can close a work item', function () {
+it('can close a work item from the index', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::work-items.index')
-        ->call('close', $this->workItem->id);
+        ->call('close', $this->workItem->id)
+        ->assertDispatched('close-modal', id: 'confirm-close-'.$this->workItem->id);
 
     expect($this->workItem->fresh()->status)->toBe('closed');
 });
 
-it('can reopen a closed work item', function () {
+it('can reopen a closed work item from the index', function () {
     $this->workItem->update(['status' => 'closed']);
 
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::work-items.index')
         ->call('reopen', $this->workItem->id);
+
+    expect($this->workItem->fresh()->status)->toBe('open');
+});
+
+it('can close a work item from the show page', function () {
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.show', ['workItem' => $this->workItem])
+        ->call('close')
+        ->assertDispatched('close-modal', id: 'confirm-close');
+
+    expect($this->workItem->fresh()->status)->toBe('closed');
+});
+
+it('can reopen a closed work item from the show page', function () {
+    $this->workItem->update(['status' => 'closed']);
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('pages::work-items.show', ['workItem' => $this->workItem])
+        ->call('reopen');
 
     expect($this->workItem->fresh()->status)->toBe('open');
 });
