@@ -25,6 +25,8 @@ class WorkItemOrchestrator
     public function __construct(
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
+        protected FailureClassifier $failureClassifier,
+        protected ?ConversationCompressor $compressor = null,
     ) {}
 
     public function execute(Plan $plan): void
@@ -115,6 +117,25 @@ class WorkItemOrchestrator
         }
     }
 
+    public function prepareForResume(Plan $plan): void
+    {
+        $plan->resetForResume();
+        $plan->update([
+            'status' => 'approved',
+            'completed_at' => null,
+        ]);
+    }
+
+    public function resume(Plan $plan): void
+    {
+        if (! $plan->isResumable()) {
+            throw new \InvalidArgumentException('Plan must be failed or paused to resume.');
+        }
+
+        $this->prepareForResume($plan);
+        $this->execute($plan);
+    }
+
     public function cancel(Plan $plan): void
     {
         $plan->steps()
@@ -164,6 +185,7 @@ class WorkItemOrchestrator
             $priorContext,
             "## Your Task\n\n{$step->description}",
             $turnWarning,
+            $this->retryCapInstructions(),
         ]));
 
         $repoFullName = $this->extractRepoFullName($workItem);
@@ -173,53 +195,121 @@ class WorkItemOrchestrator
             $repoFullName ?? '',
             $conversationId,
             $driver,
+            $step,
         );
 
-        try {
-            $response = $agent->prompt($prompt);
+        $compressor = $this->compressor ?? ConversationCompressor::fromConfig();
+        $executionContext = "Plan: {$step->plan->id}, Step {$step->order}: {$step->description}";
+        $agent->withCompressor($compressor, $executionContext);
 
-            $provider = Ai::textProviderFor($agent, $agent->provider());
-            $model = $agent->model() ?? $provider->defaultTextModel();
-            $agentPrompt = new AgentPrompt($agent, $prompt, [], $provider, $model);
+        $this->attemptStepWithRetry($step, $agent, $prompt, $conversationId);
+    }
 
-            $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
-            $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
+    protected function attemptStepWithRetry(PlanStep $step, GitHubWebhookAgent $agent, string $prompt, string $conversationId): void
+    {
+        $attempt = 0;
+        $lastException = null;
 
-            $step->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'result' => $this->summarizeResponse($response),
-            ]);
+        while (true) {
+            $attempt++;
 
-            PlanStepCompleted::dispatch($step);
-        } catch (\Throwable $e) {
-            $isTimeout = $this->isTimeoutException($e);
+            try {
+                $response = $agent->prompt($prompt);
 
-            Log::error('Plan step failed', [
-                'step_id' => $step->id,
-                'error' => $e->getMessage(),
-                'is_timeout' => $isTimeout,
-            ]);
+                $provider = Ai::textProviderFor($agent, $agent->provider());
+                $model = $agent->model() ?? $provider->defaultTextModel();
+                $agentPrompt = new AgentPrompt($agent, $prompt, [], $provider, $model);
 
-            if ($isTimeout) {
+                $this->conversationStore->storeUserMessage($conversationId, null, $agentPrompt);
+                $this->conversationStore->storeAssistantMessage($conversationId, null, $agentPrompt, $response);
+
                 $step->update([
-                    'status' => 'partial',
+                    'status' => 'completed',
                     'completed_at' => now(),
-                    'result' => 'Partial: Step reached its execution limit.',
-                    'progress_summary' => "Step was interrupted due to timeout. Task: {$step->description}",
+                    'result' => $this->summarizeResponse($response),
+                    'retry_attempts' => $attempt - 1,
                 ]);
 
-                PlanStepPartial::dispatch($step);
-            } else {
-                $step->update([
-                    'status' => 'failed',
-                    'completed_at' => now(),
-                    'result' => "Failed: {$e->getMessage()}",
+                PlanStepCompleted::dispatch($step);
+
+                return;
+            } catch (\Throwable $e) {
+                if ($this->isTimeoutException($e)) {
+                    $step->update([
+                        'status' => 'partial',
+                        'completed_at' => now(),
+                        'result' => 'Partial: Step reached its execution limit.',
+                        'progress_summary' => "Step was interrupted due to timeout. Task: {$step->description}",
+                        'retry_attempts' => $attempt - 1,
+                    ]);
+
+                    PlanStepPartial::dispatch($step);
+
+                    return;
+                }
+
+                $lastException = $e;
+                $category = $this->failureClassifier->classify($e);
+                $policy = RetryPolicy::forCategory($category);
+
+                Log::warning('Plan step attempt failed', [
+                    'step_id' => $step->id,
+                    'attempt' => $attempt,
+                    'failure_category' => $category->value,
+                    'error' => $e->getMessage(),
                 ]);
 
-                PlanStepFailed::dispatch($step);
+                if ($attempt >= $policy->maxAttempts) {
+                    break;
+                }
+
+                if ($step->plan->fresh()->isPaused() || $step->plan->isCancelled()) {
+                    return;
+                }
+
+                $delay = $policy->delayForAttempt($attempt);
+
+                if ($delay > 0) {
+                    sleep($delay);
+                }
+
+                $step->update(['retry_attempts' => $attempt - 1]);
             }
         }
+
+        $category = $this->failureClassifier->classify($lastException);
+
+        Log::error('Plan step failed after retries', [
+            'step_id' => $step->id,
+            'attempts' => $attempt,
+            'failure_category' => $category->value,
+            'error' => $lastException->getMessage(),
+        ]);
+
+        $step->update([
+            'status' => 'failed',
+            'completed_at' => now(),
+            'result' => "Failed: {$lastException->getMessage()}",
+            'failure_category' => $category,
+            'retry_attempts' => $attempt - 1,
+        ]);
+
+        PlanStepFailed::dispatch($step);
+    }
+
+    protected function retryCapInstructions(): string
+    {
+        $lines = ['## Retry Policies'];
+
+        foreach (RetryPolicy::defaults() as $category => $policy) {
+            $label = str_replace('_', ' ', $category);
+            $lines[] = "- {$label}: max {$policy->maxAttempts} attempts, {$policy->backoffSeconds}s initial backoff (x{$policy->backoffMultiplier})";
+        }
+
+        $lines[] = '';
+        $lines[] = 'If you encounter transient errors (rate limits, timeouts), the system will automatically retry with backoff. Do not retry manually within your tool calls.';
+
+        return implode("\n", $lines);
     }
 
     protected function buildTurnLimitWarning(PlanStep $step, bool $isApproachingLimit): ?string

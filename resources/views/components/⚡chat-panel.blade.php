@@ -73,6 +73,7 @@ new class extends Component
     x-data="{
         open: JSON.parse(localStorage.getItem('chat-panel-open') || 'false'),
         currentMessage: '',
+        selectedModel: localStorage.getItem('chat-panel-model') || '',
         streaming: false,
         streamedContent: '',
         transcriptCopied: false,
@@ -148,6 +149,7 @@ new class extends Component
                         message: message,
                         conversation_id: this.conversationId,
                         page_context: this.getPageContext(),
+                        model: this.selectedModel || null,
                     }),
                     signal: abortController.signal,
                 });
@@ -388,8 +390,37 @@ new class extends Component
                 <flux:icon.paper-airplane class="size-4" />
             </flux:button>
         </form>
-        <flux:text size="xs" class="mt-2 text-center text-zinc-400">
-            {{ __('Cmd+K to toggle') }}
-        </flux:text>
+        <div class="mt-2 flex items-center justify-between">
+            <select
+                x-model="selectedModel"
+                @change="localStorage.setItem('chat-panel-model', $event.target.value)"
+                class="rounded border border-zinc-200 bg-white px-2 py-0.5 text-xs text-zinc-500 outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+            >
+                <option value="">{{ __('Default model') }}</option>
+                <optgroup label="{{ __('Strategy') }}">
+                    <option value="cheapest">{{ __('Cheapest') }}</option>
+                    <option value="smartest">{{ __('Smartest') }}</option>
+                </optgroup>
+                <optgroup label="{{ __('Anthropic') }}">
+                    <option value="anthropic:claude-opus-4-6">Claude Opus 4.6</option>
+                    <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6</option>
+                    <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+                </optgroup>
+                <optgroup label="{{ __('OpenAI') }}">
+                    <option value="openai:gpt-4.1">GPT-4.1</option>
+                    <option value="openai:gpt-4.1-mini">GPT-4.1 Mini</option>
+                    <option value="openai:o3">o3</option>
+                    <option value="openai:o4-mini">o4-mini</option>
+                </optgroup>
+                <optgroup label="{{ __('Gemini') }}">
+                    <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
+                    <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini:gemini-2.0-flash">Gemini 2.0 Flash</option>
+                </optgroup>
+            </select>
+            <flux:text size="xs" class="text-zinc-400">
+                {{ __('Cmd+K to toggle') }}
+            </flux:text>
+        </div>
     </div>
 </div>

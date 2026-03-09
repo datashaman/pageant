@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\FailureCategory;
 use App\Models\Agent;
 use App\Models\Plan;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -53,6 +54,14 @@ class PlanStepFactory extends Factory
             'completed_at' => now(),
             'result' => 'Partial: Step reached its execution limit.',
             'progress_summary' => fake()->sentence(),
+        ]);
+    }
+
+    public function failedWithCategory(FailureCategory $category, int $retryAttempts = 0): static
+    {
+        return $this->failed()->state(fn () => [
+            'failure_category' => $category,
+            'retry_attempts' => $retryAttempts,
         ]);
     }
 }
