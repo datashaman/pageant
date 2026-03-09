@@ -261,6 +261,8 @@ describe('Skills Registry UI', function () {
     });
 
     it('shows pagination links when results exceed page size', function () {
+        config(['services.smithery.api_key' => null]);
+
         $servers = collect(range(1, 15))->map(fn ($i) => [
             'server' => [
                 'name' => "io.github.user/server-{$i}",
@@ -283,11 +285,14 @@ describe('Skills Registry UI', function () {
             ->call('searchRegistry');
 
         $component->assertHasNoErrors()
-            ->assertSee('io.github.user/server-1');
+            ->assertSee('io.github.user/server-1')
+            ->assertSee('Next', false)
+            ->assertSee('2', false);
 
         $paginator = $component->instance()->paginatedResults();
         expect($paginator->total())->toBe(15)
-            ->and($paginator->hasPages())->toBeTrue();
+            ->and($paginator->hasPages())->toBeTrue()
+            ->and($paginator->count())->toBe(10);
     });
 
     it('can import a skill from registry results', function () {
