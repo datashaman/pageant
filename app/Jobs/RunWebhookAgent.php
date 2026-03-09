@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
+use App\Models\UserApiKey;
 use App\Models\WorkItem;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -45,16 +46,51 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $conversationId,
         );
 
-        $response = $webhookAgent->prompt($this->eventContext);
+        $providerName = $webhookAgent->provider();
+        $originalKey = config("ai.providers.{$providerName}.key");
 
-        if ($workItem && $conversationId) {
-            $provider = Ai::textProviderFor($webhookAgent, $webhookAgent->provider());
-            $model = $webhookAgent->model() ?? $provider->defaultTextModel();
+        try {
+            $this->injectUserApiKey($providerName);
 
-            $prompt = new AgentPrompt($webhookAgent, $this->eventContext, [], $provider, $model);
+            $provider = Ai::textProviderFor($webhookAgent, $providerName);
+            $resolvedModel = match ($this->agent->model) {
+                'cheapest' => $provider->cheapestTextModel(),
+                'smartest' => $provider->smartestTextModel(),
+                default => $webhookAgent->model() ?? $provider->defaultTextModel(),
+            };
 
-            $store->storeUserMessage($conversationId, null, $prompt);
-            $store->storeAssistantMessage($conversationId, null, $prompt, $response);
+            $response = $webhookAgent->prompt($this->eventContext, model: $resolvedModel);
+
+            if ($workItem && $conversationId) {
+                $prompt = new AgentPrompt($webhookAgent, $this->eventContext, [], $provider, $resolvedModel);
+
+                $store->storeUserMessage($conversationId, null, $prompt);
+                $store->storeAssistantMessage($conversationId, null, $prompt, $response);
+            }
+        } finally {
+            config(["ai.providers.{$providerName}.key" => $originalKey]);
+        }
+    }
+
+    protected function injectUserApiKey(string $providerName): void
+    {
+        $organization = $this->agent->organization;
+
+        if (! $organization) {
+            return;
+        }
+
+        $ownerIds = $organization->users()->pluck('users.id');
+
+        $userApiKey = UserApiKey::query()
+            ->whereIn('user_id', $ownerIds)
+            ->where('provider', $providerName)
+            ->valid()
+            ->latest('validated_at')
+            ->first();
+
+        if ($userApiKey) {
+            config(["ai.providers.{$providerName}.key" => $userApiKey->api_key]);
         }
     }
 

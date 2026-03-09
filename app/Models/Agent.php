@@ -45,7 +45,12 @@ class Agent extends Model
      */
     protected function modelDisplayName(): Attribute
     {
-        return Attribute::get(fn (): string => $this->model === 'inherit' ? 'Default' : $this->model);
+        return Attribute::get(fn (): string => match ($this->model) {
+            'inherit' => 'Default',
+            'cheapest' => 'Cheapest',
+            'smartest' => 'Smartest',
+            default => $this->model,
+        });
     }
 
     public function organization(): BelongsTo
