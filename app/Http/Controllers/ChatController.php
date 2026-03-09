@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Ai\Agents\PageantAssistant;
 use App\Models\Repo;
+use App\Models\UserApiKey;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,9 +51,22 @@ class ChatController extends Controller
 
         $this->ensureConversationExists($assistant, $user, $message);
 
+        $defaultProvider = config('ai.default', 'anthropic');
+        $originalKey = config("ai.providers.{$defaultProvider}.key");
+
+        $userApiKey = UserApiKey::query()
+            ->where('user_id', $user->id)
+            ->where('provider', $defaultProvider)
+            ->valid()
+            ->first();
+
+        if ($userApiKey) {
+            config(["ai.providers.{$defaultProvider}.key" => $userApiKey->api_key]);
+        }
+
         $streamable = $assistant->stream($message);
 
-        return response()->stream(function () use ($assistant, $user, $streamable) {
+        return response()->stream(function () use ($assistant, $user, $streamable, $defaultProvider, $originalKey) {
             $flush = function () {
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -113,6 +127,8 @@ class ChatController extends Controller
 
             echo "data: [DONE]\n\n";
             $flush();
+
+            config(["ai.providers.{$defaultProvider}.key" => $originalKey]);
         }, headers: ['Content-Type' => 'text/event-stream']);
     }
 
