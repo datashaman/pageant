@@ -18,11 +18,14 @@ beforeEach(function () {
         'source_reference' => 'org/my-repo',
     ]);
     $this->project = Project::factory()->for($this->organization)->create();
-    $this->workItem = WorkItem::factory()->for($this->organization)->create([
-        'source' => 'github',
-        'source_reference' => 'org/my-repo#1',
-        'source_url' => 'https://github.com/org/my-repo/issues/1',
-    ]);
+    $this->workItem = WorkItem::factory()
+        ->for($this->organization)
+        ->forProject($this->project)
+        ->create([
+            'source' => 'github',
+            'source_reference' => 'org/my-repo#1',
+            'source_url' => 'https://github.com/org/my-repo/issues/1',
+        ]);
 
     $mock = Mockery::mock(GitHubService::class);
     $mock->shouldReceive('listIssues')->andReturn([]);
