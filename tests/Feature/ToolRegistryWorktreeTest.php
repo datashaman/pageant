@@ -53,10 +53,10 @@ it('includes worktree category in groupedByCategory', function () {
     $categories = ToolRegistry::groupedByCategory();
 
     expect($categories)->toHaveKeys(['github', 'pageant', 'worktree'])
-        ->and($categories['worktree'])->toHaveKeys(['Worktree Files', 'Worktree Commands', 'Worktree Git'])
-        ->and($categories['worktree']['Worktree Files'])->toHaveKeys(['read_file', 'write_file', 'edit_file', 'glob', 'grep', 'list_directory'])
-        ->and($categories['worktree']['Worktree Commands'])->toHaveKeys(['bash'])
-        ->and($categories['worktree']['Worktree Git'])->toHaveKeys(['git_status', 'git_diff', 'git_commit', 'git_push', 'git_log']);
+        ->and($categories['worktree'])->toHaveKeys(['Files', 'Commands', 'Git'])
+        ->and($categories['worktree']['Files'])->toHaveKeys(['read_file', 'write_file', 'edit_file', 'glob', 'grep', 'list_directory'])
+        ->and($categories['worktree']['Commands'])->toHaveKeys(['bash'])
+        ->and($categories['worktree']['Git'])->toHaveKeys(['git_status', 'git_diff', 'git_commit', 'git_push', 'git_log']);
 });
 
 it('excludes worktree tools from githubToolNames', function () {
