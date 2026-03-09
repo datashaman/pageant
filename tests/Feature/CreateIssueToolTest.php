@@ -129,6 +129,66 @@ it('does not duplicate work item when issue already has one', function () {
     expect(WorkItem::where('source_reference', 'acme/widgets#101')->count())->toBe(1);
 });
 
+it('returns work_item_error when work item creation fails', function () {
+    Event::fake([WorkItemCreated::class]);
+
+    $github = $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('createIssue')
+            ->once()
+            ->andReturn([
+                'number' => 105,
+                'title' => 'Fails linking',
+                'state' => 'open',
+                'html_url' => 'https://github.com/acme/widgets/issues/105',
+            ]);
+    });
+
+    // Delete the repo so createWorkItem will fail when looking up organization_id
+    $this->repo->delete();
+
+    $tool = new CreateIssueTool($github, $this->installation, 'acme/widgets');
+
+    $result = $tool->handle(new Request(['title' => 'Fails linking']));
+
+    $decoded = json_decode($result, true);
+
+    expect($decoded)
+        ->toHaveKey('issue')
+        ->toHaveKey('work_item_error');
+
+    expect($decoded['issue']['number'])->toBe(105);
+    expect($decoded['work_item_error'])->toContain('Failed to create Pageant work item');
+});
+
+it('handles string false for skip_work_item correctly', function () {
+    Event::fake([WorkItemCreated::class]);
+
+    $github = $this->mock(GitHubService::class, function (MockInterface $mock) {
+        $mock->shouldReceive('createIssue')
+            ->once()
+            ->andReturn([
+                'number' => 106,
+                'title' => 'String false test',
+                'body' => 'Test body',
+                'state' => 'open',
+                'html_url' => 'https://github.com/acme/widgets/issues/106',
+            ]);
+    });
+
+    $tool = new CreateIssueTool($github, $this->installation, 'acme/widgets');
+
+    // String 'false' should be treated as false (do NOT skip)
+    $result = $tool->handle(new Request(['title' => 'String false test', 'body' => 'Test body', 'skip_work_item' => 'false']));
+
+    $decoded = json_decode($result, true);
+
+    expect($decoded)->toHaveKey('work_item');
+
+    $this->assertDatabaseHas('work_items', [
+        'source_reference' => 'acme/widgets#106',
+    ]);
+});
+
 it('resolves repo and installation when not provided to constructor', function () {
     Event::fake([WorkItemCreated::class]);
 

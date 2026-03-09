@@ -8,6 +8,7 @@ use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Str;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
@@ -29,9 +30,8 @@ class CreateIssueTool implements Tool
         $repoFullName = $this->repoFullName ?? $request['repo'];
         $installation = $this->installation;
 
-        $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
-
         if (! $installation) {
+            $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
             $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
         }
 
@@ -47,9 +47,18 @@ class CreateIssueTool implements Tool
 
         $result = ['issue' => $issue];
 
-        if (empty($request['skip_work_item'])) {
-            $workItem = $this->createWorkItem($repo, $installation, $repoFullName, $issue);
-            $result['work_item'] = $workItem->toArray();
+        $skipWorkItem = isset($request['skip_work_item'])
+            ? filter_var($request['skip_work_item'], FILTER_VALIDATE_BOOLEAN)
+            : false;
+
+        if (! $skipWorkItem) {
+            try {
+                $repo ??= Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
+                $workItem = $this->createWorkItem($repo, $installation, $repoFullName, $issue);
+                $result['work_item'] = $workItem->toArray();
+            } catch (\Throwable $e) {
+                $result['work_item_error'] = 'Failed to create Pageant work item: '.$e->getMessage();
+            }
         }
 
         return json_encode($result, JSON_PRETTY_PRINT);
@@ -66,7 +75,7 @@ class CreateIssueTool implements Tool
             [
                 'project_id' => $repo->inferProjectId(),
                 'title' => $issue['title'],
-                'description' => $issue['body'] ?? '',
+                'description' => Str::limit($issue['body'] ?? '', 252),
                 'source_url' => $issue['html_url'] ?? '',
             ]
         );

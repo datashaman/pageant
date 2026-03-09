@@ -8,6 +8,7 @@ use App\Models\Repo;
 use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -51,9 +52,17 @@ class CreateIssueTool extends Tool
 
         $result = ['issue' => $issue];
 
-        if (empty($validated['skip_work_item'])) {
-            $workItem = $this->createWorkItem($repo, $installation, $validated['repo'], $issue);
-            $result['work_item'] = $workItem->toArray();
+        $skipWorkItem = isset($validated['skip_work_item'])
+            ? filter_var($validated['skip_work_item'], FILTER_VALIDATE_BOOLEAN)
+            : false;
+
+        if (! $skipWorkItem) {
+            try {
+                $workItem = $this->createWorkItem($repo, $installation, $validated['repo'], $issue);
+                $result['work_item'] = $workItem->toArray();
+            } catch (\Throwable $e) {
+                $result['work_item_error'] = 'Failed to create Pageant work item: '.$e->getMessage();
+            }
         }
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));
@@ -70,7 +79,7 @@ class CreateIssueTool extends Tool
             [
                 'project_id' => $repo->inferProjectId(),
                 'title' => $issue['title'],
-                'description' => $issue['body'] ?? '',
+                'description' => Str::limit($issue['body'] ?? '', 252),
                 'source_url' => $issue['html_url'] ?? '',
             ]
         );
