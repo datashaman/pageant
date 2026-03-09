@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Events;
+
+use App\Models\Plan;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class PlanLimitReached implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
+    public function __construct(
+        public Plan $plan,
+        public string $progressSummary,
+    ) {}
+
+    /**
+     * @return array<int, \Illuminate\Broadcasting\Channel>
+     */
+    public function broadcastOn(): array
+    {
+        return [
+            new PrivateChannel('organization.'.$this->plan->organization_id),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function broadcastWith(): array
+    {
+        return [
+            'plan_id' => $this->plan->id,
+            'work_item_id' => $this->plan->work_item_id,
+            'status' => $this->plan->status,
+            'progress_summary' => $this->progressSummary,
+        ];
+    }
+}
