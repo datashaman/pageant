@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FailureCategory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,8 @@ class PlanStep extends Model
         'completed_at',
         'result',
         'conversation_id',
+        'failure_category',
+        'retry_attempts',
     ];
 
     protected function casts(): array
@@ -32,6 +35,8 @@ class PlanStep extends Model
             'depends_on' => 'array',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'failure_category' => FailureCategory::class,
+            'retry_attempts' => 'integer',
         ];
     }
 

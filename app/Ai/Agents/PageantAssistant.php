@@ -5,7 +5,7 @@ namespace App\Ai\Agents;
 use App\Ai\ToolRegistry;
 use App\Models\User;
 use App\Services\ConversationCompressor;
-use App\Services\RepoInstructionsService;
+use App\Services\PromptAssembler;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Concerns\RemembersConversations;
@@ -64,7 +64,7 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
     protected function loadRepoInstructions(): string
     {
         try {
-            return app(RepoInstructionsService::class)->loadForRepo($this->repoFullName);
+            return app(PromptAssembler::class)->assembleRepoInstructions($this->repoFullName);
         } catch (\Throwable) {
             return '';
         }

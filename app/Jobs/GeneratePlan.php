@@ -6,6 +6,7 @@ use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\Plan;
 use App\Models\WorkItem;
+use App\Services\AgentMemoryService;
 use App\Services\WorktreeManager;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,7 +27,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         return "generate-plan:{$this->workItem->id}";
     }
 
-    public function handle(WorktreeManager $worktreeManager): void
+    public function handle(WorktreeManager $worktreeManager, AgentMemoryService $memoryService): void
     {
         if ($this->workItem->activePlan()) {
             return;
@@ -62,7 +63,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         );
 
         try {
-            $response = $webhookAgent->prompt($this->buildPrompt());
+            $response = $webhookAgent->prompt($this->buildPrompt($memoryService));
             $this->savePlan($response);
         } catch (\Throwable $e) {
             Log::error('GeneratePlan: agent execution failed', [
@@ -91,7 +92,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
     }
 
-    protected function buildPrompt(): string
+    protected function buildPrompt(AgentMemoryService $memoryService): string
     {
         $parts = [
             'You are researching a codebase to create an execution plan for a work item.',
@@ -108,6 +109,17 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $parts[] = "Source URL: {$this->workItem->source_url}";
         }
 
+        $repoId = $memoryService->resolveRepoIdFromWorkItem($this->workItem);
+        $memoryContext = $memoryService->buildContext(
+            $this->workItem->organization_id,
+            $repoId,
+        );
+
+        if ($memoryContext) {
+            $parts[] = '';
+            $parts[] = $memoryContext;
+        }
+
         $parts[] = '';
         $parts[] = '## Instructions';
         $parts[] = '1. Explore the codebase structure to understand how the project is organized.';
@@ -118,6 +130,9 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $parts[] = '   - A recommended sequence of steps to implement the work item';
         $parts[] = '   - Any potential risks or considerations';
         $parts[] = '4. Be specific and actionable in your plan.';
+        if ($memoryContext) {
+            $parts[] = '5. Consider any prior learnings listed above when making your plan.';
+        }
 
         return implode("\n", $parts);
     }

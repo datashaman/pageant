@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Ai\Agents\PageantAssistant;
 use App\Models\Repo;
+use App\Models\UserApiKey;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Ai\Ai;
 use Laravel\Ai\Contracts\ConversationStore;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -19,6 +21,7 @@ class ChatController extends Controller
             'message' => ['required', 'string', 'max:10000'],
             'conversation_id' => ['nullable', 'string', 'max:36'],
             'page_context' => ['nullable', 'string', 'max:2000'],
+            'model' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = $request->user();
@@ -50,9 +53,24 @@ class ChatController extends Controller
 
         $this->ensureConversationExists($assistant, $user, $message);
 
-        $streamable = $assistant->stream($message);
+        [$streamProvider, $streamModel] = $this->resolveModelSelection($request->input('model'));
 
-        return response()->stream(function () use ($assistant, $user, $streamable) {
+        $providerToInject = $streamProvider ?? config('ai.default', 'anthropic');
+        $originalKey = config("ai.providers.{$providerToInject}.key");
+
+        $userApiKey = UserApiKey::query()
+            ->where('user_id', $user->id)
+            ->where('provider', $providerToInject)
+            ->valid()
+            ->first();
+
+        if ($userApiKey) {
+            config(["ai.providers.{$providerToInject}.key" => $userApiKey->api_key]);
+        }
+
+        $streamable = $assistant->stream($message, provider: $streamProvider, model: $streamModel);
+
+        return response()->stream(function () use ($assistant, $user, $streamable, $providerToInject, $originalKey) {
             $flush = function () {
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -113,6 +131,8 @@ class ChatController extends Controller
 
             echo "data: [DONE]\n\n";
             $flush();
+
+            config(["ai.providers.{$providerToInject}.key" => $originalKey]);
         }, headers: ['Content-Type' => 'text/event-stream']);
     }
 
@@ -273,6 +293,38 @@ class ChatController extends Controller
         }
 
         return implode('. ', $lines);
+    }
+
+    /**
+     * Resolve the provider and model from the model selection string.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    protected function resolveModelSelection(?string $selection): array
+    {
+        if (! $selection) {
+            return [null, null];
+        }
+
+        if (in_array($selection, ['cheapest', 'smartest'])) {
+            $defaultProvider = config('ai.default', 'anthropic');
+            $provider = Ai::textProviderFor(new PageantAssistant(auth()->user()), $defaultProvider);
+
+            $model = match ($selection) {
+                'cheapest' => $provider->cheapestTextModel(),
+                'smartest' => $provider->smartestTextModel(),
+            };
+
+            return [$defaultProvider, $model];
+        }
+
+        if (str_contains($selection, ':')) {
+            [$provider, $model] = explode(':', $selection, 2);
+
+            return [$provider, $model];
+        }
+
+        return [null, $selection];
     }
 
     public function messages(Request $request): JsonResponse

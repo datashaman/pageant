@@ -21,6 +21,7 @@ class Organization extends Model
     protected $fillable = [
         'name',
         'slug',
+        'policies',
         'command_allowlist',
         'command_denylist',
         'planning_agent_id',
@@ -80,5 +81,10 @@ class Organization extends Model
     public function githubInstallation(): HasOne
     {
         return $this->hasOne(GithubInstallation::class);
+    }
+
+    public function agentMemories(): HasMany
+    {
+        return $this->hasMany(AgentMemory::class);
     }
 }
