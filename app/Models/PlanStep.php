@@ -23,6 +23,8 @@ class PlanStep extends Model
         'started_at',
         'completed_at',
         'result',
+        'progress_summary',
+        'turns_used',
         'conversation_id',
         'failure_category',
         'retry_attempts',
@@ -68,5 +70,10 @@ class PlanStep extends Model
     public function isFailed(): bool
     {
         return $this->status === 'failed';
+    }
+
+    public function isPartial(): bool
+    {
+        return $this->status === 'partial';
     }
 }

@@ -6,8 +6,10 @@ use App\Ai\Agents\GitHubWebhookAgent;
 use App\Contracts\ExecutionDriver;
 use App\Events\PlanCompleted;
 use App\Events\PlanFailed;
+use App\Events\PlanLimitReached;
 use App\Events\PlanStepCompleted;
 use App\Events\PlanStepFailed;
+use App\Events\PlanStepPartial;
 use App\Models\Plan;
 use App\Models\PlanStep;
 use App\Models\WorkItem;
@@ -18,6 +20,8 @@ use Laravel\Ai\Prompts\AgentPrompt;
 
 class WorkItemOrchestrator
 {
+    protected const TURN_WARNING_THRESHOLD = 0.8;
+
     public function __construct(
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
@@ -40,6 +44,8 @@ class WorkItemOrchestrator
 
         $workItem = $plan->workItem;
         $driver = $this->resolveDriver($workItem);
+        $totalSteps = $plan->steps->count();
+        $executedSteps = 0;
 
         try {
             foreach ($plan->steps as $step) {
@@ -53,7 +59,10 @@ class WorkItemOrchestrator
                     continue;
                 }
 
-                $this->executeStep($step, $workItem, $driver);
+                $isApproachingLimit = $this->isApproachingStepLimit($step->order, $totalSteps);
+                $executedSteps++;
+
+                $this->executeStep($step, $workItem, $driver, $isApproachingLimit);
 
                 if ($step->isFailed()) {
                     $this->skipRemainingSteps($plan);
@@ -64,6 +73,22 @@ class WorkItemOrchestrator
                     ]);
 
                     PlanFailed::dispatch($plan);
+
+                    return;
+                }
+
+                if ($step->isPartial()) {
+                    $progressSummary = $this->buildProgressSummary($plan);
+
+                    $this->skipRemainingSteps($plan);
+
+                    $plan->update([
+                        'status' => 'failed',
+                        'completed_at' => now(),
+                    ]);
+
+                    PlanFailed::dispatch($plan);
+                    PlanLimitReached::dispatch($plan, $progressSummary);
 
                     return;
                 }
@@ -130,7 +155,16 @@ class WorkItemOrchestrator
             ->update(['status' => 'skipped']);
     }
 
-    protected function executeStep(PlanStep $step, WorkItem $workItem, ?ExecutionDriver $driver): void
+    protected function isApproachingStepLimit(int $stepOrder, int $totalSteps): bool
+    {
+        if ($totalSteps <= 0) {
+            return false;
+        }
+
+        return ((float) $stepOrder / $totalSteps) >= static::TURN_WARNING_THRESHOLD;
+    }
+
+    protected function executeStep(PlanStep $step, WorkItem $workItem, ?ExecutionDriver $driver, bool $isApproachingLimit = false): void
     {
         $step->update([
             'status' => 'running',
@@ -144,10 +178,13 @@ class WorkItemOrchestrator
 
         $step->update(['conversation_id' => $conversationId]);
 
-        $priorContext = null;
+        $priorContext = $this->buildPriorStepsContext($step);
+        $turnWarning = $this->buildTurnLimitWarning($step, $isApproachingLimit);
+
         $prompt = implode("\n\n", array_filter([
             $priorContext,
             "## Your Task\n\n{$step->description}",
+            $turnWarning,
             $this->retryCapInstructions(),
         ]));
 
@@ -197,6 +234,20 @@ class WorkItemOrchestrator
 
                 return;
             } catch (\Throwable $e) {
+                if ($this->isTimeoutException($e)) {
+                    $step->update([
+                        'status' => 'partial',
+                        'completed_at' => now(),
+                        'result' => 'Partial: Step reached its execution limit.',
+                        'progress_summary' => "Step was interrupted due to timeout. Task: {$step->description}",
+                        'retry_attempts' => $attempt - 1,
+                    ]);
+
+                    PlanStepPartial::dispatch($step);
+
+                    return;
+                }
+
                 $lastException = $e;
                 $category = $this->failureClassifier->classify($e);
                 $policy = RetryPolicy::forCategory($category);
@@ -261,6 +312,76 @@ class WorkItemOrchestrator
         return implode("\n", $lines);
     }
 
+    protected function buildTurnLimitWarning(PlanStep $step, bool $isApproachingLimit): ?string
+    {
+        $maxTurns = $step->agent->max_turns;
+
+        $parts = [];
+
+        if ($maxTurns > 0) {
+            $parts[] = "You have a maximum of {$maxTurns} tool-calling turns for this step. Use them efficiently.";
+        }
+
+        if ($isApproachingLimit) {
+            $parts[] = "IMPORTANT: You are approaching the plan's step limit. Summarize your progress and any remaining work clearly in your response. Focus on completing the most critical parts of your task.";
+        }
+
+        if (empty($parts)) {
+            return null;
+        }
+
+        return "## Execution Limits\n\n".implode("\n\n", $parts);
+    }
+
+    protected function isTimeoutException(\Throwable $e): bool
+    {
+        if ($e instanceof \Illuminate\Http\Client\ConnectionException) {
+            return true;
+        }
+
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'timeout')
+            || str_contains($message, 'timed out')
+            || str_contains($message, 'max steps')
+            || str_contains($message, 'maximum number of steps')
+            || str_contains($message, 'max steps exceeded');
+    }
+
+    protected function buildProgressSummary(Plan $plan): string
+    {
+        $plan->load('steps');
+
+        $completed = [];
+        $partial = [];
+        $remaining = [];
+
+        foreach ($plan->steps as $step) {
+            match ($step->status) {
+                'completed' => $completed[] = "- Step {$step->order}: {$step->description}".($step->result ? " ({$step->result})" : ''),
+                'partial' => $partial[] = "- Step {$step->order}: {$step->description}".($step->progress_summary ? " — {$step->progress_summary}" : ''),
+                'pending', 'skipped' => $remaining[] = "- Step {$step->order}: {$step->description}",
+                default => null,
+            };
+        }
+
+        $sections = [];
+
+        if (! empty($completed)) {
+            $sections[] = "## Completed Steps\n".implode("\n", $completed);
+        }
+
+        if (! empty($partial)) {
+            $sections[] = "## Partially Completed Steps\n".implode("\n", $partial);
+        }
+
+        if (! empty($remaining)) {
+            $sections[] = "## Remaining Steps\n".implode("\n", $remaining);
+        }
+
+        return implode("\n\n", $sections);
+    }
+
     protected const MAX_PRIOR_STEPS = 3;
 
     protected const PRIOR_CONTEXT_BUDGET = 2000;
@@ -269,7 +390,7 @@ class WorkItemOrchestrator
     {
         $priorSteps = $step->plan->steps()
             ->where('order', '<', $step->order)
-            ->whereIn('status', ['completed', 'failed', 'skipped'])
+            ->whereIn('status', ['completed', 'failed', 'partial', 'skipped'])
             ->reorder('order', 'desc')
             ->take(static::MAX_PRIOR_STEPS)
             ->get()
@@ -285,13 +406,17 @@ class WorkItemOrchestrator
         foreach ($priorSteps as $prior) {
             $icon = match ($prior->status) {
                 'completed' => 'DONE',
+                'partial' => 'PARTIAL',
                 'failed' => 'FAILED',
                 'skipped' => 'SKIPPED',
                 default => '?',
             };
 
-            $result = $prior->result ? " — {$prior->result}" : '';
-            $formattedLines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+            $detail = $prior->status === 'partial' && $prior->progress_summary
+                ? $prior->progress_summary
+                : ($prior->result ?? '');
+            $resultSuffix = $detail !== '' ? " — {$detail}" : '';
+            $formattedLines[] = "{$prior->order}. [{$icon}] {$prior->description}{$resultSuffix}";
         }
 
         $selected = [];

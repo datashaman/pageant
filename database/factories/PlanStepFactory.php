@@ -46,6 +46,17 @@ class PlanStepFactory extends Factory
         ]);
     }
 
+    public function partial(): static
+    {
+        return $this->state(fn () => [
+            'status' => 'partial',
+            'started_at' => now()->subMinutes(5),
+            'completed_at' => now(),
+            'result' => 'Partial: Step reached its execution limit.',
+            'progress_summary' => fake()->sentence(),
+        ]);
+    }
+
     public function failedWithCategory(FailureCategory $category, int $retryAttempts = 0): static
     {
         return $this->failed()->state(fn () => [
