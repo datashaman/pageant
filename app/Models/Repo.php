@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Repo extends Model
 {
@@ -42,6 +43,19 @@ class Repo extends Model
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class);
+    }
+
+    public function indices(): HasMany
+    {
+        return $this->hasMany(RepoIndex::class);
+    }
+
+    /**
+     * Get the latest structural index for this repo.
+     */
+    public function latestIndex(): ?RepoIndex
+    {
+        return $this->indices()->latest()->first();
     }
 
     /**
