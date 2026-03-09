@@ -26,6 +26,32 @@ new #[Title('Create Agent')] class extends Component {
     public array $selectedSkills = [];
     public array $selectedRepos = [];
 
+    /** @return array<string, string> */
+    #[Computed]
+    public function availableModels(): array
+    {
+        return match ($this->provider) {
+            'anthropic' => [
+                'claude-opus-4-6' => 'Claude Opus 4.6',
+                'claude-sonnet-4-6' => 'Claude Sonnet 4.6',
+                'claude-haiku-4-5-20251001' => 'Claude Haiku 4.5',
+            ],
+            'openai' => [
+                'gpt-4.1' => 'GPT-4.1',
+                'gpt-4.1-mini' => 'GPT-4.1 Mini',
+                'gpt-4.1-nano' => 'GPT-4.1 Nano',
+                'o3' => 'o3',
+                'o4-mini' => 'o4-mini',
+            ],
+            'gemini' => [
+                'gemini-2.5-pro' => 'Gemini 2.5 Pro',
+                'gemini-2.5-flash' => 'Gemini 2.5 Flash',
+                'gemini-2.0-flash' => 'Gemini 2.0 Flash',
+            ],
+            default => [],
+        };
+    }
+
     #[Computed]
     public function toolCategories(): array
     {
@@ -279,9 +305,23 @@ new #[Title('Create Agent')] class extends Component {
                             <option value="">{{ __('Select Provider') }}</option>
                             <option value="anthropic">{{ __('Anthropic') }}</option>
                             <option value="openai">{{ __('OpenAI') }}</option>
+                            <option value="gemini">{{ __('Gemini') }}</option>
                         </flux:select>
 
-                        <flux:input wire:model="model" :label="__('Model')" type="text" />
+                        <flux:select wire:model="model" :label="__('Model')">
+                            <option value="inherit">{{ __('Default') }}</option>
+                            <optgroup label="{{ __('Strategy') }}">
+                                <option value="cheapest">{{ __('Cheapest Model') }}</option>
+                                <option value="smartest">{{ __('Smartest Model') }}</option>
+                            </optgroup>
+                            @if ($this->availableModels)
+                                <optgroup label="{{ __('Models') }}">
+                                    @foreach ($this->availableModels as $modelId => $modelLabel)
+                                        <option value="{{ $modelId }}">{{ $modelLabel }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
+                        </flux:select>
 
                         <flux:select wire:model="permission_mode" :label="__('Permission Mode')">
                             <option value="">{{ __('Select Permission Mode') }}</option>

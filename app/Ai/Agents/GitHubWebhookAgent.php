@@ -99,8 +99,9 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 
     public function model(): ?string
     {
-        $model = $this->agentModel->model;
-
-        return $model === 'inherit' ? null : $model;
+        return match ($this->agentModel->model) {
+            'inherit', 'cheapest', 'smartest' => null,
+            default => $this->agentModel->model,
+        };
     }
 }
