@@ -44,4 +44,8 @@ return [
         ],
     ],
 
+    'smithery' => [
+        'api_key' => env('SMITHERY_API_KEY'),
+    ],
+
 ];

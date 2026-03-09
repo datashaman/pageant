@@ -14,12 +14,14 @@ use App\Mcp\Tools\DeleteRepoTool;
 use App\Mcp\Tools\DetachRepoFromProjectTool;
 use App\Mcp\Tools\GetProjectTool;
 use App\Mcp\Tools\GetRepoTool;
+use App\Mcp\Tools\ImportRegistrySkillTool;
 use App\Mcp\Tools\ListAgentsTool;
 use App\Mcp\Tools\ListProjectsTool;
 use App\Mcp\Tools\ListReposTool;
 use App\Mcp\Tools\ListSkillsTool;
 use App\Mcp\Tools\ReopenWorkItemTool;
 use App\Mcp\Tools\SearchAgentsTool;
+use App\Mcp\Tools\SearchRegistrySkillsTool;
 use App\Mcp\Tools\SearchSkillsTool;
 use App\Mcp\Tools\UpdateProjectTool;
 use App\Mcp\Tools\UpdateRepoTool;
@@ -64,6 +66,10 @@ class PageantServer extends Server
         SearchSkillsTool::class,
         CreateSkillTool::class,
         AttachSkillToAgentTool::class,
+
+        // Skill Registry
+        SearchRegistrySkillsTool::class,
+        ImportRegistrySkillTool::class,
     ];
 
     protected array $resources = [

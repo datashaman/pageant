@@ -14,6 +14,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::livewire('skills', 'pages::skills.index')->name('skills.index');
     Route::livewire('skills/create', 'pages::skills.create')->name('skills.create');
+    Route::livewire('skills/registry', 'pages::skills.registry')->name('skills.registry');
     Route::livewire('skills/{skill}', 'pages::skills.show')->name('skills.show');
     Route::livewire('skills/{skill}/edit', 'pages::skills.edit')->name('skills.edit');
 

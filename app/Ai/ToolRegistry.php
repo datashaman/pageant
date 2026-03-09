@@ -41,6 +41,7 @@ use App\Ai\Tools\GitPushTool;
 use App\Ai\Tools\GitStatusTool;
 use App\Ai\Tools\GlobTool;
 use App\Ai\Tools\GrepTool;
+use App\Ai\Tools\ImportRegistrySkillTool;
 use App\Ai\Tools\ListAgentsTool;
 use App\Ai\Tools\ListBranchesTool;
 use App\Ai\Tools\ListCheckRunsTool;
@@ -64,6 +65,7 @@ use App\Ai\Tools\RequestReviewersTool;
 use App\Ai\Tools\ResumePlanTool;
 use App\Ai\Tools\SearchAgentsTool;
 use App\Ai\Tools\SearchIssuesTool;
+use App\Ai\Tools\SearchRegistrySkillsTool;
 use App\Ai\Tools\SearchSkillsTool;
 use App\Ai\Tools\UpdateIssueTool;
 use App\Ai\Tools\UpdateProjectTool;
@@ -135,6 +137,8 @@ class ToolRegistry
         'search_skills' => ['class' => SearchSkillsTool::class, 'description' => 'Search skills by capability', 'group' => 'Skills', 'local' => true],
         'create_skill' => ['class' => CreateSkillTool::class, 'description' => 'Create a new skill', 'group' => 'Skills', 'local' => true],
         'attach_skill_to_agent' => ['class' => AttachSkillToAgentTool::class, 'description' => 'Attach a skill to an agent', 'group' => 'Skills', 'local' => true],
+        'search_registry_skills' => ['class' => SearchRegistrySkillsTool::class, 'description' => 'Search public registries for skills to import', 'group' => 'Skills', 'local' => true],
+        'import_registry_skill' => ['class' => ImportRegistrySkillTool::class, 'description' => 'Import a skill from a public registry', 'group' => 'Skills', 'local' => true],
 
         // Plans
         'create_plan' => ['class' => CreatePlanTool::class, 'description' => 'Create an execution plan for a work item', 'group' => 'Plans', 'local' => true],
