@@ -24,7 +24,7 @@ new #[Title('Browse Skill Registry')] class extends Component {
         $this->importError = '';
 
         $service = app(SkillRegistryService::class);
-        $this->results = $service->search($this->search, 20)->toArray();
+        $this->results = $service->search($this->search, 10)->toArray();
         $this->hasSearched = true;
         $this->isSearching = false;
     }
