@@ -91,11 +91,15 @@ new #[Title('Work Item')] class extends Component {
     public function close(): void
     {
         $this->workItem->update(['status' => 'closed']);
+        $this->workItem->refresh();
+
+        $this->dispatch('close-modal', id: 'confirm-close');
     }
 
     public function reopen(): void
     {
         $this->workItem->update(['status' => 'open']);
+        $this->workItem->refresh();
     }
 }; ?>
 
@@ -116,11 +120,11 @@ new #[Title('Work Item')] class extends Component {
                     {{ __('Edit') }}
                 </flux:button>
                 @if ($workItem->isOpen())
-                    <flux:button variant="ghost" wire:click="confirmClose">
+                    <flux:button variant="ghost" wire:click="confirmClose" wire:target="confirmClose">
                         {{ __('Close') }}
                     </flux:button>
                 @else
-                    <flux:button wire:click="reopen">
+                    <flux:button wire:click="reopen" wire:target="reopen">
                         {{ __('Reopen') }}
                     </flux:button>
                 @endif
@@ -305,7 +309,7 @@ new #[Title('Work Item')] class extends Component {
                 <flux:text>{{ __('Are you sure you want to close ":title"?', ['title' => $workItem->title]) }}</flux:text>
                 <div class="flex justify-end gap-3">
                     <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                    <flux:button variant="danger" wire:click="close">{{ __('Close') }}</flux:button>
+                    <flux:button variant="danger" wire:click="close" wire:target="close">{{ __('Close') }}</flux:button>
                 </div>
             </div>
         </flux:modal>

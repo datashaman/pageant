@@ -203,6 +203,7 @@ new #[Title('Work Items')] class extends Component {
         $workItem = WorkItem::query()->forCurrentOrganization()->findOrFail($id);
         $workItem->update(['status' => 'closed']);
 
+        unset($this->workItems);
         $this->dispatch('close-modal', id: 'confirm-close-' . $id);
     }
 
@@ -210,6 +211,8 @@ new #[Title('Work Items')] class extends Component {
     {
         $workItem = WorkItem::query()->forCurrentOrganization()->findOrFail($id);
         $workItem->update(['status' => 'open']);
+
+        unset($this->workItems);
     }
 }; ?>
 
@@ -311,11 +314,11 @@ new #[Title('Work Items')] class extends Component {
                                         {{ __('Edit') }}
                                     </flux:button>
                                     @if ($workItem->isOpen())
-                                        <flux:button size="sm" variant="ghost" wire:click="confirmClose('{{ $workItem->id }}')">
+                                        <flux:button size="sm" variant="ghost" wire:click="confirmClose('{{ $workItem->id }}')" wire:target="confirmClose('{{ $workItem->id }}')">
                                             {{ __('Close') }}
                                         </flux:button>
                                     @else
-                                        <flux:button size="sm" wire:click="reopen('{{ $workItem->id }}')">
+                                        <flux:button size="sm" wire:click="reopen('{{ $workItem->id }}')" wire:target="reopen('{{ $workItem->id }}')">
                                             {{ __('Reopen') }}
                                         </flux:button>
                                     @endif
@@ -327,7 +330,7 @@ new #[Title('Work Items')] class extends Component {
                                         <flux:text>{{ __('Are you sure you want to close ":title"?', ['title' => $workItem->title]) }}</flux:text>
                                         <div class="flex justify-end gap-3">
                                             <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                                            <flux:button variant="danger" wire:click="close('{{ $workItem->id }}')">{{ __('Close') }}</flux:button>
+                                            <flux:button variant="danger" wire:click="close('{{ $workItem->id }}')" wire:target="close('{{ $workItem->id }}')">{{ __('Close') }}</flux:button>
                                         </div>
                                     </div>
                                 </flux:modal>
@@ -416,16 +419,16 @@ new #[Title('Work Items')] class extends Component {
                                         </div>
                                     </div>
                                     <div class="ml-3 shrink-0">
-                                        <template x-if="tracked.includes(issueKey(issue))">
-                                            <flux:button size="sm" variant="ghost" x-on:click="$wire.untrackIssue(issueKey(issue)); $dispatch('issue-untracked', { sourceReference: issueKey(issue) })">
-                                                {{ __('Remove') }}
+                                        <div x-show="tracked.includes(issueKey(issue))">
+                                            <flux:button size="sm" variant="danger" x-on:click="$wire.untrackIssue(issueKey(issue)); $dispatch('issue-untracked', { sourceReference: issueKey(issue) })">
+                                                {{ __('Untrack') }}
                                             </flux:button>
-                                        </template>
-                                        <template x-if="!tracked.includes(issueKey(issue))">
+                                        </div>
+                                        <div x-show="!tracked.includes(issueKey(issue))">
                                             <flux:button size="sm" variant="primary" x-on:click="$wire.trackIssue(issue.number, issue.title, issue.html_url); $dispatch('issue-tracked', { sourceReference: issueKey(issue) })">
                                                 {{ __('Track') }}
                                             </flux:button>
-                                        </template>
+                                        </div>
                                     </div>
                                 </div>
                             </template>
