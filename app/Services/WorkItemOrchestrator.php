@@ -57,8 +57,8 @@ class WorkItemOrchestrator
                     continue;
                 }
 
+                $isApproachingLimit = $this->isApproachingStepLimit($step->order, $totalSteps);
                 $executedSteps++;
-                $isApproachingLimit = $this->isApproachingStepLimit($executedSteps, $totalSteps);
 
                 $this->executeStep($step, $workItem, $driver, $isApproachingLimit);
 
@@ -85,6 +85,7 @@ class WorkItemOrchestrator
                         'completed_at' => now(),
                     ]);
 
+                    PlanFailed::dispatch($plan);
                     PlanLimitReached::dispatch($plan, $progressSummary);
 
                     return;
@@ -133,13 +134,13 @@ class WorkItemOrchestrator
             ->update(['status' => 'skipped']);
     }
 
-    protected function isApproachingStepLimit(int $currentStep, int $totalSteps): bool
+    protected function isApproachingStepLimit(int $stepOrder, int $totalSteps): bool
     {
         if ($totalSteps <= 0) {
             return false;
         }
 
-        return ($currentStep / $totalSteps) >= static::TURN_WARNING_THRESHOLD;
+        return ((float) $stepOrder / $totalSteps) >= static::TURN_WARNING_THRESHOLD;
     }
 
     protected function executeStep(PlanStep $step, WorkItem $workItem, ?ExecutionDriver $driver, bool $isApproachingLimit = false): void
@@ -244,13 +245,17 @@ class WorkItemOrchestrator
 
     protected function isTimeoutException(\Throwable $e): bool
     {
+        if ($e instanceof \Illuminate\Http\Client\ConnectionException) {
+            return true;
+        }
+
         $message = strtolower($e->getMessage());
 
         return str_contains($message, 'timeout')
             || str_contains($message, 'timed out')
             || str_contains($message, 'max steps')
-            || str_contains($message, 'maximum')
-            || $e instanceof \Illuminate\Http\Client\ConnectionException;
+            || str_contains($message, 'maximum number of steps')
+            || str_contains($message, 'max steps exceeded');
     }
 
     protected function buildProgressSummary(Plan $plan): string
@@ -317,8 +322,11 @@ class WorkItemOrchestrator
                 default => '?',
             };
 
-            $result = $prior->result ? " — {$prior->result}" : '';
-            $formattedLines[] = "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+            $detail = $prior->status === 'partial' && $prior->progress_summary
+                ? $prior->progress_summary
+                : ($prior->result ?? '');
+            $resultSuffix = $detail !== '' ? " — {$detail}" : '';
+            $formattedLines[] = "{$prior->order}. [{$icon}] {$prior->description}{$resultSuffix}";
         }
 
         $selected = [];
