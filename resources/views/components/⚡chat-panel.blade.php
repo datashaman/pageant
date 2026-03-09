@@ -386,9 +386,14 @@ new class extends Component
                 rows="1"
                 class="flex-1 resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
             ></textarea>
-            <flux:button type="submit" variant="primary" size="sm" x-bind:disabled="!currentMessage.trim() || streaming">
-                <flux:icon.paper-airplane class="size-4" />
-            </flux:button>
+            <button
+                type="submit"
+                x-bind:disabled="!currentMessage.trim() || streaming"
+                class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-900 font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 disabled:hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:disabled:opacity-50 dark:disabled:hover:bg-zinc-100"
+            >
+                <flux:icon.paper-airplane class="size-4" x-show="!streaming" />
+                <flux:icon.arrow-path class="size-4 animate-spin" x-show="streaming" x-cloak />
+            </button>
         </form>
         <div class="mt-2 flex items-center justify-between">
             <select
