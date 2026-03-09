@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\WorkItemCreated;
 use App\Jobs\ReconcileWorkItemStatuses;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
@@ -165,7 +166,7 @@ new #[Title('Work Items')] class extends Component {
 
         $sourceReference = $repo->source_reference . '#' . $number;
 
-        WorkItem::query()->firstOrCreate(
+        $workItem = WorkItem::query()->firstOrCreate(
             [
                 'organization_id' => $repo->organization_id,
                 'source' => 'github',
@@ -178,6 +179,15 @@ new #[Title('Work Items')] class extends Component {
                 'board_id' => '',
             ]
         );
+
+        if ($workItem->wasRecentlyCreated) {
+            $installation = GithubInstallation::query()
+                ->where('organization_id', $repo->organization_id)
+                ->first();
+            if ($installation) {
+                WorkItemCreated::dispatch($workItem, $repo->source_reference, $installation->installation_id);
+            }
+        }
 
         unset($this->trackedIssueKeys);
     }

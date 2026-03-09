@@ -260,6 +260,41 @@ describe('Skills Registry UI', function () {
             ->assertSee('io.github.user/filesystem');
     });
 
+    it('shows pagination links when results exceed page size', function () {
+        config(['services.smithery.api_key' => null]);
+
+        $servers = collect(range(1, 15))->map(fn ($i) => [
+            'server' => [
+                'name' => "io.github.user/server-{$i}",
+                'description' => "Server {$i}",
+                'repository' => ['url' => "https://github.com/user/server-{$i}"],
+                'version' => '1.0.0',
+            ],
+        ])->all();
+
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => $servers,
+                'metadata' => ['count' => 15],
+            ]),
+        ]);
+
+        $component = Livewire\Livewire::actingAs($this->user)
+            ->test('pages::skills.registry')
+            ->set('search', 'server')
+            ->call('searchRegistry');
+
+        $component->assertHasNoErrors()
+            ->assertSee('io.github.user/server-1')
+            ->assertSee('Next', false)
+            ->assertSee('2', false);
+
+        $paginator = $component->instance()->paginatedResults();
+        expect($paginator->total())->toBe(15)
+            ->and($paginator->hasPages())->toBeTrue()
+            ->and($paginator->count())->toBe(10);
+    });
+
     it('can import a skill from registry results', function () {
         Http::fake([
             'https://registry.modelcontextprotocol.io/*' => Http::response([

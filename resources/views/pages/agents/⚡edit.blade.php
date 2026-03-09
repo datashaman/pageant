@@ -98,6 +98,22 @@ new #[Title('Edit Agent')] class extends Component {
         $this->selectedEventKeys = array_values(array_unique($this->selectedEventKeys));
     }
 
+    /** @return array<string, bool> */
+    #[Computed]
+    public function availableProviders(): array
+    {
+        $user = auth()->user();
+        $userKeyProviders = $user->apiKeys()->valid()->pluck('provider')->toArray();
+
+        $providers = [];
+        foreach (['anthropic', 'openai', 'gemini'] as $provider) {
+            $providers[$provider] = ! empty(config("ai.providers.{$provider}.key"))
+                || in_array($provider, $userKeyProviders);
+        }
+
+        return $providers;
+    }
+
     /** @return array<string, string> */
     #[Computed]
     public function availableModels(): array
@@ -371,9 +387,9 @@ new #[Title('Edit Agent')] class extends Component {
 
                         <flux:select wire:model="provider" :label="__('Provider')">
                             <option value="">{{ __('Select Provider') }}</option>
-                            <option value="anthropic">{{ __('Anthropic') }}</option>
-                            <option value="openai">{{ __('OpenAI') }}</option>
-                            <option value="gemini">{{ __('Gemini') }}</option>
+                            <option value="anthropic" @disabled(! $this->availableProviders['anthropic'])>{{ __('Anthropic') }}</option>
+                            <option value="openai" @disabled(! $this->availableProviders['openai'])>{{ __('OpenAI') }}</option>
+                            <option value="gemini" @disabled(! $this->availableProviders['gemini'])>{{ __('Gemini') }}</option>
                         </flux:select>
 
                         <flux:select wire:model="model" :label="__('Model')">

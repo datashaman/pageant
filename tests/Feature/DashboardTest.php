@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Organization;
 use App\Models\User;
+use App\Models\WorkItem;
 use Livewire\Livewire;
 
 test('guests are redirected to the login page', function () {
@@ -61,4 +63,19 @@ test('dashboard cards display icons', function () {
     preg_match_all('/<svg\b/', $html, $svgMatches);
 
     expect(count($svgMatches[0]))->toBe(5, 'Expected exactly 5 SVG icons for the 5 dashboard cards');
+});
+
+test('work item count shows only open items', function () {
+    $user = User::factory()->create();
+    $organization = Organization::factory()->create();
+    $user->organizations()->attach($organization);
+    $user->update(['current_organization_id' => $organization->id]);
+
+    WorkItem::factory()->for($organization)->create();
+    WorkItem::factory()->for($organization)->closed()->create();
+    WorkItem::factory()->for($organization)->closed()->create();
+
+    $component = Livewire::actingAs($user)->test('pages::dashboard');
+
+    expect($component->instance()->workItemCount)->toBe(1);
 });

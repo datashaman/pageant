@@ -1,9 +1,11 @@
 <?php
 
 use App\Jobs\ExecutePlan;
+use App\Jobs\GeneratePlan;
 use App\Models\Plan;
 use App\Models\WorkItem;
 use App\Services\WorkItemOrchestrator;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -101,6 +103,19 @@ new #[Title('Work Item')] class extends Component {
         $this->workItem->update(['status' => 'open']);
         $this->workItem->refresh();
     }
+
+    public function generatePlan(): void
+    {
+        $repoFullName = $this->workItem->source === 'github' && $this->workItem->source_reference
+            ? Str::before($this->workItem->source_reference, '#')
+            : '';
+
+        if ($repoFullName) {
+            GeneratePlan::dispatch($this->workItem, $repoFullName);
+        }
+
+        unset($this->plans);
+    }
 }; ?>
 
 <div class="w-full" data-chat-context="{{ json_encode(['page' => 'work-items.show', 'work_item_id' => $workItem->id, 'work_item_title' => $workItem->title, 'work_item_description' => Str::limit($workItem->description, 200), 'project' => $workItem->project?->name, 'source' => $workItem->source, 'source_reference' => $workItem->source_reference]) }}">
@@ -194,7 +209,16 @@ new #[Title('Work Item')] class extends Component {
 
         {{-- Plans Section --}}
         <div class="space-y-4">
-            <flux:heading size="lg">{{ __('Plans') }}</flux:heading>
+            <div class="flex items-center justify-between">
+                <flux:heading size="lg">{{ __('Plans') }}</flux:heading>
+                @if ($workItem->isOpen() && $workItem->source === 'github' && $workItem->source_reference && ! $this->plans->contains(fn ($p) => $p->isPending() || $p->isApproved() || $p->isRunning() || $p->isPaused()))
+                    <flux:button size="sm" variant="primary" wire:click="generatePlan" wire:target="generatePlan">
+                        <flux:icon.bolt class="size-4" wire:loading.remove wire:target="generatePlan" />
+                        <flux:icon.arrow-path class="size-4 animate-spin" wire:loading wire:target="generatePlan" />
+                        {{ __('Generate Plan') }}
+                    </flux:button>
+                @endif
+            </div>
 
             @forelse ($this->plans as $plan)
                 <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-4 space-y-4" wire:key="plan-{{ $plan->id }}">
