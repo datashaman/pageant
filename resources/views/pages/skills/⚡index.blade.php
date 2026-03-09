@@ -65,9 +65,14 @@ new #[Title('Skills')] class extends Component {
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Skills') }}</flux:heading>
-            <flux:button variant="primary" href="{{ route('skills.create') }}" wire:navigate>
-                {{ __('Create Skill') }}
-            </flux:button>
+            <div class="flex items-center gap-2">
+                <flux:button href="{{ route('skills.registry') }}" wire:navigate>
+                    {{ __('Browse Registry') }}
+                </flux:button>
+                <flux:button variant="primary" href="{{ route('skills.create') }}" wire:navigate>
+                    {{ __('Create Skill') }}
+                </flux:button>
+            </div>
         </div>
 
         @if ($this->skills->isEmpty() && ! $this->search)

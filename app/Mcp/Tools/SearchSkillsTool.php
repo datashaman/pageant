@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Models\Skill;
+use App\Services\SkillRegistryService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -11,7 +12,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Search for skills by capability, name, or description.')]
+#[Description('Search for skills by capability, name, or description. Can also search public registries.')]
 #[IsReadOnly]
 #[IsOpenWorld]
 class SearchSkillsTool extends Tool
@@ -22,6 +23,7 @@ class SearchSkillsTool extends Tool
             'query' => 'nullable|string|max:255',
             'allowed_tools' => 'nullable|array',
             'allowed_tools.*' => 'string',
+            'include_registry' => 'nullable|boolean',
         ]);
 
         $query = Skill::query()
@@ -49,10 +51,20 @@ class SearchSkillsTool extends Tool
 
         $skills = $query->get();
 
-        return Response::text(json_encode([
+        $result = [
             'count' => $skills->count(),
             'skills' => $skills->toArray(),
-        ], JSON_PRETTY_PRINT));
+        ];
+
+        if (! empty($validated['include_registry']) && ! empty($validated['query'])) {
+            $registryResults = app(SkillRegistryService::class)->search($validated['query'], 10);
+            $result['registry_results'] = [
+                'count' => $registryResults->count(),
+                'results' => $registryResults->values()->toArray(),
+            ];
+        }
+
+        return Response::text(json_encode($result, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -66,6 +78,8 @@ class SearchSkillsTool extends Tool
             'allowed_tools' => $schema->array()
                 ->items($schema->string())
                 ->description('Filter skills by the tools they are allowed to use.'),
+            'include_registry' => $schema->boolean()
+                ->description('Also search public registries (MCP Registry, Smithery) for matching skills. Defaults to false.'),
         ];
     }
 }
