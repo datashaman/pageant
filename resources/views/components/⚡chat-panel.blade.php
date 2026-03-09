@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\ConversationStore;
+use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 new class extends Component
@@ -11,6 +12,22 @@ new class extends Component
     public array $messages = [];
 
     public array $conversations = [];
+
+    /** @return array<string, bool> */
+    #[Computed]
+    public function availableProviders(): array
+    {
+        $user = auth()->user();
+        $userKeyProviders = $user->apiKeys()->valid()->pluck('provider')->toArray();
+
+        $providers = [];
+        foreach (['anthropic', 'openai', 'gemini'] as $provider) {
+            $providers[$provider] = ! empty(config("ai.providers.{$provider}.key"))
+                || in_array($provider, $userKeyProviders);
+        }
+
+        return $providers;
+    }
 
     public function mount(): void
     {
@@ -407,20 +424,20 @@ new class extends Component
                     <option value="smartest">{{ __('Smartest') }}</option>
                 </optgroup>
                 <optgroup label="{{ __('Anthropic') }}">
-                    <option value="anthropic:claude-opus-4-6">Claude Opus 4.6</option>
-                    <option value="anthropic:claude-sonnet-4-6">Claude Sonnet 4.6</option>
-                    <option value="anthropic:claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+                    <option value="anthropic:claude-opus-4-6" @disabled(! $this->availableProviders['anthropic'])>Claude Opus 4.6</option>
+                    <option value="anthropic:claude-sonnet-4-6" @disabled(! $this->availableProviders['anthropic'])>Claude Sonnet 4.6</option>
+                    <option value="anthropic:claude-haiku-4-5-20251001" @disabled(! $this->availableProviders['anthropic'])>Claude Haiku 4.5</option>
                 </optgroup>
                 <optgroup label="{{ __('OpenAI') }}">
-                    <option value="openai:gpt-4.1">GPT-4.1</option>
-                    <option value="openai:gpt-4.1-mini">GPT-4.1 Mini</option>
-                    <option value="openai:o3">o3</option>
-                    <option value="openai:o4-mini">o4-mini</option>
+                    <option value="openai:gpt-4.1" @disabled(! $this->availableProviders['openai'])>GPT-4.1</option>
+                    <option value="openai:gpt-4.1-mini" @disabled(! $this->availableProviders['openai'])>GPT-4.1 Mini</option>
+                    <option value="openai:o3" @disabled(! $this->availableProviders['openai'])>o3</option>
+                    <option value="openai:o4-mini" @disabled(! $this->availableProviders['openai'])>o4-mini</option>
                 </optgroup>
                 <optgroup label="{{ __('Gemini') }}">
-                    <option value="gemini:gemini-2.5-pro">Gemini 2.5 Pro</option>
-                    <option value="gemini:gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini:gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="gemini:gemini-2.5-pro" @disabled(! $this->availableProviders['gemini'])>Gemini 2.5 Pro</option>
+                    <option value="gemini:gemini-2.5-flash" @disabled(! $this->availableProviders['gemini'])>Gemini 2.5 Flash</option>
+                    <option value="gemini:gemini-2.0-flash" @disabled(! $this->availableProviders['gemini'])>Gemini 2.0 Flash</option>
                 </optgroup>
             </select>
             <flux:text size="xs" class="text-zinc-400">
