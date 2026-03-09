@@ -6,6 +6,7 @@ use App\Ai\ToolRegistry;
 use App\Contracts\ExecutionDriver;
 use App\Models\Agent;
 use App\Models\PlanStep;
+use App\Services\ConversationCompressor;
 use App\Services\PromptAssembler;
 use Laravel\Ai\Contracts\Agent as AgentContract;
 use Laravel\Ai\Contracts\Conversational;
@@ -17,6 +18,10 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 {
     use Promptable;
 
+    protected ?ConversationCompressor $compressor = null;
+
+    protected ?string $executionContext = null;
+
     public function __construct(
         protected Agent $agentModel,
         protected string $repoFullName,
@@ -24,6 +29,17 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
         protected ?ExecutionDriver $driver = null,
         protected ?PlanStep $planStep = null,
     ) {}
+
+    /**
+     * Enable conversation compression for this agent.
+     */
+    public function withCompressor(ConversationCompressor $compressor, ?string $executionContext = null): static
+    {
+        $this->compressor = $compressor;
+        $this->executionContext = $executionContext;
+
+        return $this;
+    }
 
     public function instructions(): string
     {
@@ -71,9 +87,15 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
             return [];
         }
 
-        return resolve(ConversationStore::class)
+        $messages = resolve(ConversationStore::class)
             ->getLatestConversationMessages($this->conversationId, static::MAX_CONVERSATION_MESSAGES)
             ->all();
+
+        if ($this->compressor && $this->compressor->needsCompression($messages)) {
+            $messages = $this->compressor->compress($messages, $this->executionContext);
+        }
+
+        return $messages;
     }
 
     public function tools(): iterable

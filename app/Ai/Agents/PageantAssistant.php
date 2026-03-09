@@ -4,6 +4,7 @@ namespace App\Ai\Agents;
 
 use App\Ai\ToolRegistry;
 use App\Models\User;
+use App\Services\ConversationCompressor;
 use App\Services\PromptAssembler;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -22,11 +23,23 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
 {
     use Promptable, RemembersConversations;
 
+    protected ?ConversationCompressor $compressor = null;
+
     public function __construct(
         protected User $user,
         protected ?string $repoFullName = null,
         protected string $pageContext = '',
     ) {}
+
+    /**
+     * Enable conversation compression for this assistant.
+     */
+    public function withCompressor(ConversationCompressor $compressor): static
+    {
+        $this->compressor = $compressor;
+
+        return $this;
+    }
 
     public function instructions(): string
     {
@@ -70,7 +83,7 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
             return [];
         }
 
-        return DB::table('agent_conversation_messages')
+        $messages = DB::table('agent_conversation_messages')
             ->where('conversation_id', $this->conversationId)
             ->orderByDesc('created_at')
             ->limit($this->maxConversationMessages())
@@ -109,6 +122,12 @@ class PageantAssistant implements AgentContract, Conversational, HasTools
                 return $messages;
             })
             ->all();
+
+        if ($this->compressor && $this->compressor->needsCompression($messages)) {
+            $messages = $this->compressor->compress($messages);
+        }
+
+        return $messages;
     }
 
     /**

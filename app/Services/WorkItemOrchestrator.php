@@ -22,6 +22,7 @@ class WorkItemOrchestrator
         protected WorktreeManager $worktreeManager,
         protected ConversationStore $conversationStore,
         protected FailureClassifier $failureClassifier,
+        protected ?ConversationCompressor $compressor = null,
     ) {}
 
     public function execute(Plan $plan): void
@@ -159,6 +160,10 @@ class WorkItemOrchestrator
             $driver,
             $step,
         );
+
+        $compressor = $this->compressor ?? ConversationCompressor::fromConfig();
+        $executionContext = "Plan: {$step->plan->id}, Step {$step->order}: {$step->description}";
+        $agent->withCompressor($compressor, $executionContext);
 
         $this->attemptStepWithRetry($step, $agent, $prompt, $conversationId);
     }
