@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- PHP 8.4+
+- PHP 8.5+
 - Composer
 - Node.js & npm
 - A GitHub App (not OAuth App)
@@ -152,14 +152,17 @@ The MCP and OAuth routes are excluded from CSRF verification in `bootstrap/app.p
 
 ### Claude Code
 
-Pageant exposes two MCP servers:
+Pageant exposes three MCP servers:
 
 ```bash
 # GitHub operations (issues, PRs, branches, files, labels, CI, search)
 claude mcp add --transport sse pageant-github https://your-domain.com/mcp/github
 
-# Pageant operations (work items, agents)
+# Pageant operations (repos, projects, work items, agents, skills, skill registry)
 claude mcp add --transport sse pageant https://your-domain.com/mcp/pageant
+
+# Worktree operations (file ops, shell commands, git) — used internally by agents
+claude mcp add --transport sse pageant-worktree https://your-domain.com/mcp/worktree
 ```
 
 Claude Code will handle the OAuth 2.1 flow automatically — it opens a browser for authorization, then uses the token for subsequent requests.
@@ -196,6 +199,8 @@ The server uses the `mcp:use` scope.
 | `DB_CONNECTION` | Database driver | `sqlite` |
 | `DB_DATABASE` | Database name/path | `database/database.sqlite` |
 | `QUEUE_CONNECTION` | Queue driver | `database` |
+| `ALLOWED_EMAILS` | Comma-separated email allowlist to restrict login | *(empty = allow all)* |
+| `SMITHERY_API_KEY` | Smithery API key for skill registry search | — |
 | `PASSPORT_PRIVATE_KEY` | Passport private key (alternative to key files) | — |
 | `PASSPORT_PUBLIC_KEY` | Passport public key (alternative to key files) | — |
 | `PASSPORT_CONNECTION` | Passport database connection | default |
