@@ -36,7 +36,10 @@ class SkillRegistryService
             $results = $results->merge($this->searchSmithery($query, $limit, $smitheryKey));
         }
 
-        return $results->sortBy('name')->values()->take($limit);
+        return $results
+            ->sortBy(static fn (array $item): string => mb_strtolower($item['name'] ?? ''))
+            ->values()
+            ->take($limit);
     }
 
     /**

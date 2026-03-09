@@ -177,6 +177,47 @@ describe('SkillRegistryService', function () {
             ->and($results[1]['name'])->toBe('mcp/middle')
             ->and($results[2]['name'])->toBe('mcp/zebra');
     });
+
+    it('sorts results case-insensitively', function () {
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => [
+                    [
+                        'server' => [
+                            'name' => 'Zebra-Server',
+                            'description' => 'Zebra server',
+                            'repository' => ['url' => 'https://github.com/mcp/zebra'],
+                            'version' => '1.0.0',
+                        ],
+                    ],
+                    [
+                        'server' => [
+                            'name' => 'alpha-server',
+                            'description' => 'Alpha server',
+                            'repository' => ['url' => 'https://github.com/mcp/alpha'],
+                            'version' => '1.0.0',
+                        ],
+                    ],
+                    [
+                        'server' => [
+                            'name' => 'Beta-Server',
+                            'description' => 'Beta server',
+                            'repository' => ['url' => 'https://github.com/mcp/beta'],
+                            'version' => '1.0.0',
+                        ],
+                    ],
+                ],
+                'metadata' => ['count' => 3],
+            ]),
+        ]);
+
+        $service = new SkillRegistryService;
+        $results = $service->search('test');
+
+        expect($results[0]['name'])->toBe('alpha-server')
+            ->and($results[1]['name'])->toBe('Beta-Server')
+            ->and($results[2]['name'])->toBe('Zebra-Server');
+    });
 });
 
 describe('Skills Registry UI', function () {
