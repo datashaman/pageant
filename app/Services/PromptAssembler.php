@@ -88,7 +88,12 @@ class PromptAssembler
             $instructions = $this->repoInstructionsService->loadForRepo($repoFullName);
 
             return $instructions !== '' ? $instructions : null;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Repo instructions load failed', [
+                'repo' => $repoFullName,
+                'error' => $e->getMessage(),
+            ]);
+
             return null;
         }
     }
@@ -156,11 +161,14 @@ class PromptAssembler
         $priorSteps = $plan->steps
             ->where('order', '<', $planStep->order)
             ->whereIn('status', ['completed', 'failed', 'skipped'])
+            ->sortByDesc('order')
+            ->take(3)
             ->sortBy('order')
             ->values();
 
         if ($priorSteps->isNotEmpty()) {
-            $priorLines = $priorSteps->map(function (PlanStep $prior) {
+            $maxResultLength = 150;
+            $priorLines = $priorSteps->map(function (PlanStep $prior) use ($maxResultLength) {
                 $icon = match ($prior->status) {
                     'completed' => 'DONE',
                     'failed' => 'FAILED',
@@ -168,9 +176,13 @@ class PromptAssembler
                     default => '?',
                 };
 
-                $result = $prior->result ? " - {$prior->result}" : '';
+                $result = $prior->result ?? '';
+                if (mb_strlen($result) > $maxResultLength) {
+                    $result = mb_substr($result, 0, $maxResultLength - 3).'...';
+                }
+                $resultSuffix = $result !== '' ? " - {$result}" : '';
 
-                return "{$prior->order}. [{$icon}] {$prior->description}{$result}";
+                return "{$prior->order}. [{$icon}] {$prior->description}{$resultSuffix}";
             });
 
             $parts[] = "## Prior Steps\n\n".$priorLines->implode("\n");

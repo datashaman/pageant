@@ -49,6 +49,8 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
      */
     protected function resolveActiveToolNames(): array
     {
+        $this->agentModel->loadMissing('skills');
+
         $agentTools = $this->agentModel->tools ?? [];
 
         $skillTools = $this->agentModel->skills
@@ -76,19 +78,8 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 
     public function tools(): iterable
     {
-        $agentTools = $this->agentModel->tools ?? [];
-
-        $skillTools = $this->agentModel->skills
-            ->where('enabled', true)
-            ->pluck('allowed_tools')
-            ->flatten()
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
         return ToolRegistry::resolve(
-            array_unique(array_merge($agentTools, $skillTools)),
+            $this->resolveActiveToolNames(),
             $this->repoFullName,
             driver: $this->driver,
         );
