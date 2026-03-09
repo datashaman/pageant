@@ -1,10 +1,14 @@
 <?php
 
+use App\Ai\ToolRegistry;
+use App\Ai\Tools\ImportRegistrySkillTool;
+use App\Ai\Tools\SearchRegistrySkillsTool;
 use App\Models\Organization;
 use App\Models\Skill;
 use App\Models\User;
 use App\Services\SkillRegistryService;
 use Illuminate\Support\Facades\Http;
+use Laravel\Ai\Tools\Request;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -16,7 +20,7 @@ beforeEach(function () {
 describe('SkillRegistryService', function () {
     it('searches the MCP registry', function () {
         Http::fake([
-            'registry.modelcontextprotocol.io/*' => Http::response([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
                         'name' => 'io.github.user/test-server',
@@ -41,7 +45,7 @@ describe('SkillRegistryService', function () {
 
     it('returns empty collection on MCP registry failure', function () {
         Http::fake([
-            'registry.modelcontextprotocol.io/*' => Http::response([], 500),
+            'https://registry.modelcontextprotocol.io/*' => Http::response([], 500),
         ]);
 
         $service = new SkillRegistryService;
@@ -52,7 +56,7 @@ describe('SkillRegistryService', function () {
 
     it('searches Smithery when API key is configured', function () {
         Http::fake([
-            'api.smithery.ai/*' => Http::response([
+            'https://api.smithery.ai/*' => Http::response([
                 'servers' => [
                     [
                         'qualifiedName' => 'test/server',
@@ -83,7 +87,7 @@ describe('SkillRegistryService', function () {
 
     it('combines results from all registries', function () {
         Http::fake([
-            'registry.modelcontextprotocol.io/*' => Http::response([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
                         'name' => 'mcp/server',
@@ -121,7 +125,7 @@ describe('Skills Registry UI', function () {
 
     it('can search the registry', function () {
         Http::fake([
-            'registry.modelcontextprotocol.io/*' => Http::response([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
                         'name' => 'io.github.user/filesystem',
@@ -144,7 +148,7 @@ describe('Skills Registry UI', function () {
 
     it('can import a skill from registry results', function () {
         Http::fake([
-            'registry.modelcontextprotocol.io/*' => Http::response([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
                         'name' => 'io.github.user/filesystem',
@@ -175,7 +179,7 @@ describe('Skills Registry UI', function () {
         Skill::factory()->for($this->organization)->create(['name' => 'filesystem']);
 
         Http::fake([
-            'registry.modelcontextprotocol.io/*' => Http::response([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
                 'servers' => [
                     [
                         'name' => 'io.github.user/filesystem',
@@ -207,5 +211,82 @@ describe('Skills Registry UI', function () {
     it('requires authentication for registry page', function () {
         $this->get(route('skills.registry'))
             ->assertRedirect(route('login'));
+    });
+});
+
+describe('AI Tools', function () {
+    it('SearchRegistrySkillsTool searches public registries', function () {
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => [
+                    [
+                        'name' => 'io.github.user/slack',
+                        'description' => 'Slack integration',
+                        'repository' => ['url' => 'https://github.com/user/slack'],
+                        'version' => '1.0.0',
+                    ],
+                ],
+                'metadata' => ['count' => 1],
+            ]),
+        ]);
+
+        $tool = new SearchRegistrySkillsTool($this->user);
+        $result = json_decode($tool->handle(new Request([
+            'query' => 'slack',
+            'registry' => 'mcp-registry',
+        ])), true);
+
+        expect($result['count'])->toBe(1)
+            ->and($result['results'][0]['name'])->toBe('io.github.user/slack')
+            ->and($result['results'][0]['registry'])->toBe('mcp-registry');
+    });
+
+    it('ImportRegistrySkillTool imports a skill', function () {
+        $tool = new ImportRegistrySkillTool($this->user);
+        $result = json_decode($tool->handle(new Request([
+            'name' => 'slack-bot',
+            'description' => 'Slack bot integration',
+            'registry' => 'mcp-registry',
+            'source_reference' => 'io.github.user/slack',
+            'source_url' => 'https://github.com/user/slack',
+        ])), true);
+
+        expect($result['message'])->toContain('imported successfully')
+            ->and($result['skill']['name'])->toBe('slack-bot')
+            ->and($result['skill']['source'])->toBe('mcp-registry');
+
+        $this->assertDatabaseHas('skills', [
+            'name' => 'slack-bot',
+            'organization_id' => $this->organization->id,
+        ]);
+    });
+
+    it('ImportRegistrySkillTool prevents duplicate names', function () {
+        Skill::factory()->for($this->organization)->create(['name' => 'slack-bot']);
+
+        $tool = new ImportRegistrySkillTool($this->user);
+        $result = json_decode($tool->handle(new Request([
+            'name' => 'slack-bot',
+            'registry' => 'mcp-registry',
+            'source_reference' => 'io.github.user/slack',
+        ])), true);
+
+        expect($result['error'])->toContain('already exists');
+    });
+});
+
+describe('ToolRegistry', function () {
+    it('includes search_registry_skills in available tools', function () {
+        $available = ToolRegistry::available();
+
+        expect($available)->toHaveKey('search_registry_skills')
+            ->and($available)->toHaveKey('import_registry_skill');
+    });
+
+    it('includes registry tools in pageant tool names', function () {
+        $pageantTools = ToolRegistry::pageantToolNames();
+
+        expect($pageantTools)->toContain('search_registry_skills')
+            ->and($pageantTools)->toContain('import_registry_skill');
     });
 });

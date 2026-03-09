@@ -22,9 +22,9 @@ class SearchRegistrySkillsTool implements Tool
     public function handle(Request $request): string
     {
         $service = app(SkillRegistryService::class);
-        $query = $request['query'] ?? '';
-        $limit = $request['limit'] ?? 20;
-        $registry = $request['registry'] ?? 'all';
+        $query = (string) ($request['query'] ?? '');
+        $limit = (int) ($request['limit'] ?? 20);
+        $registry = (string) ($request['registry'] ?? 'all');
 
         $results = match ($registry) {
             'mcp-registry' => $service->searchMcpRegistry($query, $limit),
