@@ -94,6 +94,9 @@ describe('GeneratePlan job', function () {
     it('skips when organization has no planning agent configured', function () {
         Log::spy();
 
+        // Remove the auto-created planning agent from the observer
+        $this->organization->update(['planning_agent_id' => null]);
+
         $workItem = WorkItem::factory()->create([
             'organization_id' => $this->organization->id,
             'source' => 'github',

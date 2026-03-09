@@ -81,6 +81,10 @@ it('shows no-match message when projects search yields no results', function () 
 // ── Agents ──────────────────────────────────────────────────────────
 
 it('shows empty state on agents index when no agents exist', function () {
+    // Remove the auto-created planning agent so the empty state shows
+    $this->organization->agents()->delete();
+    $this->organization->update(['planning_agent_id' => null]);
+
     $this->actingAs($this->user)
         ->get(route('agents.index'))
         ->assertOk()
