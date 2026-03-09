@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
-use Laravel\Ai\Ai;
 use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Messages\AssistantMessage;
 use Laravel\Ai\Messages\Message;
@@ -17,15 +16,6 @@ class ConversationCompressor
      */
     protected const CHARS_PER_TOKEN = 4;
 
-    /**
-     * @param  array{
-     *     context_window: int,
-     *     threshold: float,
-     *     summary_provider: string,
-     *     summary_model: string|null,
-     *     max_summary_tokens: int,
-     * }  $config
-     */
     public function __construct(
         protected int $contextWindow = 200000,
         protected float $threshold = 0.8,
@@ -80,8 +70,8 @@ class ConversationCompressor
     /**
      * Compress a conversation by summarizing older assistant/tool messages.
      *
-     * Preserves system and user messages. Summarizes assistant responses
-     * and tool outputs from older messages, keeping the most recent ones intact.
+     * Preserves user messages. Summarizes assistant responses and tool
+     * outputs from older messages, keeping the most recent ones intact.
      *
      * @param  array<Message>  $messages
      * @return array<Message>
@@ -91,8 +81,6 @@ class ConversationCompressor
         if (! $this->needsCompression($messages)) {
             return $messages;
         }
-
-        $tokenLimit = (int) ($this->contextWindow * $this->threshold);
 
         $preserved = [];
         $compressible = [];
@@ -119,18 +107,22 @@ class ConversationCompressor
 
         $summary = $this->generateSummary($olderMessages, $executionContext);
 
+        $kept = collect($preserved)->concat($recentMessages)->sortBy('index')->values();
+        $firstCompressedIndex = $olderMessages[0]['index'] ?? 0;
+
         $result = [];
+        $summaryInserted = false;
 
-        if ($summary !== '') {
-            $result[] = new Message(MessageRole::User, "[Conversation Summary]\n{$summary}");
-        }
-
-        foreach ($preserved as $item) {
+        foreach ($kept as $item) {
+            if (! $summaryInserted && $summary !== '' && $item['index'] >= $firstCompressedIndex) {
+                $result[] = new Message(MessageRole::Assistant, "[Conversation Summary]\n{$summary}");
+                $summaryInserted = true;
+            }
             $result[] = $item['message'];
         }
 
-        foreach ($recentMessages as $item) {
-            $result[] = $item['message'];
+        if (! $summaryInserted && $summary !== '') {
+            $result[] = new Message(MessageRole::Assistant, "[Conversation Summary]\n{$summary}");
         }
 
         return array_values($result);

@@ -219,12 +219,21 @@ describe('Compression Logic', function () {
 
         $hasRecent = false;
         foreach ($assistantContents as $content) {
-            if (str_contains($content, 'Recent response')) {
+            if (str_contains($content ?? '', 'Recent response')) {
                 $hasRecent = true;
             }
         }
 
         expect($hasRecent)->toBeTrue();
+
+        $userContents = array_map(
+            fn (Message $m) => $m->content,
+            array_filter($result, fn (Message $m) => $m->role === MessageRole::User && ! str_contains($m->content ?? '', '[Conversation Summary]')),
+        );
+        $userOrder = array_values($userContents);
+        expect($userOrder[0] ?? '')->toBe('First message')
+            ->and($userOrder[1] ?? '')->toBe('Second message')
+            ->and($userOrder[2] ?? '')->toBe('Third message');
     });
 
     it('includes execution context in compression when provided', function () {
