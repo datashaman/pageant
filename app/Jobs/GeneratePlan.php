@@ -35,6 +35,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
         $repo = Repo::where('source', 'github')
             ->where('source_reference', $this->repoFullName)
+            ->where('organization_id', $this->workItem->organization_id)
             ->first();
 
         if (! $repo) {
@@ -58,6 +59,15 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
 
         $driver = $this->provisionDriver($worktreeManager);
+
+        if (! $driver) {
+            Log::warning('GeneratePlan skipped: worktree provisioning failed', [
+                'work_item_id' => $this->workItem->id,
+                'repo_full_name' => $this->repoFullName,
+            ]);
+
+            return;
+        }
 
         $webhookAgent = new GitHubWebhookAgent(
             $agent,
@@ -87,8 +97,6 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
     protected function provisionDriver(WorktreeManager $worktreeManager): ?\App\Contracts\ExecutionDriver
     {
         try {
-            $worktreeManager->provisionOrResolve($this->workItem);
-
             return $worktreeManager->createDriver($this->workItem);
         } catch (\Throwable $e) {
             Log::warning('GeneratePlan: failed to provision worktree', [

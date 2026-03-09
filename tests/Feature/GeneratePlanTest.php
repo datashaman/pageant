@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\ExecutionDriver;
 use App\Events\WorkItemCreated;
 use App\Jobs\GeneratePlan;
 use App\Listeners\HandleWorkItemCreated;
@@ -109,6 +110,33 @@ describe('GeneratePlan job', function () {
             ->once();
     });
 
+    it('scopes repo lookup to work item organization', function () {
+        Log::spy();
+
+        $otherOrg = Organization::factory()->create();
+        Repo::factory()->create([
+            'organization_id' => $otherOrg->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets',
+        ]);
+
+        $newOrg = Organization::factory()->create();
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $newOrg->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#42',
+        ]);
+
+        $job = new GeneratePlan($workItem, 'acme/widgets');
+        $job->handle(app(WorktreeManager::class));
+
+        expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
+
+        Log::shouldHaveReceived('info')
+            ->withArgs(fn ($message) => str_contains($message, 'no matching repo found'))
+            ->once();
+    });
+
     it('skips when no enabled agent is attached to the repo', function () {
         Log::spy();
 
@@ -146,6 +174,69 @@ describe('GeneratePlan job', function () {
 
         $job = new GeneratePlan($workItem, 'acme/widgets');
         $job->handle(app(WorktreeManager::class));
+
+        expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
+    });
+
+    it('skips when worktree provisioning fails', function () {
+        Log::spy();
+
+        $agent = Agent::factory()->create([
+            'organization_id' => $this->organization->id,
+            'enabled' => true,
+            'tools' => ['read_file', 'glob'],
+        ]);
+        $this->repo->agents()->attach($agent);
+
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $this->organization->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#42',
+        ]);
+
+        $mockManager = Mockery::mock(WorktreeManager::class);
+        $mockManager->shouldReceive('createDriver')
+            ->once()
+            ->andThrow(new RuntimeException('Clone failed'));
+
+        $job = new GeneratePlan($workItem, 'acme/widgets');
+        $job->handle($mockManager);
+
+        expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn ($message) => str_contains($message, 'worktree provisioning failed'))
+            ->once();
+    });
+
+    it('logs error and creates no plan when agent execution fails', function () {
+        Log::spy();
+
+        $agent = Agent::factory()->create([
+            'organization_id' => $this->organization->id,
+            'enabled' => true,
+            'tools' => ['read_file', 'glob'],
+        ]);
+        $this->repo->agents()->attach($agent);
+
+        $workItem = WorkItem::factory()->create([
+            'organization_id' => $this->organization->id,
+            'source' => 'github',
+            'source_reference' => 'acme/widgets#42',
+        ]);
+
+        $mockDriver = Mockery::mock(ExecutionDriver::class);
+        $mockManager = Mockery::mock(WorktreeManager::class);
+        $mockManager->shouldReceive('createDriver')
+            ->once()
+            ->andReturn($mockDriver);
+
+        $job = new GeneratePlan($workItem, 'acme/widgets');
+        $job->handle($mockManager);
+
+        Log::shouldHaveReceived('error')
+            ->withArgs(fn ($message) => str_contains($message, 'agent execution failed'))
+            ->once();
 
         expect(Plan::where('work_item_id', $workItem->id)->count())->toBe(0);
     });
