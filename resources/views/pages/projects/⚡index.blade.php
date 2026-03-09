@@ -17,8 +17,15 @@ new #[Title('Projects')] class extends Component {
 
     public string $sortDirection = 'asc';
 
+    /** @var list<string> */
+    private const SORTABLE_FIELDS = ['name'];
+
     public function sort(string $column): void
     {
+        if (! in_array($column, self::SORTABLE_FIELDS, true)) {
+            return;
+        }
+
         if ($this->sortBy === $column) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {

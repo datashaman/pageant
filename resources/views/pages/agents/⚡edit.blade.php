@@ -7,6 +7,7 @@ use App\Models\Agent;
 use App\Models\Repo;
 use App\Models\Skill;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -260,6 +261,10 @@ new #[Title('Edit Agent')] class extends Component {
             'permission_mode' => ['nullable', 'string'],
             'max_turns' => ['nullable', 'integer', 'min:1'],
             'isolation' => ['nullable', 'string'],
+            'selectedSkills' => ['array'],
+            'selectedSkills.*' => ['uuid', Rule::exists('skills', 'id')->where('organization_id', $this->agent->organization_id)],
+            'selectedRepos' => ['array'],
+            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $this->agent->organization_id)],
         ]);
 
         $data = [

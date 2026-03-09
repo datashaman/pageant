@@ -4,6 +4,7 @@ use App\Models\Agent;
 use App\Models\Repo;
 use App\Models\Skill;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -87,14 +88,14 @@ new #[Title('Edit Skill')] class extends Component {
             'provider' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'context' => ['nullable', 'string'],
-            'agent_id' => ['nullable', 'uuid', 'exists:agents,id'],
+            'agent_id' => ['nullable', 'uuid', Rule::exists('agents', 'id')->where('organization_id', $this->skill->organization_id)],
             'source' => ['nullable', 'string', 'max:255'],
             'sourceReference' => ['nullable', 'string', 'max:255'],
             'sourceUrl' => ['nullable', 'string', 'url', 'max:255'],
             'selectedAgents' => ['array'],
-            'selectedAgents.*' => ['uuid', 'exists:agents,id'],
+            'selectedAgents.*' => ['uuid', Rule::exists('agents', 'id')->where('organization_id', $this->skill->organization_id)],
             'selectedRepos' => ['array'],
-            'selectedRepos.*' => ['uuid', 'exists:repos,id'],
+            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $this->skill->organization_id)],
         ]);
 
         $this->skill->update([

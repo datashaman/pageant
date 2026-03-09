@@ -19,8 +19,15 @@ new #[Title('Agents')] class extends Component {
         $this->resetPage();
     }
 
+    /** @var list<string> */
+    private const SORTABLE_FIELDS = ['name', 'provider', 'model'];
+
     public function sortBy(string $field): void
     {
+        if (! in_array($field, self::SORTABLE_FIELDS, true)) {
+            return;
+        }
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
