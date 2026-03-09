@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\WorkItemCreated;
 use App\Mcp\Servers\GitHubServer;
 use App\Mcp\Tools\AddLabelsToIssueTool;
 use App\Mcp\Tools\CloseIssueTool;
@@ -32,6 +33,7 @@ use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Repo;
 use App\Services\GitHubService;
+use Illuminate\Support\Facades\Event;
 use Mockery\MockInterface;
 
 beforeEach(function () {
@@ -159,7 +161,9 @@ it('deletes a label from a repository', function () {
         ->assertSee("Label 'obsolete' deleted from acme/widgets");
 });
 
-it('creates an issue on a repository', function () {
+it('creates an issue on a repository and automatically links a work item', function () {
+    Event::fake([WorkItemCreated::class]);
+
     $this->mock(GitHubService::class, function (MockInterface $mock) {
         $mock->shouldReceive('createIssue')
             ->once()
@@ -189,7 +193,11 @@ it('creates an issue on a repository', function () {
     $response->assertOk()
         ->assertSee('Fix the widget')
         ->assertSee('99')
-        ->assertSee('create_work_item');
+        ->assertSee('work_item');
+
+    $this->assertDatabaseHas('work_items', [
+        'source_reference' => 'acme/widgets#99',
+    ]);
 });
 
 it('updates an existing issue', function () {

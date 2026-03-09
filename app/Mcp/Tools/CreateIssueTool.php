@@ -2,8 +2,10 @@
 
 namespace App\Mcp\Tools;
 
+use App\Events\WorkItemCreated;
 use App\Models\GithubInstallation;
 use App\Models\Repo;
+use App\Models\WorkItem;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -12,7 +14,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
-#[Description('Create a new issue on a GitHub repository.')]
+#[Description('Create a new issue on a GitHub repository. Automatically creates a linked Pageant work item unless skip_work_item is true.')]
 #[IsOpenWorld]
 class CreateIssueTool extends Tool
 {
@@ -31,6 +33,7 @@ class CreateIssueTool extends Tool
             'assignees' => 'nullable|array',
             'assignees.*' => 'string',
             'milestone' => 'nullable|integer',
+            'skip_work_item' => 'nullable|boolean',
         ]);
 
         $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
@@ -46,10 +49,37 @@ class CreateIssueTool extends Tool
 
         $issue = $this->github->createIssue($installation, $validated['repo'], $data);
 
-        return Response::text(json_encode([
-            'issue' => $issue,
-            'assistant_hint' => 'The issue was created successfully. Offer the user to also create a Pageant work item linked to this issue using the create_work_item tool.',
-        ], JSON_PRETTY_PRINT));
+        $result = ['issue' => $issue];
+
+        if (empty($validated['skip_work_item'])) {
+            $workItem = $this->createWorkItem($repo, $installation, $validated['repo'], $issue);
+            $result['work_item'] = $workItem->toArray();
+        }
+
+        return Response::text(json_encode($result, JSON_PRETTY_PRINT));
+    }
+
+    protected function createWorkItem(Repo $repo, GithubInstallation $installation, string $repoFullName, array $issue): WorkItem
+    {
+        $workItem = WorkItem::firstOrCreate(
+            [
+                'organization_id' => $repo->organization_id,
+                'source' => 'github',
+                'source_reference' => $repoFullName.'#'.$issue['number'],
+            ],
+            [
+                'project_id' => $repo->inferProjectId(),
+                'title' => $issue['title'],
+                'description' => $issue['body'] ?? '',
+                'source_url' => $issue['html_url'] ?? '',
+            ]
+        );
+
+        if ($workItem->wasRecentlyCreated) {
+            WorkItemCreated::dispatch($workItem, $repoFullName, $installation->installation_id);
+        }
+
+        return $workItem;
     }
 
     /**
@@ -74,6 +104,8 @@ class CreateIssueTool extends Tool
                 ->description('GitHub usernames to assign to the issue.'),
             'milestone' => $schema->integer()
                 ->description('Milestone number to associate with the issue.'),
+            'skip_work_item' => $schema->boolean()
+                ->description('Set to true to skip automatic Pageant work item creation. Defaults to false.'),
         ];
     }
 }
