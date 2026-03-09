@@ -78,9 +78,7 @@ class ChatController extends Controller
                 echo 'data: '.json_encode(['type' => 'text_delta', 'delta' => $errorMessage])."\n\n";
                 $flush();
 
-                if ($fullText === '') {
-                    $fullText = $errorMessage;
-                }
+                $fullText .= $errorMessage;
             } finally {
                 if ($fullText !== '' && $conversationId = $assistant->currentConversation()) {
                     $this->storeAssistantMessage($conversationId, $user->id, $fullText);
