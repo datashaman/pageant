@@ -8,15 +8,15 @@
 
 We reverse-engineered, analyzed, and documented the internals of 15+ major AI agent platforms across six categories: OpenAI (ChatGPT, Operator, Deep Research), Google (Gemini, Project Mariner), Anthropic (Claude Code, Computer Use), Microsoft (Copilot, AutoGen), coding-focused agents (Cursor, Windsurf, Aider, Cline, Devin, Augment), and open-source frameworks (AutoGPT, CrewAI, LangGraph).
 
-This report synthesizes the leaked system prompts, reverse-engineered architectures, tool schemas, and operational patterns found across these platforms into actionable findings for anyone building AI agent systems.
+This report synthesizes publicly archived system prompts, reverse-engineered architectures, tool schemas, and operational patterns found across these platforms into actionable findings for anyone building AI agent systems.
 
 **Key findings:**
 - Every major platform uses multi-model architectures — cheaper models for validation, expensive models for reasoning
 - The orchestration loop is converging on a minimal `while(tool_call)` pattern with ~50 lines of code
 - Content-based edit matching (search/replace) has won over line-number-based diffs universally
-- Aggressive checkpointing (every 3 actions) reduces complete failures by 52%
+- Aggressive checkpointing (every 3 actions) reduced complete failures by roughly half in [reported evaluations](https://openai.com/index/operator-system-card/)
 - Dual-channel output (hidden reasoning + visible narration) is emerging as the standard UX pattern
-- Independent monitor models for safety can achieve 99% recall on prompt injection detection
+- Independent monitor models for safety have [reported recall rates up to 99%](https://openai.com/index/operator-system-card/) on prompt injection detection benchmarks
 
 ---
 
@@ -126,11 +126,13 @@ Platforms use different schema formats, each with trade-offs:
 
 **Gemini's `extensions` meta-tool** discovers other tools by name or function — a pattern that scales to large tool catalogs without loading all schemas into context.
 
-**M365 Copilot** uses hierarchical skill matching with a **5-function candidate limit**:
+**M365 Copilot** uses hierarchical skill matching with a **5-function candidate limit** across four matching stages:
 1. Lexical match on function name
 2. Semantic match on function description
-3. Lexical match on action name
-4. Semantic match on action name
+3. Lexical match on action name (adds all action functions)
+4. Semantic match on action name (adds all action functions)
+
+The orchestrator selects up to 5 candidate functions from the combined results of these stages.
 
 **Augment Code** made the counterintuitive decision to **remove grep entirely**, forcing the agent to use their semantic search engine. Their finding: "A weaker model with great context can outperform a stronger model with poor context." Curating the toolset guides agent behavior more effectively than instructions.
 
@@ -660,4 +662,4 @@ These remain active areas of experimentation:
 
 ---
 
-*This report was compiled from publicly available leaked system prompts, reverse-engineered architectures, official documentation, security research, and open-source codebases. All findings reflect the state of these platforms as of March 2026.*
+*This report was compiled from publicly archived system prompts, reverse-engineered architectures, official documentation, security research, and open-source codebases. All findings reflect the state of these platforms as of March 2026. Sources include community-maintained prompt archives, vendor documentation, academic and industry blog posts, and open-source repositories. Readers should verify specific claims against original sources before making architectural decisions.*
