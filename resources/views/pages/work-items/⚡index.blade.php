@@ -221,13 +221,13 @@ new #[Title('Work Items')] class extends Component {
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Work Items') }}</flux:heading>
             <div class="flex items-center gap-2">
-                <flux:button wire:click="syncStatuses" wire:loading.attr="disabled" wire:target="syncStatuses">
+                <flux:button size="md" wire:click="syncStatuses" wire:loading.attr="disabled" wire:target="syncStatuses">
                     <div class="flex items-center gap-1.5">
                         <flux:icon.arrow-path class="size-4" wire:loading.class="animate-spin" wire:target="syncStatuses" />
                         {{ __('Sync') }}
                     </div>
                 </flux:button>
-                <flux:button variant="primary" wire:click="openImportModal">
+                <flux:button size="md" variant="primary" wire:click="openImportModal">
                     {{ __('Import Issues') }}
                 </flux:button>
             </div>
