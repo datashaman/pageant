@@ -5,6 +5,7 @@ namespace App\Ai\Tools;
 use App\Jobs\ExecutePlan;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\WorkItemOrchestrator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -17,7 +18,7 @@ class ResumePlanTool implements Tool
 
     public function description(): string
     {
-        return 'Resume a paused plan, continuing from the next pending step.';
+        return 'Resume a paused or failed plan, continuing from the first pending step.';
     }
 
     public function handle(Request $request): string
@@ -25,18 +26,19 @@ class ResumePlanTool implements Tool
         $plan = Plan::forCurrentOrganization($this->user)
             ->findOrFail($request['plan_id']);
 
-        if (! $plan->isPaused()) {
+        if (! $plan->isResumable()) {
             return json_encode([
-                'error' => "Plan is not paused (current status: {$plan->status}).",
+                'error' => "Plan is not resumable (current status: {$plan->status}). Only paused or failed plans can be resumed.",
             ]);
         }
 
-        $plan->update(['status' => 'approved']);
+        $orchestrator = app(WorkItemOrchestrator::class);
+        $orchestrator->prepareForResume($plan);
 
         ExecutePlan::dispatch($plan);
 
         return json_encode([
-            'message' => 'Plan resumed and queued for execution.',
+            'message' => 'Plan resumed and queued for execution. Completed steps will be skipped.',
             'plan' => $plan->load('steps.agent')->toArray(),
         ], JSON_PRETTY_PRINT);
     }
