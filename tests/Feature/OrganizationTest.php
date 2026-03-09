@@ -56,7 +56,8 @@ it('has agents relationship', function () {
     $organization = Organization::factory()->create();
     Agent::factory()->for($organization)->create();
 
-    expect($organization->agents)->toHaveCount(1);
+    // +1 for the auto-created planning agent from the observer
+    expect($organization->agents)->toHaveCount(2);
 });
 
 it('has projects relationship', function () {
