@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Concerns\DispatchesAgentsForEvent;
 use App\Events\WorkItemCreated;
+use App\Jobs\GeneratePlan;
 
 class HandleWorkItemCreated
 {
@@ -38,5 +39,7 @@ class HandleWorkItemCreated
             $eventContext,
             $issueNumber,
         );
+
+        GeneratePlan::dispatch($workItem, $repoFullName);
     }
 }
