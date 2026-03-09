@@ -2,10 +2,15 @@
 
 use App\Models\Skill;
 use App\Services\SkillRegistryService;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 new #[Title('Browse Skill Registry')] class extends Component {
+    use WithPagination;
+
     public string $search = '';
     public array $results = [];
     public bool $hasSearched = false;
@@ -18,29 +23,57 @@ new #[Title('Browse Skill Registry')] class extends Component {
         $this->validate([
             'search' => ['required', 'string', 'min:2', 'max:255'],
         ]);
-
+        $this->resetPage();
         $this->isSearching = true;
         $this->importMessage = '';
         $this->importError = '';
 
         $service = app(SkillRegistryService::class);
-        $this->results = $service->search($this->search, 10)->toArray();
+        $this->results = $service->search($this->search, 50)->toArray();
         $this->hasSearched = true;
         $this->isSearching = false;
     }
 
-    public function importSkill(int $index): void
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    #[Computed]
+    /**
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public function paginatedResults(): LengthAwarePaginator
+    {
+        $total = count($this->results);
+        $page = $this->getPage();
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+        $slice = array_slice($this->results, $offset, $perPage);
+
+        return new LengthAwarePaginator(
+            $slice,
+            $total,
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => ['search' => $this->search]],
+        );
+    }
+
+    public function importSkill(int $pageIndex): void
     {
         $this->importMessage = '';
         $this->importError = '';
 
-        if (! isset($this->results[$index])) {
+        $globalIndex = ($this->getPage() - 1) * 10 + $pageIndex;
+
+        if (! isset($this->results[$globalIndex])) {
             $this->importError = __('Invalid skill selection.');
 
             return;
         }
 
-        $result = $this->results[$index];
+        $result = $this->results[$globalIndex];
         $organizationId = auth()->user()->currentOrganizationId();
         abort_unless($organizationId, 403);
 
@@ -119,7 +152,7 @@ new #[Title('Browse Skill Registry')] class extends Component {
                     <flux:text class="mt-1 max-w-sm">{{ __('Try a different search term to find skills in the public registries.') }}</flux:text>
                 </div>
             @else
-                <flux:table>
+                <flux:table :paginate="$this->paginatedResults()">
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
                         <flux:table.column>{{ __('Description') }}</flux:table.column>
@@ -128,8 +161,8 @@ new #[Title('Browse Skill Registry')] class extends Component {
                     </flux:table.columns>
 
                     <flux:table.rows>
-                        @foreach ($results as $index => $result)
-                            <flux:table.row wire:key="registry-result-{{ $index }}">
+                        @foreach ($this->paginatedResults() as $pageIndex => $result)
+                            <flux:table.row wire:key="registry-result-{{ $pageIndex }}">
                                 <flux:table.cell>
                                     @if ($result['source_url'])
                                         <flux:link href="{{ $result['source_url'] }}" target="_blank">
@@ -148,7 +181,7 @@ new #[Title('Browse Skill Registry')] class extends Component {
                                     </flux:badge>
                                 </flux:table.cell>
                                 <flux:table.cell align="end">
-                                    <flux:button size="sm" variant="primary" wire:click="importSkill({{ $index }})">
+                                    <flux:button size="sm" variant="primary" wire:click="importSkill({{ $pageIndex }})">
                                         {{ __('Import') }}
                                     </flux:button>
                                 </flux:table.cell>
