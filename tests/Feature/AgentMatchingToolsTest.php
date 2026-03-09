@@ -55,7 +55,8 @@ it('lists agents with optional search via AI tool', function () {
         ->and($result[0]['name'])->toBe('review-bot');
 
     $allResult = json_decode($tool->handle(new Request([])), true);
-    expect($allResult)->toHaveCount(2);
+    // +1 for the auto-created planning agent from the observer
+    expect($allResult)->toHaveCount(3);
 });
 
 it('searches agents by query via AI tool', function () {
