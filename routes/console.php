@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('work-items:reconcile')->hourly();
+Schedule::command('agent-memories:prune')->daily();

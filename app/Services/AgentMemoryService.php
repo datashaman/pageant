@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AgentMemory;
 use App\Models\Plan;
+use App\Models\WorkItem;
 use Illuminate\Support\Collection;
 
 class AgentMemoryService
@@ -44,7 +45,7 @@ class AgentMemoryService
 
         $importance = $this->calculateImportance($plan);
 
-        $repoId = $this->resolveRepoId($plan);
+        $repoId = $this->resolveRepoIdFromWorkItem($plan->workItem);
 
         return AgentMemory::create([
             'organization_id' => $plan->organization_id,
@@ -181,11 +182,11 @@ class AgentMemoryService
     }
 
     /**
-     * Resolve the repo ID from a plan's work item source reference.
+     * Resolve the repo ID from a work item's source reference.
      */
-    protected function resolveRepoId(Plan $plan): ?string
+    public function resolveRepoIdFromWorkItem(WorkItem $workItem): ?string
     {
-        $sourceRef = $plan->workItem->source_reference;
+        $sourceRef = $workItem->source_reference;
 
         if (! $sourceRef) {
             return null;
@@ -193,7 +194,7 @@ class AgentMemoryService
 
         $repoFullName = preg_replace('/#\d+$/', '', $sourceRef);
 
-        $repo = $plan->workItem->organization->repos()
+        $repo = $workItem->organization->repos()
             ->where('source_reference', $repoFullName)
             ->first();
 

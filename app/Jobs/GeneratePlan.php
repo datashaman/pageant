@@ -109,7 +109,7 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
             $parts[] = "Source URL: {$this->workItem->source_url}";
         }
 
-        $repoId = $this->resolveRepoIdForMemory();
+        $repoId = $memoryService->resolveRepoIdFromWorkItem($this->workItem);
         $memoryContext = $memoryService->buildContext(
             $this->workItem->organization_id,
             $repoId,
@@ -130,26 +130,11 @@ class GeneratePlan implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $parts[] = '   - A recommended sequence of steps to implement the work item';
         $parts[] = '   - Any potential risks or considerations';
         $parts[] = '4. Be specific and actionable in your plan.';
-        $parts[] = '5. Consider any prior learnings listed above when making your plan.';
-
-        return implode("\n", $parts);
-    }
-
-    protected function resolveRepoIdForMemory(): ?string
-    {
-        $sourceRef = $this->workItem->source_reference;
-
-        if (! $sourceRef) {
-            return null;
+        if ($memoryContext) {
+            $parts[] = '5. Consider any prior learnings listed above when making your plan.';
         }
 
-        $repoFullName = preg_replace('/#\d+$/', '', $sourceRef);
-
-        $repo = $this->workItem->organization->repos()
-            ->where('source_reference', $repoFullName)
-            ->first();
-
-        return $repo?->id;
+        return implode("\n", $parts);
     }
 
     protected function savePlan(mixed $response): void
