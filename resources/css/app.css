@@ -45,6 +45,14 @@
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
+
+    /* Sizing tokens for modals and layout */
+    --max-height-modal-scroll: 70vh;
+    --width-modal-flyout: 32rem;
+
+    /* Fine spacing for navlist and similar components */
+    --spacing-fine-2: 2px;
+    --spacing-fine-3: 3px;
 }
 
 @layer theme {
@@ -161,6 +169,16 @@ select:focus[data-flux-control] {
 
 .chat-markdown blockquote {
     @apply my-1 border-l-2 border-current/20 pl-3 italic first:mt-0 last:mb-0;
+}
+
+/* Staggered bounce loader for chat panel */
+.animate-bounce-delay-0 { animation-delay: 0ms; }
+.animate-bounce-delay-150 { animation-delay: 150ms; }
+.animate-bounce-delay-300 { animation-delay: 300ms; }
+
+/* Alpine.js: hide elements before hydration to prevent flash */
+[x-cloak] {
+    display: none !important;
 }
 
 /* Colorblind-friendly overrides: avoid red/green as sole differentiators.
