@@ -4,8 +4,8 @@ use App\Ai\EventRegistry;
 use App\Ai\EventSubscription;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
-use App\Models\Repo;
 use App\Models\Skill;
+use App\Models\Workspace;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -27,7 +27,7 @@ new #[Title('Edit Agent')] class extends Component {
     public bool $background = false;
     public ?string $isolation = '';
     public array $selectedSkills = [];
-    public array $selectedRepos = [];
+    public array $selectedWorkspaces = [];
 
     public function mount(Agent $agent): void
     {
@@ -46,7 +46,7 @@ new #[Title('Edit Agent')] class extends Component {
         $this->background = $agent->background ?? false;
         $this->isolation = $agent->isolation ?? '';
         $this->selectedSkills = $agent->skills->pluck('id')->toArray();
-        $this->selectedRepos = $agent->repos->pluck('id')->toArray();
+        $this->selectedWorkspaces = $agent->workspaces->pluck('id')->toArray();
     }
 
     protected function hydrateEventSubscriptions(array $events): void
@@ -193,9 +193,9 @@ new #[Title('Edit Agent')] class extends Component {
     }
 
     #[Computed]
-    public function repos(): Collection
+    public function workspaces(): Collection
     {
-        return Repo::query()->forUser()->orderBy('name')->get();
+        return Workspace::query()->forUser()->orderBy('name')->get();
     }
 
     public function selectToolsByCategory(string $category): void
@@ -310,8 +310,8 @@ new #[Title('Edit Agent')] class extends Component {
             'isolation' => ['nullable', 'string'],
             'selectedSkills' => ['array'],
             'selectedSkills.*' => ['uuid', Rule::exists('skills', 'id')->where('organization_id', $this->agent->organization_id)],
-            'selectedRepos' => ['array'],
-            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $this->agent->organization_id)],
+            'selectedWorkspaces' => ['array'],
+            'selectedWorkspaces.*' => ['uuid', Rule::exists('workspaces', 'id')->where('organization_id', $this->agent->organization_id)],
         ]);
 
         $data = [
@@ -333,7 +333,7 @@ new #[Title('Edit Agent')] class extends Component {
         $this->agent->update($data);
 
         $this->agent->skills()->sync($this->selectedSkills);
-        $this->agent->repos()->sync($this->selectedRepos);
+        $this->agent->workspaces()->sync($this->selectedWorkspaces);
 
         $this->redirect(route('agents.show', $this->agent), navigate: true);
     }
@@ -354,7 +354,7 @@ new #[Title('Edit Agent')] class extends Component {
             :event-categories="$this->eventCategories"
             :tool-categories="$this->toolCategories"
             :skills="$this->skills"
-            :repos="$this->repos"
+            :workspaces="$this->workspaces"
             :selected-event-keys="$this->selectedEventKeys"
             :submit-label="__('Update')"
             :cancel-url="route('agents.show', $agent)"

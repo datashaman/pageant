@@ -23,7 +23,7 @@ class WebhookRelevanceFilter
             return is_string($event) ? $event : ($event['event'] ?? 'unknown');
         })->implode(', ');
 
-        $subscribedRepos = $agent->repos->pluck('source_reference')->implode(', ');
+        $subscribedRepos = $agent->workspaces->flatMap(fn ($ws) => $ws->references->pluck('source_reference'))->implode(', ');
 
         $prompt = implode("\n", [
             'You are a webhook relevance filter. Determine if this webhook event is relevant to the agent.',

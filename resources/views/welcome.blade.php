@@ -19,7 +19,7 @@
                         {{ __('AI Agent Orchestration for GitHub') }}
                     </h1>
                     <p class="text-base text-zinc-600 dark:text-zinc-400">
-                        {{ __('Connect repositories with intelligent agents. Manage projects, work items, and automation—all integrated with GitHub.') }}
+                        {{ __('Connect repositories with intelligent agents. Create workspaces, assign agents, and automate—all integrated with GitHub.') }}
                     </p>
                 </div>
 

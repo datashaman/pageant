@@ -2,14 +2,18 @@
 
 use App\Models\Agent;
 use App\Models\Organization;
-use App\Models\Repo;
+use App\Models\Workspace;
+use App\Models\WorkspaceReference;
 use App\Services\WebhookRelevanceFilter;
 use Laravel\Ai\AnonymousAgent;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
-    $this->repo = Repo::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $this->workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets',
     ]);
@@ -19,7 +23,7 @@ beforeEach(function () {
         'provider' => 'anthropic',
         'secondary_model' => 'cheapest',
     ]);
-    $this->agent->repos()->attach($this->repo);
+    $this->workspace->agents()->attach($this->agent);
 });
 
 it('returns relevant when the model responds YES', function () {

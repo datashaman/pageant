@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\AgentMemory;
 use App\Models\Plan;
-use App\Models\WorkItem;
 use Illuminate\Support\Collection;
 
 class AgentMemoryService
@@ -20,7 +19,7 @@ class AgentMemoryService
      */
     public function storeFromPlan(Plan $plan): AgentMemory
     {
-        $plan->load('workItem', 'steps');
+        $plan->load('workspace', 'steps');
 
         $isSuccess = $plan->status === 'completed';
         $type = $isSuccess ? 'learning' : 'failure';
@@ -29,15 +28,17 @@ class AgentMemoryService
             ->map(fn ($step) => "[{$step->status}] {$step->description}")
             ->implode("\n");
 
+        $workspaceName = $plan->workspace?->name ?? 'Unknown';
+
         $content = implode("\n\n", array_filter([
-            "Work Item: {$plan->workItem->title}",
+            "Workspace: {$workspaceName}",
             "Plan Status: {$plan->status}",
             "Steps:\n{$stepSummaries}",
         ]));
 
         $summary = $isSuccess
-            ? "Successfully completed: {$plan->workItem->title}"
-            : "Failed: {$plan->workItem->title}";
+            ? "Successfully completed: {$workspaceName}"
+            : "Failed: {$workspaceName}";
 
         if (mb_strlen($summary) > 255) {
             $summary = mb_substr($summary, 0, 252).'...';
@@ -45,39 +46,36 @@ class AgentMemoryService
 
         $importance = $this->calculateImportance($plan);
 
-        $repoId = $this->resolveRepoIdFromWorkItem($plan->workItem);
-
         return AgentMemory::create([
             'organization_id' => $plan->organization_id,
-            'repo_id' => $repoId,
+            'workspace_id' => $plan->workspace_id,
             'type' => $type,
             'content' => $content,
             'summary' => $summary,
             'importance' => $importance,
             'metadata' => [
                 'plan_id' => $plan->id,
-                'work_item_id' => $plan->work_item_id,
+                'workspace_id' => $plan->workspace_id,
                 'step_count' => $plan->steps->count(),
-                'source_reference' => $plan->workItem->source_reference,
             ],
         ]);
     }
 
     /**
-     * Retrieve relevant memories for a given organization and optional repo,
+     * Retrieve relevant memories for a given organization and optional workspace,
      * scored by composite of recency and importance.
      *
      * @return Collection<int, AgentMemory>
      */
-    public function retrieve(string $organizationId, ?string $repoId = null, ?string $type = null): Collection
+    public function retrieve(string $organizationId, ?string $workspaceId = null, ?string $type = null): Collection
     {
         $query = AgentMemory::query()
             ->where('organization_id', $organizationId);
 
-        if ($repoId) {
-            $query->where(function ($q) use ($repoId) {
-                $q->where('repo_id', $repoId)
-                    ->orWhereNull('repo_id');
+        if ($workspaceId) {
+            $query->where(function ($q) use ($workspaceId) {
+                $q->where('workspace_id', $workspaceId)
+                    ->orWhereNull('workspace_id');
             });
         }
 
@@ -96,9 +94,9 @@ class AgentMemoryService
     /**
      * Build a context string from retrieved memories suitable for inclusion in agent prompts.
      */
-    public function buildContext(string $organizationId, ?string $repoId = null): ?string
+    public function buildContext(string $organizationId, ?string $workspaceId = null): ?string
     {
-        $memories = $this->retrieve($organizationId, $repoId);
+        $memories = $this->retrieve($organizationId, $workspaceId);
 
         if ($memories->isEmpty()) {
             return null;
@@ -179,25 +177,5 @@ class AgentMemoryService
         }
 
         return min(10, max(1, $base));
-    }
-
-    /**
-     * Resolve the repo ID from a work item's source reference.
-     */
-    public function resolveRepoIdFromWorkItem(WorkItem $workItem): ?string
-    {
-        $sourceRef = $workItem->source_reference;
-
-        if (! $sourceRef) {
-            return null;
-        }
-
-        $repoFullName = preg_replace('/#\d+$/', '', $sourceRef);
-
-        $repo = $workItem->organization->repos()
-            ->where('source_reference', $repoFullName)
-            ->first();
-
-        return $repo?->id;
     }
 }

@@ -56,8 +56,8 @@ class Skill extends Model
         return $this->belongsToMany(Agent::class);
     }
 
-    public function repos(): BelongsToMany
+    public function workspaces(): BelongsToMany
     {
-        return $this->belongsToMany(Repo::class);
+        return $this->belongsToMany(Workspace::class);
     }
 }

@@ -4,18 +4,18 @@ use App\Models\Agent;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use App\Services\PlanStepValidator;
 use Laravel\Ai\AnonymousAgent;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
-    $this->workItem = WorkItem::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
     $this->plan = Plan::factory()->create([
         'organization_id' => $this->organization->id,
-        'work_item_id' => $this->workItem->id,
+        'workspace_id' => $this->workspace->id,
     ]);
     $this->agent = Agent::factory()->create([
         'organization_id' => $this->organization->id,

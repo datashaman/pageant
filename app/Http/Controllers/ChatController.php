@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Ai\Agents\PageantAssistant;
-use App\Models\Repo;
 use App\Models\UserApiKey;
+use App\Models\WorkspaceReference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -218,26 +218,29 @@ class ChatController extends Controller
     {
         $candidate = null;
 
-        // Repo page: repo_source_reference is the full name (e.g. "acme/widgets")
-        if (! empty($context['repo_source_reference']) && ($context['repo_source'] ?? '') === 'github') {
-            $candidate = $context['repo_source_reference'];
+        // Workspace page: source_reference may contain repo or issue ref
+        if (! empty($context['source_reference']) && ($context['source'] ?? '') === 'github') {
+            $candidate = Str::before($context['source_reference'], '#');
         }
 
-        // Work item page: source_reference is "owner/repo#number"
-        if (! $candidate && ! empty($context['source_reference']) && ($context['source'] ?? '') === 'github') {
-            $candidate = Str::before($context['source_reference'], '#');
+        // Legacy repo page context: repo_source_reference
+        if (! $candidate && ! empty($context['repo_source_reference']) && ($context['repo_source'] ?? '') === 'github') {
+            $candidate = Str::before($context['repo_source_reference'], '#');
         }
 
         if (! $candidate) {
             return null;
         }
 
-        // Verify the repo belongs to one of the user's organizations
+        // Verify a workspace reference exists for this repo in one of the user's organizations
         $userOrgIds = $user->organizations()->pluck('organizations.id');
 
-        $exists = Repo::where('source', 'github')
-            ->where('source_reference', $candidate)
-            ->whereIn('organization_id', $userOrgIds)
+        $exists = WorkspaceReference::where('source', 'github')
+            ->where(function ($query) use ($candidate) {
+                $query->where('source_reference', $candidate)
+                    ->orWhere('source_reference', 'LIKE', $candidate.'#%');
+            })
+            ->whereHas('workspace', fn ($q) => $q->whereIn('organization_id', $userOrgIds))
             ->exists();
 
         return $exists ? $candidate : null;
@@ -245,10 +248,9 @@ class ChatController extends Controller
 
     /** @var list<string> */
     private const CONTEXT_DISPLAY_KEYS = [
-        'repo_id', 'repo_name', 'repo_source', 'repo_source_reference',
-        'work_item_id', 'work_item_title', 'work_item_description',
-        'project', 'project_id', 'project_name',
+        'workspace_id', 'workspace_name',
         'source', 'source_reference',
+        'repo_id', 'repo_name', 'repo_source', 'repo_source_reference',
         'agent_id', 'agent_name', 'agent_description',
         'skill_id', 'skill_name',
     ];

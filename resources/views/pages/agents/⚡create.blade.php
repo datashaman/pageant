@@ -3,8 +3,8 @@
 use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
-use App\Models\Repo;
 use App\Models\Skill;
+use App\Models\Workspace;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -24,7 +24,7 @@ new #[Title('Create Agent')] class extends Component {
     public bool $background = false;
     public ?string $isolation = '';
     public array $selectedSkills = [];
-    public array $selectedRepos = [];
+    public array $selectedWorkspaces = [];
 
     /** @return array<string, bool> */
     #[Computed]
@@ -121,9 +121,9 @@ new #[Title('Create Agent')] class extends Component {
     }
 
     #[Computed]
-    public function repos(): Collection
+    public function workspaces(): Collection
     {
-        return Repo::query()->forCurrentOrganization()->orderBy('name')->get();
+        return Workspace::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     public function selectToolsByCategory(string $category): void
@@ -241,8 +241,8 @@ new #[Title('Create Agent')] class extends Component {
             'isolation' => ['nullable', 'string'],
             'selectedSkills' => ['array'],
             'selectedSkills.*' => ['uuid', Rule::exists('skills', 'id')->where('organization_id', $organizationId)],
-            'selectedRepos' => ['array'],
-            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $organizationId)],
+            'selectedWorkspaces' => ['array'],
+            'selectedWorkspaces.*' => ['uuid', Rule::exists('workspaces', 'id')->where('organization_id', $organizationId)],
         ]);
 
         $data = [
@@ -265,7 +265,7 @@ new #[Title('Create Agent')] class extends Component {
         $agent = Agent::query()->create($data);
 
         $agent->skills()->sync($this->selectedSkills);
-        $agent->repos()->sync($this->selectedRepos);
+        $agent->workspaces()->sync($this->selectedWorkspaces);
 
         $this->redirect(route('agents.show', $agent), navigate: true);
     }
@@ -286,7 +286,7 @@ new #[Title('Create Agent')] class extends Component {
             :event-categories="$this->eventCategories"
             :tool-categories="$this->toolCategories"
             :skills="$this->skills"
-            :repos="$this->repos"
+            :workspaces="$this->workspaces"
             :selected-event-keys="$this->selectedEventKeys"
             :submit-label="__('Create')"
             :cancel-url="route('agents.index')"

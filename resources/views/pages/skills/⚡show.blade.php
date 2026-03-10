@@ -12,7 +12,7 @@ new #[Title('View Skill')] class extends Component {
         $userOrgIds = auth()->user()->organizations->pluck('id');
         abort_unless($userOrgIds->contains($skill->organization_id), 403);
 
-        $this->skill = $skill->load(['organization', 'agent', 'agents', 'repos']);
+        $this->skill = $skill->load(['organization', 'agent', 'agents', 'workspaces']);
     }
 
     public function confirmDelete(): void
@@ -138,13 +138,13 @@ new #[Title('View Skill')] class extends Component {
             </div>
         @endif
 
-        @if ($skill->repos->isNotEmpty())
+        @if ($skill->workspaces->isNotEmpty())
             <div class="max-w-xl space-y-2">
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Associated Repos') }}</flux:heading>
+                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Associated Workspaces') }}</flux:heading>
                 <div class="flex flex-wrap gap-2">
-                    @foreach ($skill->repos as $repo)
+                    @foreach ($skill->workspaces as $workspace)
                         <flux:badge>
-                            <flux:link href="{{ route('repos.show', $repo) }}" wire:navigate>{{ $repo->name }}</flux:link>
+                            <flux:link href="{{ route('workspaces.show', $workspace) }}" wire:navigate>{{ $workspace->name }}</flux:link>
                         </flux:badge>
                     @endforeach
                 </div>

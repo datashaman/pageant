@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Ai\Agents\GitHubWebhookAgent;
 use App\Models\Agent;
 use App\Models\UserApiKey;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use App\Services\WebhookRelevanceFilter;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -51,8 +51,8 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return;
         }
 
-        $workItem = $this->resolveWorkItem();
-        $conversationId = $this->resolveConversationId($workItem, $store);
+        $workspace = $this->resolveWorkspace();
+        $conversationId = $this->resolveConversationId($workspace, $store);
 
         $webhookAgent = new GitHubWebhookAgent(
             $this->agent,
@@ -75,7 +75,7 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
             $response = $webhookAgent->prompt($this->eventContext, model: $resolvedModel);
 
-            if ($workItem && $conversationId) {
+            if ($workspace && $conversationId) {
                 $prompt = new AgentPrompt($webhookAgent, $this->eventContext, [], $provider, $resolvedModel);
 
                 $store->storeUserMessage($conversationId, null, $prompt);
@@ -112,30 +112,40 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
         }
     }
 
-    protected function resolveConversationId(?WorkItem $workItem, ConversationStore $store): ?string
+    protected function resolveConversationId(?Workspace $workspace, ConversationStore $store): ?string
     {
-        if (! $workItem) {
+        if (! $workspace) {
             return null;
         }
 
-        if ($workItem->conversation_id) {
-            return $workItem->conversation_id;
+        if ($workspace->conversation_id) {
+            return $workspace->conversation_id;
         }
 
-        $conversationId = $store->storeConversation(null, $workItem->title);
-        $workItem->update(['conversation_id' => $conversationId]);
+        $conversationId = $store->storeConversation(null, $workspace->name);
+        $workspace->update(['conversation_id' => $conversationId]);
 
         return $conversationId;
     }
 
-    protected function resolveWorkItem(): ?WorkItem
+    protected function resolveWorkspace(): ?Workspace
     {
         if (! $this->issueNumber) {
             return null;
         }
 
-        return WorkItem::where('source', 'github')
-            ->where('source_reference', "{$this->repoFullName}#{$this->issueNumber}")
+        $organizationId = $this->agent->organization_id;
+
+        if (! $organizationId) {
+            return null;
+        }
+
+        $sourceReference = "{$this->repoFullName}#{$this->issueNumber}";
+
+        return Workspace::where('organization_id', $organizationId)
+            ->whereHas('references', function ($query) use ($sourceReference) {
+                $query->where('source_reference', $sourceReference);
+            })
             ->first();
     }
 }

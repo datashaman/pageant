@@ -8,7 +8,7 @@ class AuditLogger
 {
     public function __construct(
         protected ?string $organizationId = null,
-        protected ?string $workItemId = null,
+        protected ?string $workspaceId = null,
         protected ?string $agentId = null,
     ) {}
 
@@ -16,7 +16,7 @@ class AuditLogger
     {
         ExecutionAuditLog::create([
             'organization_id' => $this->organizationId,
-            'work_item_id' => $this->workItemId,
+            'workspace_id' => $this->workspaceId,
             'agent_id' => $this->agentId,
             'type' => 'command',
             'detail' => $command,
@@ -28,7 +28,7 @@ class AuditLogger
     {
         ExecutionAuditLog::create([
             'organization_id' => $this->organizationId,
-            'work_item_id' => $this->workItemId,
+            'workspace_id' => $this->workspaceId,
             'agent_id' => $this->agentId,
             'type' => 'file_write',
             'detail' => $path,
@@ -39,7 +39,7 @@ class AuditLogger
     {
         ExecutionAuditLog::create([
             'organization_id' => $this->organizationId,
-            'work_item_id' => $this->workItemId,
+            'workspace_id' => $this->workspaceId,
             'agent_id' => $this->agentId,
             'type' => 'file_edit',
             'detail' => $path,

@@ -10,15 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Project extends Model
+class Workspace extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProjectFactory> */
+    /** @use HasFactory<\Database\Factories\WorkspaceFactory> */
     use BelongsToUserOrganization, HasFactory, HasUuids;
 
     protected $fillable = [
         'organization_id',
         'name',
         'description',
+        'conversation_id',
     ];
 
     public function organization(): BelongsTo
@@ -26,13 +27,23 @@ class Project extends Model
         return $this->belongsTo(Organization::class);
     }
 
-    public function repos(): BelongsToMany
+    public function references(): HasMany
     {
-        return $this->belongsToMany(Repo::class);
+        return $this->hasMany(WorkspaceReference::class);
     }
 
-    public function workItems(): HasMany
+    public function plans(): HasMany
     {
-        return $this->hasMany(WorkItem::class);
+        return $this->hasMany(Plan::class);
+    }
+
+    public function agents(): BelongsToMany
+    {
+        return $this->belongsToMany(Agent::class);
+    }
+
+    public function skills(): BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class);
     }
 }

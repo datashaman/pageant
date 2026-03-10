@@ -2,8 +2,8 @@
 
 use App\Models\Agent;
 use App\Models\Organization;
-use App\Models\Repo;
 use App\Models\Skill;
+use App\Models\Workspace;
 
 it('can be created via factory', function () {
     $agent = Agent::factory()->create();
@@ -41,12 +41,12 @@ it('has skills relationship', function () {
     expect($agent->skills)->toHaveCount(1);
 });
 
-it('has repos relationship', function () {
+it('has workspaces relationship', function () {
     $agent = Agent::factory()->create();
-    $repo = Repo::factory()->create();
-    $agent->repos()->attach($repo);
+    $workspace = Workspace::factory()->create();
+    $agent->workspaces()->attach($workspace);
 
-    expect($agent->repos)->toHaveCount(1);
+    expect($agent->workspaces)->toHaveCount(1);
 });
 
 it('enforces unique name per organization', function () {

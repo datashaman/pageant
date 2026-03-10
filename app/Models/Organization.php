@@ -48,9 +48,9 @@ class Organization extends Model
         return $this->belongsToMany(User::class);
     }
 
-    public function repos(): HasMany
+    public function workspaces(): HasMany
     {
-        return $this->hasMany(Repo::class);
+        return $this->hasMany(Workspace::class);
     }
 
     public function skills(): HasMany
@@ -61,16 +61,6 @@ class Organization extends Model
     public function agents(): HasMany
     {
         return $this->hasMany(Agent::class);
-    }
-
-    public function projects(): HasMany
-    {
-        return $this->hasMany(Project::class);
-    }
-
-    public function workItems(): HasMany
-    {
-        return $this->hasMany(WorkItem::class);
     }
 
     public function plans(): HasMany

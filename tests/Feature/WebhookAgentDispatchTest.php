@@ -9,7 +9,8 @@ use App\Jobs\RunWebhookAgent;
 use App\Models\Agent;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
-use App\Models\Repo;
+use App\Models\Workspace;
+use App\Models\WorkspaceReference;
 use Illuminate\Support\Facades\Queue;
 
 beforeEach(function () {
@@ -20,8 +21,11 @@ beforeEach(function () {
         'organization_id' => $this->organization->id,
         'installation_id' => 12345,
     ]);
-    $this->repo = Repo::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $this->workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets',
     ]);
@@ -33,7 +37,7 @@ it('dispatches RunWebhookAgent for push event when agent subscribes to push', fu
         'events' => [['event' => 'push', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/main',
@@ -56,7 +60,7 @@ it('dispatches RunWebhookAgent for pull_request event', function () {
         'events' => [['event' => 'pull_request', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPullRequestReceived(
         action: 'opened',
@@ -74,7 +78,7 @@ it('dispatches RunWebhookAgent for pull_request_review event', function () {
         'events' => [['event' => 'pull_request_review', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPullRequestReviewReceived(
         action: 'submitted',
@@ -93,7 +97,7 @@ it('dispatches RunWebhookAgent for issue_comment event', function () {
         'events' => [['event' => 'issue_comment', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubCommentReceived(
         action: 'created',
@@ -112,7 +116,7 @@ it('does not dispatch for untracked repos', function () {
         'events' => [['event' => 'push', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/main',
@@ -139,7 +143,7 @@ it('only dispatches agents subscribed to the specific event', function () {
         'events' => [['event' => 'pull_request', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach([$pushAgent->id, $prAgent->id]);
+    $this->workspace->agents()->attach([$pushAgent->id, $prAgent->id]);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/main',
@@ -162,7 +166,7 @@ it('dispatches RunWebhookAgent for issues event', function () {
         'events' => [['event' => 'issues', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubIssueReceived(
         action: 'labeled',
@@ -185,7 +189,7 @@ it('does not dispatch when agent is disabled', function () {
         'tools' => ['create_comment'],
         'enabled' => false,
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/main',
@@ -205,7 +209,7 @@ it('does not dispatch when agent has no matching events', function () {
         'events' => [['event' => 'pull_request', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/main',
@@ -227,7 +231,7 @@ it('dispatches only for matching action', function () {
         'events' => [['event' => 'issues.opened', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubIssueReceived(
         action: 'opened',
@@ -245,7 +249,7 @@ it('does not dispatch for non-matching action', function () {
         'events' => [['event' => 'issues.opened', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubIssueReceived(
         action: 'closed',
@@ -263,7 +267,7 @@ it('bare event type matches all actions (backward compat)', function () {
         'events' => [['event' => 'issues', 'filters' => []]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubIssueReceived(
         action: 'closed',
@@ -283,7 +287,7 @@ it('dispatches when label filter matches', function () {
         'events' => [['event' => 'issues.opened', 'filters' => ['labels' => ['bug']]]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubIssueReceived(
         action: 'opened',
@@ -301,7 +305,7 @@ it('does not dispatch when label filter does not match', function () {
         'events' => [['event' => 'issues.opened', 'filters' => ['labels' => ['security']]]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubIssueReceived(
         action: 'opened',
@@ -321,7 +325,7 @@ it('dispatches when base_branch filter matches', function () {
         'events' => [['event' => 'pull_request.opened', 'filters' => ['base_branch' => 'main']]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPullRequestReceived(
         action: 'opened',
@@ -339,7 +343,7 @@ it('does not dispatch when base_branch filter does not match', function () {
         'events' => [['event' => 'pull_request.opened', 'filters' => ['base_branch' => 'main']]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPullRequestReceived(
         action: 'opened',
@@ -359,7 +363,7 @@ it('dispatches when branch glob pattern matches', function () {
         'events' => [['event' => 'push', 'filters' => ['branches' => ['main', 'release/*']]]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/release/v1.0',
@@ -379,7 +383,7 @@ it('does not dispatch when branch glob pattern does not match', function () {
         'events' => [['event' => 'push', 'filters' => ['branches' => ['main']]]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/feature/foo',
@@ -401,7 +405,7 @@ it('requires all filter types to match (AND logic)', function () {
         'events' => [['event' => 'pull_request.opened', 'filters' => ['labels' => ['bug'], 'base_branch' => 'main']]],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     // Labels match but base_branch does not
     event(new GitHubPullRequestReceived(
@@ -422,7 +426,7 @@ it('supports legacy string event format', function () {
         'events' => ['push'],
         'tools' => ['create_comment'],
     ]);
-    $this->repo->agents()->attach($agent);
+    $this->workspace->agents()->attach($agent);
 
     event(new GitHubPushReceived(
         ref: 'refs/heads/main',

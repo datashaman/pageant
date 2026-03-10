@@ -12,7 +12,7 @@ class ExecutionAuditLog extends Model
 
     protected $fillable = [
         'organization_id',
-        'work_item_id',
+        'workspace_id',
         'agent_id',
         'type',
         'detail',

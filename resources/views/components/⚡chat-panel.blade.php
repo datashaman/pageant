@@ -338,7 +338,7 @@ new class extends Component
         <template x-if="messages.length === 0 && !streaming">
             <div class="flex h-full items-center justify-center">
                 <flux:text class="text-center text-zinc-400">
-                    {{ __('Ask me anything about your repos, agents, or work items.') }}
+                    {{ __('Ask me anything about your workspaces, agents, or skills.') }}
                 </flux:text>
             </div>
         </template>

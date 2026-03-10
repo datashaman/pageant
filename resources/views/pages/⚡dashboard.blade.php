@@ -1,15 +1,19 @@
 <?php
 
 use App\Models\Agent;
-use App\Models\Project;
-use App\Models\Repo;
 use App\Models\Skill;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component {
+    #[Computed]
+    public function workspaceCount(): int
+    {
+        return Workspace::query()->forCurrentOrganization()->count();
+    }
+
     #[Computed]
     public function agentCount(): int
     {
@@ -17,30 +21,9 @@ new #[Title('Dashboard')] class extends Component {
     }
 
     #[Computed]
-    public function repoCount(): int
-    {
-        return Repo::query()->forCurrentOrganization()->count();
-    }
-
-    #[Computed]
     public function skillCount(): int
     {
         return Skill::query()->forCurrentOrganization()->count();
-    }
-
-    #[Computed]
-    public function projectCount(): int
-    {
-        return Project::query()->forCurrentOrganization()->count();
-    }
-
-    #[Computed]
-    public function workItemCount(): int
-    {
-        return WorkItem::query()
-            ->forCurrentOrganization()
-            ->where('status', 'open')
-            ->count();
     }
 }; ?>
 
@@ -48,29 +31,13 @@ new #[Title('Dashboard')] class extends Component {
     <div class="flex h-full w-full flex-1 flex-col gap-6">
         <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
 
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <a href="{{ route('projects.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <a href="{{ route('workspaces.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
                 <div class="flex items-center gap-3">
-                    <flux:icon name="rectangle-stack" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Projects') }}</flux:heading>
+                    <flux:icon name="squares-2x2" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Workspaces') }}</flux:heading>
                 </div>
-                <flux:heading size="lg" class="mt-2">{{ $this->projectCount }}</flux:heading>
-            </a>
-
-            <a href="{{ route('repos.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
-                <div class="flex items-center gap-3">
-                    <flux:icon name="folder-git-2" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repos') }}</flux:heading>
-                </div>
-                <flux:heading size="lg" class="mt-2">{{ $this->repoCount }}</flux:heading>
-            </a>
-
-            <a href="{{ route('work-items.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
-                <div class="flex items-center gap-3">
-                    <flux:icon name="clipboard-document-list" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Work Items') }}</flux:heading>
-                </div>
-                <flux:heading size="lg" class="mt-2">{{ $this->workItemCount }}</flux:heading>
+                <flux:heading size="lg" class="mt-2">{{ $this->workspaceCount }}</flux:heading>
             </a>
 
             <a href="{{ route('agents.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">

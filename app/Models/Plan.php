@@ -16,7 +16,7 @@ class Plan extends Model
 
     protected $fillable = [
         'organization_id',
-        'work_item_id',
+        'workspace_id',
         'status',
         'summary',
         'created_by',
@@ -41,9 +41,9 @@ class Plan extends Model
         return $this->belongsTo(Organization::class);
     }
 
-    public function workItem(): BelongsTo
+    public function workspace(): BelongsTo
     {
-        return $this->belongsTo(WorkItem::class);
+        return $this->belongsTo(Workspace::class);
     }
 
     public function steps(): HasMany
