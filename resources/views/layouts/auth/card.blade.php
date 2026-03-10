@@ -1,23 +1,22 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-neutral-100 antialiased dark:bg-linear-to-b dark:from-neutral-950 dark:to-neutral-900">
-        <div class="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <div class="flex w-full max-w-md flex-col gap-6">
-                <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
-                    <span class="flex h-9 w-9 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
-                    </span>
-
-                    <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
+    <body class="min-h-screen bg-zinc-50 dark:bg-zinc-900 antialiased">
+        <header class="fixed left-0 right-0 top-0 z-10 border-b border-zinc-200 bg-white/80 px-6 py-4 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div class="mx-auto flex max-w-3xl items-center justify-between">
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5 font-medium text-zinc-900 dark:text-zinc-100" wire:navigate>
+                    <x-app-logo-icon class="size-8 fill-current" />
+                    <span class="text-lg font-semibold tracking-tight">{{ config('app.name', 'Pageant') }}</span>
                 </a>
+            </div>
+        </header>
 
-                <div class="flex flex-col gap-6">
-                    <div class="rounded-xl border bg-white dark:bg-stone-950 dark:border-stone-800 text-stone-800 shadow-xs">
-                        <div class="px-10 py-8">{{ $slot }}</div>
-                    </div>
+        <div class="flex min-h-svh flex-col items-center justify-center px-6 pb-16 pt-24 md:px-10">
+            <div class="flex w-full max-w-md flex-col gap-6">
+                <div class="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+                    <div class="px-10 py-8">{{ $slot }}</div>
                 </div>
             </div>
         </div>
