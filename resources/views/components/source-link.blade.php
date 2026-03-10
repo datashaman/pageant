@@ -6,6 +6,9 @@
 
 @php
     $label = $sourceReference ?: $sourceUrl;
+    $safeUrl = $sourceUrl && \Illuminate\Support\Str::startsWith($sourceUrl, ['http://', 'https://'])
+        ? $sourceUrl
+        : null;
 @endphp
 
 @if ($label)
@@ -13,8 +16,8 @@
     @if ($source === 'github')
         <x-icon-github class="size-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
     @endif
-    @if ($sourceUrl)
-        <flux:link href="{{ $sourceUrl }}" target="_blank">
+    @if ($safeUrl)
+        <flux:link href="{{ $safeUrl }}" target="_blank">
             {{ $label }}
         </flux:link>
     @else

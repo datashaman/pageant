@@ -51,3 +51,21 @@ it('can be scoped by source', function () {
     expect(Repo::bySource('github')->count())->toBe(1)
         ->and(Repo::bySource('gitlab')->count())->toBe(1);
 });
+
+it('returns source_reference for display_name when set', function () {
+    $repo = Repo::factory()->create([
+        'name' => 'fallback-name',
+        'source_reference' => 'org/repo',
+    ]);
+
+    expect($repo->display_name)->toBe('org/repo');
+});
+
+it('falls back to name for display_name when source_reference is empty', function () {
+    $repo = Repo::factory()->create([
+        'name' => 'my-repo',
+        'source_reference' => '',
+    ]);
+
+    expect($repo->display_name)->toBe('my-repo');
+});
