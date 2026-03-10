@@ -163,5 +163,53 @@ select:focus[data-flux-control] {
     @apply my-1 border-l-2 border-current/20 pl-3 italic first:mt-0 last:mb-0;
 }
 
-/* Colorblind-friendly: data-colorblind attribute set by Appearance settings.
-   Future: add overrides for success/danger badges (e.g. success→blue) when Flux structure is known. */
+/* Colorblind-friendly overrides: avoid red/green as sole differentiators.
+   Success → blue, danger → amber for deuteranopia/protanopia. */
+[data-colorblind="deuteranopia"] .bg-green-500,
+[data-colorblind="deuteranopia"] .bg-green-600,
+[data-colorblind="deuteranopia"] .bg-emerald-500,
+[data-colorblind="deuteranopia"] .bg-emerald-600,
+[data-colorblind="protanopia"] .bg-green-500,
+[data-colorblind="protanopia"] .bg-green-600,
+[data-colorblind="protanopia"] .bg-emerald-500,
+[data-colorblind="protanopia"] .bg-emerald-600 {
+    background-color: rgb(37 99 235);
+}
+
+[data-colorblind="deuteranopia"] .text-green-500,
+[data-colorblind="deuteranopia"] .text-green-600,
+[data-colorblind="deuteranopia"] .text-green-400,
+[data-colorblind="protanopia"] .text-green-500,
+[data-colorblind="protanopia"] .text-green-600,
+[data-colorblind="protanopia"] .text-green-400 {
+    color: rgb(37 99 235);
+}
+
+/* Danger states: red → amber for clearer distinction from success (blue) */
+[data-colorblind="deuteranopia"] .bg-red-50,
+[data-colorblind="deuteranopia"] .dark .bg-red-950\/30,
+[data-colorblind="protanopia"] .bg-red-50,
+[data-colorblind="protanopia"] .dark .bg-red-950\/30 {
+    background-color: rgb(254 243 199);
+}
+
+.dark [data-colorblind="deuteranopia"] .bg-red-950\/30,
+.dark [data-colorblind="protanopia"] .bg-red-950\/30 {
+    background-color: rgb(120 53 15 / 0.3);
+}
+
+[data-colorblind="deuteranopia"] .bg-red-500,
+[data-colorblind="deuteranopia"] .bg-red-600,
+[data-colorblind="protanopia"] .bg-red-500,
+[data-colorblind="protanopia"] .bg-red-600 {
+    background-color: rgb(245 158 11);
+}
+
+[data-colorblind="deuteranopia"] .text-red-500,
+[data-colorblind="deuteranopia"] .text-red-600,
+[data-colorblind="deuteranopia"] .text-red-400,
+[data-colorblind="protanopia"] .text-red-500,
+[data-colorblind="protanopia"] .text-red-600,
+[data-colorblind="protanopia"] .text-red-400 {
+    color: rgb(245 158 11);
+}

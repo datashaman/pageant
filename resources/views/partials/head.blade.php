@@ -1,11 +1,22 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script>
-(function(){
-    const k='flux-appearance';const s=localStorage.getItem(k);const d=window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.classList.toggle('dark',s==='dark'||(s!=='light'&&(s==='system'||!s)&&d));
-    const cb=localStorage.getItem('pageant-colorblind');
-    if(cb&&cb!=='none')document.documentElement.setAttribute('data-colorblind',cb);
+(function () {
+    const appearanceKey = 'flux-appearance';
+    const stored = localStorage.getItem(appearanceKey);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const isDark = stored === 'dark'
+        || (stored !== 'light' && (stored === 'system' || ! stored) && prefersDark);
+    document.documentElement.classList.toggle('dark', isDark);
+
+    const colorblindKey = 'pageant-colorblind';
+    const colorblindModes = ['deuteranopia', 'protanopia', 'tritanopia'];
+    const colorblind = localStorage.getItem(colorblindKey);
+    if (colorblind && colorblindModes.includes(colorblind)) {
+        document.documentElement.setAttribute('data-colorblind', colorblind);
+    } else if (colorblind) {
+        document.documentElement.removeAttribute('data-colorblind');
+    }
 })();
 </script>
 <meta name="csrf-token" content="{{ csrf_token() }}" />
