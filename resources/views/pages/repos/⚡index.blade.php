@@ -177,11 +177,6 @@ new #[Title('Repos')] class extends Component {
                 <x-slot:icon>
                     <flux:icon.code-bracket class="size-10 text-zinc-400 dark:text-zinc-500" />
                 </x-slot:icon>
-                <x-slot:action>
-                    <flux:button variant="primary" wire:click="openImportModal">
-                        {{ __('Import Repo') }}
-                    </flux:button>
-                </x-slot:action>
             </x-empty-state>
         @else
             <flux:input wire:model.live="search" placeholder="{{ __('Search repos...') }}" icon="magnifying-glass" />

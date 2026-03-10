@@ -73,11 +73,6 @@ new #[Title('Projects')] class extends Component {
                 <x-slot:icon>
                     <flux:icon.folder class="size-10 text-zinc-400 dark:text-zinc-500" />
                 </x-slot:icon>
-                <x-slot:action>
-                    <flux:button variant="primary" href="{{ route('projects.create') }}" wire:navigate>
-                        {{ __('Create Project') }}
-                    </flux:button>
-                </x-slot:action>
             </x-empty-state>
         @else
             <flux:input wire:model.live.debounce.300ms="search" placeholder="{{ __('Search projects...') }}" icon="magnifying-glass" />

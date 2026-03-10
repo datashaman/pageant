@@ -248,11 +248,6 @@ new #[Title('Work Items')] class extends Component {
                 <x-slot:icon>
                     <flux:icon.clipboard-document-list class="size-10 text-zinc-400 dark:text-zinc-500" />
                 </x-slot:icon>
-                <x-slot:action>
-                    <flux:button variant="primary" wire:click="openImportModal">
-                        {{ __('Import Issues') }}
-                    </flux:button>
-                </x-slot:action>
             </x-empty-state>
         @else
             <div class="flex items-center gap-4">
