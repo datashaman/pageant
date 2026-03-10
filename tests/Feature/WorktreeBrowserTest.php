@@ -117,15 +117,17 @@ it('gets changed files from worktree', function () {
 
     Process::fake([
         'git rev-parse --verify origin/main *' => Process::result('abc123', '', 0),
-        'git diff --name-status origin/main...HEAD' => Process::result("M\tapp/Models/User.php\nA\tapp/Models/Post.php\nD\told-file.php", '', 0),
+        'git diff --name-status origin/main...HEAD' => Process::result("M\tapp/Models/User.php\nA\tapp/Models/Post.php\nD\told-file.php\nR100\told-name.php\tnew-name.php\nC095\toriginal.php\tcopy.php", '', 0),
     ]);
 
     $result = $this->browser->getChangedFiles($this->workItem);
 
-    expect($result)->toHaveCount(3)
+    expect($result)->toHaveCount(5)
         ->and($result[0])->toBe(['path' => 'app/Models/User.php', 'status' => 'modified'])
         ->and($result[1])->toBe(['path' => 'app/Models/Post.php', 'status' => 'added'])
-        ->and($result[2])->toBe(['path' => 'old-file.php', 'status' => 'deleted']);
+        ->and($result[2])->toBe(['path' => 'old-file.php', 'status' => 'deleted'])
+        ->and($result[3])->toBe(['path' => 'new-name.php', 'status' => 'renamed'])
+        ->and($result[4])->toBe(['path' => 'copy.php', 'status' => 'copied']);
 
     File::deleteDirectory($tmpDir);
 });
@@ -153,7 +155,7 @@ it('gets file tree from worktree', function () {
     $this->workItem->worktree_path = $tmpDir;
 
     Process::fake([
-        'git ls-tree --name-only HEAD *' => Process::result("README.md\nsrc", '', 0),
+        'git ls-tree --name-only HEAD' => Process::result("README.md\nsrc", '', 0),
     ]);
 
     $result = $this->browser->getFileTree($this->workItem);

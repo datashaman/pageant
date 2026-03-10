@@ -66,9 +66,9 @@ class WorktreeBrowser
                 continue;
             }
 
-            $parts = preg_split('/\s+/', $line, 2);
+            $parts = explode("\t", $line);
 
-            if (count($parts) === 2) {
+            if (count($parts) >= 2) {
                 $statusCode = $parts[0];
                 $status = match (substr($statusCode, 0, 1)) {
                     'A' => 'added',
@@ -79,7 +79,11 @@ class WorktreeBrowser
                     default => 'modified',
                 };
 
-                $files[] = ['path' => $parts[1], 'status' => $status];
+                $path = (substr($statusCode, 0, 1) === 'R' || substr($statusCode, 0, 1) === 'C')
+                    ? end($parts)
+                    : $parts[1];
+
+                $files[] = ['path' => $path, 'status' => $status];
             }
         }
 
@@ -107,8 +111,12 @@ class WorktreeBrowser
             return [];
         }
 
-        $result = Process::path($worktreePath)
-            ->run('git ls-tree --name-only HEAD '.escapeshellarg($directory ? rtrim($directory, '/').'/' : ''));
+        $command = 'git ls-tree --name-only HEAD';
+        if ($directory !== '') {
+            $command .= ' '.escapeshellarg(rtrim($directory, '/').'/');
+        }
+
+        $result = Process::path($worktreePath)->run($command);
 
         if (! $result->successful()) {
             return [];
@@ -146,6 +154,11 @@ class WorktreeBrowser
     /**
      * Get the contents of a file in the worktree.
      */
+    /**
+     * Maximum file size in bytes that can be read (1 MB).
+     */
+    protected const MAX_FILE_SIZE = 1_048_576;
+
     public function getFileContents(WorkItem $workItem, string $filePath): ?string
     {
         $worktreePath = $workItem->worktree_path;
@@ -154,14 +167,27 @@ class WorktreeBrowser
             return null;
         }
 
-        $fullPath = realpath($worktreePath.'/'.$filePath);
+        $rootPath = realpath($worktreePath);
+        if ($rootPath === false) {
+            return null;
+        }
 
-        if (! $fullPath || ! str_starts_with($fullPath, realpath($worktreePath))) {
+        $fullPath = realpath($rootPath.DIRECTORY_SEPARATOR.ltrim($filePath, DIRECTORY_SEPARATOR));
+        if ($fullPath === false) {
+            return null;
+        }
+
+        if ($fullPath !== $rootPath && ! str_starts_with($fullPath, $rootPath.DIRECTORY_SEPARATOR)) {
             return null;
         }
 
         if (! File::isFile($fullPath)) {
             return null;
+        }
+
+        $size = File::size($fullPath);
+        if ($size > self::MAX_FILE_SIZE) {
+            return '// File too large to display ('.number_format($size / 1024, 1).' KB). Maximum supported size is '.number_format(self::MAX_FILE_SIZE / 1024).' KB.';
         }
 
         return File::get($fullPath);
