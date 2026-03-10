@@ -331,5 +331,7 @@ new #[Title('Work Item')] class extends Component {
                 </div>
             </div>
         </flux:modal>
+
+        <livewire:changes-files-panel :work-item="$workItem" />
     </div>
 </div>
