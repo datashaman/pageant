@@ -357,7 +357,7 @@ new #[Title('Work Items')] class extends Component {
         @endif
     </div>
 
-    <flux:modal wire:model="showImportModal" variant="flyout" class="w-[32rem]">
+    <flux:modal wire:model="showImportModal" variant="flyout" class="w-modal-flyout">
         <div class="space-y-6">
             <flux:heading size="lg">{{ __('Import Issues from GitHub') }}</flux:heading>
 
@@ -413,7 +413,7 @@ new #[Title('Work Items')] class extends Component {
 
                         <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-2" x-text="filtered.length + ' issues'"></div>
 
-                        <div class="mt-2 max-h-[70vh] space-y-1 overflow-y-auto">
+                        <div class="mt-2 max-h-modal-scroll space-y-1 overflow-y-auto">
                             <template x-for="issue in visible" :key="issue.number">
                                 <div class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-700">
                                     <div class="min-w-0 flex-1">

@@ -231,3 +231,15 @@ Use these consistently — never freestyle font sizes:
 - Write light-mode styles without their `dark:` counterparts
 - Use session for theme — Flux uses localStorage
 - Forget `@fluxScripts` in layouts that render Livewire/Flux components
+
+---
+
+## Exceptions
+
+These cases are documented exceptions to the "no inline styles" and "no hardcoded colors" rules:
+
+| Exception | Location | Reason |
+|-----------|----------|--------|
+| **Dynamic user/API colors** | Work items import modal (GitHub issue labels) | Label colors come from the GitHub API; acceptable to use inline `:style` for background/text when color is not known at build time. |
+| **QR code invert** | Two-factor setup modal | `:style` for `filter: invert()` is required for dark-mode QR code legibility (QR codes are black-on-white and must be inverted when the UI is dark). |
+| **x-cloak** | `action-message` component | Uses `x-cloak` with `[x-cloak] { display: none }` in app.css for initial hidden state before Alpine hydration — avoids `style="display: none"`. |

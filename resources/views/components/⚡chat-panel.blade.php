@@ -380,9 +380,9 @@ new class extends Component
             <div class="flex justify-start">
                 <div class="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
                     <div class="flex items-center gap-1">
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 0ms"></div>
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 150ms"></div>
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-zinc-400" style="animation-delay: 300ms"></div>
+                        <div class="h-2 w-2 animate-bounce animate-bounce-delay-0 rounded-full bg-zinc-400"></div>
+                        <div class="h-2 w-2 animate-bounce animate-bounce-delay-150 rounded-full bg-zinc-400"></div>
+                        <div class="h-2 w-2 animate-bounce animate-bounce-delay-300 rounded-full bg-zinc-400"></div>
                     </div>
                 </div>
             </div>
