@@ -10,11 +10,6 @@
                     <x-app-logo-icon class="size-8 fill-current" />
                     <span class="text-lg font-semibold tracking-tight">{{ config('app.name', 'Pageant') }}</span>
                 </a>
-                @auth
-                    <flux:button href="{{ route('dashboard') }}" variant="primary" size="sm" class="absolute end-6 top-1/2 -translate-y-1/2 sm:end-8" wire:navigate>
-                        {{ __('Go to Dashboard') }}
-                    </flux:button>
-                @endauth
             </header>
 
             <main class="flex flex-1 flex-col items-center justify-center py-8">
@@ -41,7 +36,7 @@
                         <x-icon-github class="size-5 me-2" />
                         {{ __('Sign in with GitHub') }}
                     </flux:button>
-                @endauth
+                @endif
                 </div>
             </main>
 
