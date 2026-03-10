@@ -3,7 +3,12 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 antialiased">
+    <body
+        class="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 antialiased"
+        x-data
+        x-init="Alpine.store('chatPanel', { hasInlineChat: !!document.querySelector('[data-hide-chat-panel]') })"
+        x-on:livewire:navigated.window="Alpine.store('chatPanel').hasInlineChat = !!document.querySelector('[data-hide-chat-panel]')"
+    >
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
@@ -41,7 +46,7 @@
             <flux:spacer />
 
             <flux:sidebar.nav>
-                <flux:sidebar.item icon="chat-bubble-left-right" x-data @click.prevent="$dispatch('toggle-chat-panel')" class="cursor-pointer">
+                <flux:sidebar.item x-show="!$store.chatPanel.hasInlineChat" x-cloak icon="chat-bubble-left-right" x-data @click.prevent="$dispatch('toggle-chat-panel')" class="cursor-pointer">
                     {{ __('Assistant') }}
                 </flux:sidebar.item>
             </flux:sidebar.nav>
@@ -111,7 +116,9 @@
                 </div>
 
                 @persist('chat-panel')
-                    <livewire:chat-panel />
+                    <div x-show="!$store.chatPanel.hasInlineChat" x-cloak>
+                        <livewire:chat-panel />
+                    </div>
                 @endpersist
             </div>
         </flux:main>

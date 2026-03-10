@@ -25,9 +25,9 @@ beforeEach(function () {
 it('renders the inline chat input on the work item show page', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('pages::work-items.show', ['workItem' => $this->workItem])
-        ->assertSeeHtml('data-inline-chat')
+        ->assertSeeHtml('data-hide-chat-panel')
         ->assertSeeHtml('Ask to make changes...')
-        ->assertSeeHtml('x-ref="inlineChatInput"');
+        ->assertSeeHtml('x-ref="chatInput"');
 });
 
 it('renders the model selector on the work item show page', function () {
