@@ -214,7 +214,7 @@ new #[Title('Repos')] class extends Component {
                                     <flux:button size="sm" href="{{ route('repos.edit', $repo) }}" wire:navigate>
                                         {{ __('Edit') }}
                                     </flux:button>
-                                    <flux:button size="sm" variant="outline" wire:click="confirmDelete('{{ $repo->id }}')">
+                                    <flux:button size="sm" variant="danger" wire:click="confirmDelete('{{ $repo->id }}')">
                                         {{ __('Delete') }}
                                     </flux:button>
                                 </div>

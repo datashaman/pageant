@@ -31,6 +31,12 @@
                     <x-icon-github class="size-5 me-2" />
                     {{ __('Sign in with GitHub') }}
                 </flux:button>
+
+                @if (app()->environment('local'))
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        <flux:link :href="route('login')" wire:navigate>{{ __('Log in with email and password') }}</flux:link>
+                    </p>
+                @endif
                 </div>
             </main>
 

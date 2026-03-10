@@ -102,7 +102,7 @@ new #[Title('Projects')] class extends Component {
                                     </flux:button>
 
                                     <flux:modal.trigger :name="'delete-project-' . $project->id">
-                                        <flux:button size="sm" variant="outline">
+                                        <flux:button size="sm" variant="danger">
                                             {{ __('Delete') }}
                                         </flux:button>
                                     </flux:modal.trigger>
