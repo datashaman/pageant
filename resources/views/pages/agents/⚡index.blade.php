@@ -75,11 +75,6 @@ new #[Title('Agents')] class extends Component {
                 <x-slot:icon>
                     <flux:icon.cpu-chip class="size-10 text-zinc-400 dark:text-zinc-500" />
                 </x-slot:icon>
-                <x-slot:action>
-                    <flux:button variant="primary" href="{{ route('agents.create') }}" wire:navigate>
-                        {{ __('Create Agent') }}
-                    </flux:button>
-                </x-slot:action>
             </x-empty-state>
         @else
             <flux:input wire:model.live="search" placeholder="{{ __('Search agents...') }}" icon="magnifying-glass" />
