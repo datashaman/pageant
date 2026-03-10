@@ -5,7 +5,9 @@ use App\Jobs\GeneratePlan;
 use App\Models\Plan;
 use App\Models\WorkItem;
 use App\Services\WorkItemOrchestrator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Ai\Contracts\ConversationStore;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -13,12 +15,58 @@ use Livewire\Component;
 new #[Title('Work Item')] class extends Component {
     public WorkItem $workItem;
 
+    public ?string $conversationId = null;
+
+    public array $messages = [];
+
+    /** @return array<string, bool> */
+    #[Computed]
+    public function availableProviders(): array
+    {
+        $user = auth()->user();
+        $userKeyProviders = $user->apiKeys()->valid()->pluck('provider')->toArray();
+
+        $providers = [];
+        foreach (['anthropic', 'openai', 'gemini'] as $provider) {
+            $providers[$provider] = ! empty(config("ai.providers.{$provider}.key"))
+                || in_array($provider, $userKeyProviders);
+        }
+
+        return $providers;
+    }
+
     public function mount(WorkItem $workItem): void
     {
         $userOrgIds = auth()->user()->organizations->pluck('id');
         abort_unless($userOrgIds->contains($workItem->organization_id), 403);
 
         $this->workItem = $workItem->load(['organization', 'project']);
+
+        $this->loadConversationForWorkItem();
+    }
+
+    public function loadConversationForWorkItem(): void
+    {
+        if ($this->workItem->conversation_id) {
+            $this->conversationId = $this->workItem->conversation_id;
+            $this->loadMessages();
+        }
+    }
+
+    public function loadMessages(): void
+    {
+        if (! $this->conversationId) {
+            $this->messages = [];
+
+            return;
+        }
+
+        $this->messages = DB::table('agent_conversation_messages')
+            ->where('conversation_id', $this->conversationId)
+            ->orderBy('created_at')
+            ->get(['role', 'content'])
+            ->map(fn ($m) => ['role' => $m->role, 'content' => $m->content])
+            ->all();
     }
 
     #[Computed]
@@ -194,6 +242,280 @@ new #[Title('Work Item')] class extends Component {
             <div>
                 <flux:label>{{ __('Updated') }}</flux:label>
                 <flux:text>{{ $workItem->updated_at->format('M j, Y g:i A') }}</flux:text>
+            </div>
+        </div>
+
+        {{-- Inline AI Chat --}}
+        <div
+            x-data="{
+                currentMessage: '',
+                selectedModel: localStorage.getItem('chat-panel-model') || '',
+                streaming: false,
+                streamedContent: '',
+                messages: @entangle('messages'),
+                conversationId: @entangle('conversationId'),
+
+                scrollToBottom() {
+                    const container = this.$refs.inlineMessageList;
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                },
+
+                getPageContext() {
+                    const el = document.querySelector('[data-chat-context]');
+
+                    if (el) {
+                        try {
+                            return el.dataset.chatContext;
+                        } catch (e) {
+                            // Fall through
+                        }
+                    }
+
+                    return JSON.stringify({ page: window.location.pathname });
+                },
+
+                async sendMessage() {
+                    const message = this.currentMessage.trim();
+                    if (! message || this.streaming) return;
+
+                    this.currentMessage = '';
+                    this.messages.push({ role: 'user', content: message });
+                    this.streaming = true;
+                    this.streamedContent = '';
+
+                    this.$nextTick(() => {
+                        this.scrollToBottom();
+                        this.resizeTextarea();
+                        this.$refs.inlineChatInput?.focus();
+                    });
+
+                    const streamTimeout = 120000;
+                    const abortController = new AbortController();
+                    const timeoutId = setTimeout(() => abortController.abort(), streamTimeout);
+
+                    try {
+                        const response = await fetch('{{ route('chat.stream') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '{{ csrf_token() }}',
+                                'Accept': 'text/event-stream',
+                            },
+                            body: JSON.stringify({
+                                message: message,
+                                conversation_id: this.conversationId,
+                                page_context: this.getPageContext(),
+                                model: this.selectedModel || null,
+                            }),
+                            signal: abortController.signal,
+                        });
+
+                        if (! response.ok) {
+                            const error = await response.json();
+                            this.messages.push({ role: 'assistant', content: error.error || 'An error occurred.' });
+                            return;
+                        }
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+
+                        const processLines = (lines) => {
+                            for (const line of lines) {
+                                if (! line.startsWith('data: ')) continue;
+
+                                const data = line.slice(6);
+                                if (data === '[DONE]') continue;
+
+                                try {
+                                    const event = JSON.parse(data);
+                                    if (event.type === 'text_delta') {
+                                        this.streamedContent += event.delta;
+                                        this.$nextTick(() => this.scrollToBottom());
+                                    }
+                                    if (event.conversation_id) {
+                                        this.conversationId = event.conversation_id;
+                                    }
+                                } catch (e) {
+                                    // Skip unparseable lines
+                                }
+                            }
+                        };
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop();
+
+                            processLines(lines);
+                        }
+
+                        if (buffer.trim()) {
+                            processLines([buffer]);
+                        }
+                    } catch (error) {
+                        if (! this.streamedContent) {
+                            const errorMessage = abortController.signal.aborted
+                                ? 'The response timed out. Please try again.'
+                                : 'Failed to connect. Please try again.';
+                            this.messages.push({ role: 'assistant', content: errorMessage });
+                        }
+                    } finally {
+                        clearTimeout(timeoutId);
+
+                        if (this.streamedContent) {
+                            this.messages.push({ role: 'assistant', content: this.streamedContent });
+                            this.streamedContent = '';
+                        } else if (this.conversationId) {
+                            try {
+                                const res = await fetch(`{{ route('chat.messages') }}?conversation_id=${this.conversationId}`, {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '{{ csrf_token() }}',
+                                    },
+                                });
+                                if (res.ok) {
+                                    const serverMessages = await res.json();
+                                    this.messages = serverMessages.map(m => ({
+                                        role: m.role,
+                                        content: m.content,
+                                    }));
+                                }
+                            } catch (e) {
+                                // Ignore fetch errors for fallback reload
+                            }
+                        }
+
+                        this.streaming = false;
+                        this.$nextTick(() => {
+                            this.$refs.inlineChatInput?.focus();
+                            this.scrollToBottom();
+                        });
+                    }
+                },
+
+                resizeTextarea() {
+                    const textarea = this.$refs.inlineChatInput;
+                    if (! textarea) return;
+                    textarea.style.height = 'auto';
+                    const maxHeight = parseInt(getComputedStyle(textarea).lineHeight) * 6;
+                    textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
+                },
+            }"
+            class="space-y-4"
+            data-inline-chat
+        >
+            {{-- Message history --}}
+            <div
+                x-ref="inlineMessageList"
+                x-show="messages.length > 0 || streaming"
+                x-cloak
+                class="max-h-96 space-y-4 overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800/50"
+            >
+                <template x-for="(msg, index) in messages" :key="index">
+                    <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'" class="group relative">
+                        <div
+                            :class="msg.role === 'user'
+                                ? 'max-w-[80%] rounded-2xl rounded-br-md bg-zinc-800 px-4 py-2 text-sm text-white dark:bg-zinc-200 dark:text-zinc-900'
+                                : 'chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'"
+                            x-html="msg.role === 'user' ? msg.content : window.renderMarkdown(msg.content)"
+                        ></div>
+                        <button
+                            class="absolute -bottom-2 opacity-0 transition-opacity group-hover:opacity-100"
+                            :class="msg.role === 'user' ? 'right-0' : 'left-0'"
+                            x-data="{ copied: false }"
+                            @click="navigator.clipboard.writeText(msg.content).then(() => { copied = true; setTimeout(() => copied = false, 1500) })"
+                            :title="copied ? '{{ __('Copied!') }}' : '{{ __('Copy message') }}'"
+                        >
+                            <template x-if="!copied">
+                                <flux:icon.clipboard class="size-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+                            </template>
+                            <template x-if="copied">
+                                <flux:icon.check class="size-3.5 text-green-500" />
+                            </template>
+                        </button>
+                    </div>
+                </template>
+
+                {{-- Streaming indicator --}}
+                <template x-if="streaming && streamedContent">
+                    <div class="flex justify-start">
+                        <div class="chat-markdown max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                             x-html="window.renderMarkdown(streamedContent)"></div>
+                    </div>
+                </template>
+
+                <template x-if="streaming && !streamedContent">
+                    <div class="flex justify-start">
+                        <div class="max-w-[80%] rounded-2xl rounded-bl-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+                            <div class="flex items-center gap-1">
+                                <div class="h-2 w-2 animate-bounce animate-bounce-delay-0 rounded-full bg-zinc-400"></div>
+                                <div class="h-2 w-2 animate-bounce animate-bounce-delay-150 rounded-full bg-zinc-400"></div>
+                                <div class="h-2 w-2 animate-bounce animate-bounce-delay-300 rounded-full bg-zinc-400"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            {{-- Chat input --}}
+            <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800/50">
+                <form @submit.prevent="sendMessage()" class="flex items-end gap-2">
+                    <div class="min-w-0 flex-1">
+                        <textarea
+                            x-ref="inlineChatInput"
+                            x-model="currentMessage"
+                            placeholder="{{ __('Ask to make changes...') }}"
+                            x-bind:disabled="streaming"
+                            @keydown.enter.prevent="if (!$event.shiftKey) sendMessage(); else { currentMessage += '\n'; $nextTick(() => resizeTextarea()); }"
+                            @input="resizeTextarea()"
+                            rows="1"
+                            class="w-full resize-none rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
+                        ></textarea>
+                    </div>
+                    <button
+                        type="submit"
+                        x-bind:disabled="!currentMessage.trim() || streaming"
+                        class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 disabled:hover:bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 dark:disabled:opacity-50 dark:disabled:hover:bg-zinc-100"
+                    >
+                        <flux:icon.paper-airplane class="size-4" x-show="!streaming" />
+                        <flux:icon.arrow-path class="size-4 animate-spin" x-show="streaming" x-cloak />
+                    </button>
+                </form>
+                <div class="mt-2 flex items-center justify-between">
+                    <select
+                        x-model="selectedModel"
+                        @change="localStorage.setItem('chat-panel-model', $event.target.value)"
+                        class="rounded border border-zinc-200 bg-white px-2 py-0.5 text-xs text-zinc-500 outline-none dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                    >
+                        <option value="">{{ __('Default model') }}</option>
+                        <optgroup label="{{ __('Strategy') }}">
+                            <option value="cheapest">{{ __('Cheapest') }}</option>
+                            <option value="smartest">{{ __('Smartest') }}</option>
+                        </optgroup>
+                        <optgroup label="{{ __('Anthropic') }}">
+                            <option value="anthropic:claude-opus-4-6" @disabled(! $this->availableProviders['anthropic'])>Claude Opus 4.6</option>
+                            <option value="anthropic:claude-sonnet-4-6" @disabled(! $this->availableProviders['anthropic'])>Claude Sonnet 4.6</option>
+                            <option value="anthropic:claude-haiku-4-5-20251001" @disabled(! $this->availableProviders['anthropic'])>Claude Haiku 4.5</option>
+                        </optgroup>
+                        <optgroup label="{{ __('OpenAI') }}">
+                            <option value="openai:gpt-4.1" @disabled(! $this->availableProviders['openai'])>GPT-4.1</option>
+                            <option value="openai:gpt-4.1-mini" @disabled(! $this->availableProviders['openai'])>GPT-4.1 Mini</option>
+                            <option value="openai:o3" @disabled(! $this->availableProviders['openai'])>o3</option>
+                            <option value="openai:o4-mini" @disabled(! $this->availableProviders['openai'])>o4-mini</option>
+                        </optgroup>
+                        <optgroup label="{{ __('Gemini') }}">
+                            <option value="gemini:gemini-2.5-pro" @disabled(! $this->availableProviders['gemini'])>Gemini 2.5 Pro</option>
+                            <option value="gemini:gemini-2.5-flash" @disabled(! $this->availableProviders['gemini'])>Gemini 2.5 Flash</option>
+                            <option value="gemini:gemini-2.0-flash" @disabled(! $this->availableProviders['gemini'])>Gemini 2.0 Flash</option>
+                        </optgroup>
+                    </select>
+                </div>
             </div>
         </div>
 
