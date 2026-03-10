@@ -12,7 +12,16 @@
 
             <livewire:organization-switcher />
 
-            <div x-data="{ sidebarView: localStorage.getItem('sidebar-view') || 'navigate' }">
+            <div
+                x-data="{
+                    sidebarView: (function () {
+                        const stored = localStorage.getItem('sidebar-view');
+                        const allowed = ['navigate', 'workspaces'];
+
+                        return allowed.includes(stored) ? stored : 'navigate';
+                    })()
+                }"
+            >
                 {{-- View toggle --}}
                 <div class="flex items-center gap-1 border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
                     <button
@@ -62,7 +71,7 @@
 
                 {{-- Workspace view (repo-centric) --}}
                 <div x-show="sidebarView === 'workspaces'" x-cloak class="flex-1 overflow-y-auto">
-                    <livewire:workspace-sidebar />
+                    <livewire:workspace-sidebar lazy />
                 </div>
             </div>
 

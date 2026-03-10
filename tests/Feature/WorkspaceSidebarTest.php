@@ -73,6 +73,27 @@ it('shows empty state when no repos exist', function () {
         ->assertSee('No repos yet.');
 });
 
+it('excludes repos and work items from other organizations', function () {
+    $otherOrg = Organization::factory()->create();
+    Repo::factory()->for($otherOrg)->create(['name' => 'other-org-repo']);
+
+    $otherProject = Project::factory()->for($otherOrg)->create();
+    WorkItem::factory()
+        ->for($otherOrg)
+        ->forProject($otherProject)
+        ->create([
+            'title' => 'Other org work item',
+            'source' => 'github',
+            'source_reference' => 'other/repo#1',
+            'status' => 'open',
+        ]);
+
+    Livewire\Livewire::actingAs($this->user)
+        ->test('workspace-sidebar')
+        ->assertDontSee('other-org-repo')
+        ->assertDontSee('Other org work item');
+});
+
 it('shows the add repository button', function () {
     Livewire\Livewire::actingAs($this->user)
         ->test('workspace-sidebar')
