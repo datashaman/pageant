@@ -167,7 +167,7 @@ new #[Title('Repos')] class extends Component {
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Repos') }}</flux:heading>
-            <flux:button variant="primary" wire:click="openImportModal">
+            <flux:button variant="outline" wire:click="openImportModal" class="!border-zinc-300 !text-zinc-900 hover:!bg-zinc-100 dark:!border-zinc-600 dark:!text-zinc-100 dark:hover:!bg-zinc-800">
                 {{ __('Import Repo') }}
             </flux:button>
         </div>

@@ -27,7 +27,7 @@
                     <p class="text-sm text-red-600 dark:text-red-400">{{ $errors->first('email') }}</p>
                 @endif
 
-                <flux:button href="{{ route('auth.github') }}" variant="primary">
+                <flux:button href="{{ route('auth.github') }}" variant="outline" class="!border-zinc-300 !text-zinc-900 hover:!bg-zinc-100 dark:!border-zinc-600 dark:!text-zinc-100 dark:hover:!bg-zinc-800">
                     <x-icon-github class="size-5 me-2" />
                     {{ __('Sign in with GitHub') }}
                 </flux:button>

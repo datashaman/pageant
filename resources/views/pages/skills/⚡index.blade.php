@@ -69,7 +69,7 @@ new #[Title('Skills')] class extends Component {
                 <flux:button href="{{ route('skills.registry') }}" wire:navigate>
                     {{ __('Browse Registry') }}
                 </flux:button>
-                <flux:button variant="primary" href="{{ route('skills.create') }}" wire:navigate>
+                <flux:button variant="outline" href="{{ route('skills.create') }}" wire:navigate class="!border-zinc-300 !text-zinc-900 hover:!bg-zinc-100 dark:!border-zinc-600 dark:!text-zinc-100 dark:hover:!bg-zinc-800">
                     {{ __('Create Skill') }}
                 </flux:button>
             </div>

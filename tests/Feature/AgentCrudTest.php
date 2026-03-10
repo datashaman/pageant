@@ -53,11 +53,16 @@ it('validates required fields on create', function () {
         ->assertHasErrors(['name']);
 });
 
-it('shows the agent detail page', function () {
-    $this->actingAs($this->user)
-        ->get(route('agents.show', $this->agent))
-        ->assertOk()
-        ->assertSee($this->agent->name);
+it('shows the agent detail page with danger-styled delete button', function () {
+    $response = $this->actingAs($this->user)
+        ->get(route('agents.show', $this->agent));
+
+    $response->assertOk()
+        ->assertSee($this->agent->name)
+        ->assertSee('Delete');
+
+    expect(file_get_contents(resource_path('views/components/show-header.blade.php')))
+        ->toContain('variant="danger"');
 });
 
 it('can update an agent', function () {

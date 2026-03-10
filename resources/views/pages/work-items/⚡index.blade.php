@@ -237,7 +237,7 @@ new #[Title('Work Items')] class extends Component {
                         {{ __('Sync') }}
                     </div>
                 </flux:button>
-                <flux:button variant="primary" wire:click="openImportModal">
+                <flux:button variant="outline" wire:click="openImportModal" class="!border-zinc-300 !text-zinc-900 hover:!bg-zinc-100 dark:!border-zinc-600 dark:!text-zinc-100 dark:hover:!bg-zinc-800">
                     {{ __('Import Issues') }}
                 </flux:button>
             </div>
