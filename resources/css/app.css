@@ -31,8 +31,8 @@
     --color-slate-900: #0f172a;
 
     --color-accent: var(--color-zinc-800);
-    --color-accent-content: var(--color-white);
-    --color-accent-foreground: var(--color-zinc-800);
+    --color-accent-content: var(--color-zinc-800);
+    --color-accent-foreground: var(--color-white);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);

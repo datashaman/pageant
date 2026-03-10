@@ -218,6 +218,24 @@ Use these consistently — never freestyle font sizes:
 
 ---
 
+## Readability & Contrast — Mandatory
+
+Every piece of text must be clearly readable against its background in both light and dark modes. **If you can't read it, it's broken.**
+
+### Rules
+
+- **Minimum contrast**: Text must have sufficient contrast against its background. Use dark text (`zinc-800`+) on light backgrounds and light text (`zinc-100`/`white`) on dark backgrounds. Never rely on a single color working in both modes.
+- **Accent token semantics**: The accent tokens in `resources/css/app.css` have specific roles:
+  - `--color-accent` — The accent colour itself (used for backgrounds, borders, highlights).
+  - `--color-accent-content` — Text/content colour for **inline accent elements** (links, active nav text). Must be readable on the page background (dark in light mode, light in dark mode).
+  - `--color-accent-foreground` — Text colour rendered **on top of** an accent-coloured background. Must contrast with `--color-accent`.
+- **Do not confuse `accent-content` and `accent-foreground`**. `accent-content` is the colour of accent-styled text sitting on the normal page/card background. `accent-foreground` is the colour of text sitting on an accent-coloured surface.
+- **Links in tables, lists, and body text** must be clearly distinguishable from surrounding content. `flux:link` uses `accent-content` — ensure it is a readable dark colour in light mode and a readable light colour in dark mode.
+- **Active/current navigation items** must be visually distinct from inactive items through colour, weight, or background contrast — not just a subtle border change.
+- **When modifying colour tokens**, verify readability in both light and dark modes before committing. Check link text, active nav items, headings, and table cell content.
+
+---
+
 ## What to Never Do
 
 - Hardcode any colour, font size, or spacing value
@@ -229,6 +247,7 @@ Use these consistently — never freestyle font sizes:
 - Assume `tailwind.config.js` — this project uses Tailwind v4 with `@theme` in CSS
 - Use `resources/views/livewire/` for pages — use `resources/views/pages/**/⚡*.blade.php`
 - Write light-mode styles without their `dark:` counterparts
+- Set `accent-content` to white/light in light mode or dark in dark mode (it must contrast with the page background, not the accent background — that's `accent-foreground`)
 - Use session for theme — Flux uses localStorage
 - Forget `@fluxScripts` in layouts that render Livewire/Flux components
 
