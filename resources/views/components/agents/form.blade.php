@@ -209,7 +209,7 @@
         <div x-show="tab === 'workspaces'" x-cloak>
             <div class="max-w-2xl space-y-4">
                 @if ($workspaces->isNotEmpty())
-                    <flux:checkbox.group wire:model="selectedRepos">
+                    <flux:checkbox.group wire:model="selectedWorkspaces">
                         @foreach ($workspaces as $workspace)
                             <flux:checkbox :label="$workspace->name" :value="$workspace->id" />
                         @endforeach

@@ -134,10 +134,18 @@ class RunWebhookAgent implements ShouldBeUniqueUntilProcessing, ShouldQueue
             return null;
         }
 
+        $organizationId = $this->agent->organization_id;
+
+        if (! $organizationId) {
+            return null;
+        }
+
         $sourceReference = "{$this->repoFullName}#{$this->issueNumber}";
 
-        return Workspace::whereHas('references', function ($query) use ($sourceReference) {
-            $query->where('source_reference', $sourceReference);
-        })->first();
+        return Workspace::where('organization_id', $organizationId)
+            ->whereHas('references', function ($query) use ($sourceReference) {
+                $query->where('source_reference', $sourceReference);
+            })
+            ->first();
     }
 }

@@ -27,7 +27,10 @@ trait DispatchesAgentsForEvent
         ?int $issueNumber = null,
     ): void {
         $workspaceIds = WorkspaceReference::where('source', 'github')
-            ->where('source_reference', 'LIKE', $repoFullName.'%')
+            ->where(function ($query) use ($repoFullName) {
+                $query->where('source_reference', $repoFullName)
+                    ->orWhere('source_reference', 'LIKE', $repoFullName.'#%');
+            })
             ->pluck('workspace_id');
 
         if ($workspaceIds->isEmpty()) {

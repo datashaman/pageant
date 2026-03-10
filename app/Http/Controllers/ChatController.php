@@ -236,7 +236,10 @@ class ChatController extends Controller
         $userOrgIds = $user->organizations()->pluck('organizations.id');
 
         $exists = WorkspaceReference::where('source', 'github')
-            ->where('source_reference', 'LIKE', $candidate.'%')
+            ->where(function ($query) use ($candidate) {
+                $query->where('source_reference', $candidate)
+                    ->orWhere('source_reference', 'LIKE', $candidate.'#%');
+            })
             ->whereHas('workspace', fn ($q) => $q->whereIn('organization_id', $userOrgIds))
             ->exists();
 
