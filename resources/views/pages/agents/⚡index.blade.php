@@ -65,7 +65,7 @@ new #[Title('Agents')] class extends Component {
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Agents') }}</flux:heading>
-            <flux:button variant="primary" href="{{ route('agents.create') }}" wire:navigate>
+            <flux:button variant="outline" href="{{ route('agents.create') }}" wire:navigate class="!border-zinc-300 !text-zinc-900 hover:!bg-zinc-100 dark:!border-zinc-600 dark:!text-zinc-100 dark:hover:!bg-zinc-800">
                 {{ __('Create Agent') }}
             </flux:button>
         </div>
@@ -114,7 +114,7 @@ new #[Title('Agents')] class extends Component {
                                     <flux:button size="sm" href="{{ route('agents.edit', $agent) }}" wire:navigate>
                                         {{ __('Edit') }}
                                     </flux:button>
-                                    <flux:button size="sm" variant="outline" wire:click="confirmDelete('{{ $agent->id }}')">
+                                    <flux:button size="sm" variant="danger" wire:click="confirmDelete('{{ $agent->id }}')">
                                         {{ __('Delete') }}
                                     </flux:button>
                                 </div>

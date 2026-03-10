@@ -37,7 +37,7 @@ new #[Title('Project')] class extends Component {
                 <flux:button href="{{ route('projects.edit', $project) }}" wire:navigate>
                     {{ __('Edit') }}
                 </flux:button>
-                <flux:button variant="ghost" wire:click="$dispatch('open-modal', { id: 'confirm-delete' })">
+                <flux:button variant="danger" wire:click="$dispatch('open-modal', { id: 'confirm-delete' })">
                     {{ __('Delete') }}
                 </flux:button>
             </div>

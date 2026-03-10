@@ -38,3 +38,22 @@ test('welcome page mentions GitHub integration', function () {
         ->assertOk()
         ->assertSee('GitHub');
 });
+
+test('welcome page hides email login link in non-local environment', function () {
+    expect(app()->environment('local'))->toBeFalse();
+
+    $response = $this->get(route('home'));
+
+    $response->assertOk()->assertDontSee('Log in with email and password');
+});
+
+test('welcome page shows email login link when in local environment', function () {
+    $originalEnv = app()->environment();
+    $this->app->instance('env', 'local');
+
+    $response = $this->get(route('home'));
+
+    $this->app->instance('env', $originalEnv);
+
+    $response->assertOk()->assertSee('Log in with email and password');
+});

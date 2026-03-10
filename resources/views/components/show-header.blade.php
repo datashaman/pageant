@@ -21,7 +21,7 @@
         @if (isset($delete))
             {{ $delete }}
         @else
-            <flux:button variant="outline" wire:click="confirmDelete">
+            <flux:button variant="danger" wire:click="confirmDelete">
                 {{ __('Delete') }}
             </flux:button>
         @endif

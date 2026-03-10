@@ -63,7 +63,7 @@ new #[Title('Projects')] class extends Component {
         <div class="flex items-center justify-between">
             <flux:heading size="xl">{{ __('Projects') }}</flux:heading>
 
-            <flux:button href="{{ route('projects.create') }}" wire:navigate variant="primary">
+            <flux:button href="{{ route('projects.create') }}" wire:navigate variant="outline" class="!border-zinc-300 !text-zinc-900 hover:!bg-zinc-100 dark:!border-zinc-600 dark:!text-zinc-100 dark:hover:!bg-zinc-800">
                 {{ __('Create Project') }}
             </flux:button>
         </div>
@@ -102,7 +102,7 @@ new #[Title('Projects')] class extends Component {
                                     </flux:button>
 
                                     <flux:modal.trigger :name="'delete-project-' . $project->id">
-                                        <flux:button size="sm" variant="outline">
+                                        <flux:button size="sm" variant="danger">
                                             {{ __('Delete') }}
                                         </flux:button>
                                     </flux:modal.trigger>
