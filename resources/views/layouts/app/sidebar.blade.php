@@ -12,31 +12,59 @@
 
             <livewire:organization-switcher />
 
-            <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')" class="grid">
-                    <flux:sidebar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
+            <div x-data="{ sidebarView: localStorage.getItem('sidebar-view') || 'navigate' }">
+                {{-- View toggle --}}
+                <div class="flex items-center gap-1 border-b border-zinc-200 px-3 py-2 dark:border-zinc-700">
+                    <button
+                        @click="sidebarView = 'navigate'; localStorage.setItem('sidebar-view', 'navigate')"
+                        :class="sidebarView === 'navigate' ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'"
+                        class="flex-1 rounded-md px-2 py-1 text-xs font-medium transition"
+                    >
+                        {{ __('Navigate') }}
+                    </button>
+                    <button
+                        @click="sidebarView = 'workspaces'; localStorage.setItem('sidebar-view', 'workspaces')"
+                        :class="sidebarView === 'workspaces' ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'"
+                        class="flex-1 rounded-md px-2 py-1 text-xs font-medium transition"
+                    >
+                        {{ __('Workspaces') }}
+                    </button>
+                </div>
 
-                <flux:sidebar.group :heading="__('Resources')" class="grid">
-                    <flux:sidebar.item icon="rectangle-stack" :href="route('projects.index')" :current="request()->routeIs('projects.*')" wire:navigate>
-                        {{ __('Projects') }}
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="folder-git-2" :href="route('repos.index')" :current="request()->routeIs('repos.*')" wire:navigate>
-                        {{ __('Repos') }}
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="clipboard-document-list" :href="route('work-items.index')" :current="request()->routeIs('work-items.*')" wire:navigate>
-                        {{ __('Work Items') }}
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="cpu-chip" :href="route('agents.index')" :current="request()->routeIs('agents.*')" wire:navigate>
-                        {{ __('Agents') }}
-                    </flux:sidebar.item>
-                    <flux:sidebar.item icon="bolt" :href="route('skills.index')" :current="request()->routeIs('skills.*')" wire:navigate>
-                        {{ __('Skills') }}
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
+                {{-- Standard navigation --}}
+                <div x-show="sidebarView === 'navigate'" x-cloak>
+                    <flux:sidebar.nav>
+                        <flux:sidebar.group :heading="__('Platform')" class="grid">
+                            <flux:sidebar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
+                                {{ __('Dashboard') }}
+                            </flux:sidebar.item>
+                        </flux:sidebar.group>
+
+                        <flux:sidebar.group :heading="__('Resources')" class="grid">
+                            <flux:sidebar.item icon="rectangle-stack" :href="route('projects.index')" :current="request()->routeIs('projects.*')" wire:navigate>
+                                {{ __('Projects') }}
+                            </flux:sidebar.item>
+                            <flux:sidebar.item icon="folder-git-2" :href="route('repos.index')" :current="request()->routeIs('repos.*')" wire:navigate>
+                                {{ __('Repos') }}
+                            </flux:sidebar.item>
+                            <flux:sidebar.item icon="clipboard-document-list" :href="route('work-items.index')" :current="request()->routeIs('work-items.*')" wire:navigate>
+                                {{ __('Work Items') }}
+                            </flux:sidebar.item>
+                            <flux:sidebar.item icon="cpu-chip" :href="route('agents.index')" :current="request()->routeIs('agents.*')" wire:navigate>
+                                {{ __('Agents') }}
+                            </flux:sidebar.item>
+                            <flux:sidebar.item icon="bolt" :href="route('skills.index')" :current="request()->routeIs('skills.*')" wire:navigate>
+                                {{ __('Skills') }}
+                            </flux:sidebar.item>
+                        </flux:sidebar.group>
+                    </flux:sidebar.nav>
+                </div>
+
+                {{-- Workspace view (repo-centric) --}}
+                <div x-show="sidebarView === 'workspaces'" x-cloak class="flex-1 overflow-y-auto">
+                    <livewire:workspace-sidebar />
+                </div>
+            </div>
 
             <flux:spacer />
 
