@@ -3,7 +3,12 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 antialiased">
+    <body
+        class="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 antialiased"
+        x-data
+        x-init="Alpine.store('chatPanel', { hasInlineChat: !!document.querySelector('[data-hide-chat-panel]') })"
+        x-on:livewire:navigated.window="Alpine.store('chatPanel').hasInlineChat = !!document.querySelector('[data-hide-chat-panel]')"
+    >
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
@@ -41,11 +46,9 @@
             <flux:spacer />
 
             <flux:sidebar.nav>
-                <div x-data="{ hideAssistant: false }" x-init="hideAssistant = !!document.querySelector('[data-hide-chat-panel]')" x-on:livewire:navigated.window="hideAssistant = !!document.querySelector('[data-hide-chat-panel]')">
-                    <flux:sidebar.item x-show="!hideAssistant" icon="chat-bubble-left-right" x-data @click.prevent="$dispatch('toggle-chat-panel')" class="cursor-pointer">
-                        {{ __('Assistant') }}
-                    </flux:sidebar.item>
-                </div>
+                <flux:sidebar.item x-show="!$store.chatPanel.hasInlineChat" x-cloak icon="chat-bubble-left-right" x-data @click.prevent="$dispatch('toggle-chat-panel')" class="cursor-pointer">
+                    {{ __('Assistant') }}
+                </flux:sidebar.item>
             </flux:sidebar.nav>
 
             <x-desktop-user-menu class="hidden lg:block" :name="auth()->user()->name" />
@@ -107,13 +110,13 @@
         </flux:header>
 
         <flux:main class="!p-0">
-            <div class="flex h-full" x-data="{ hasInlineChat: false }" x-init="hasInlineChat = !!document.querySelector('[data-hide-chat-panel]')" x-on:livewire:navigated.window="hasInlineChat = !!document.querySelector('[data-hide-chat-panel]')">
+            <div class="flex h-full">
                 <div class="min-w-0 flex-1 p-6 lg:p-8">
                     {{ $slot }}
                 </div>
 
                 @persist('chat-panel')
-                    <div x-show="!hasInlineChat" x-cloak>
+                    <div x-show="!$store.chatPanel.hasInlineChat" x-cloak>
                         <livewire:chat-panel />
                     </div>
                 @endpersist
