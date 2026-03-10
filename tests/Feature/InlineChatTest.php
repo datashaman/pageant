@@ -1,9 +1,8 @@
 <?php
 
-use App\Models\GithubInstallation;
+use App\Ai\Agents\PageantAssistant;
 use App\Models\Organization;
 use App\Models\Project;
-use App\Models\Repo;
 use App\Models\User;
 use App\Models\UserApiKey;
 use App\Models\WorkItem;
@@ -12,11 +11,6 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $this->organization = Organization::factory()->create();
     $this->user->organizations()->attach($this->organization);
-    $this->installation = GithubInstallation::factory()->for($this->organization)->create();
-    $this->repo = Repo::factory()->for($this->organization)->create([
-        'source' => 'github',
-        'source_reference' => 'org/my-repo',
-    ]);
     $this->project = Project::factory()->for($this->organization)->create();
     $this->workItem = WorkItem::factory()
         ->for($this->organization)
@@ -95,7 +89,7 @@ it('loads messages when work item has a conversation_id', function () {
         'id' => \Illuminate\Support\Str::uuid7()->toString(),
         'conversation_id' => $conversationId,
         'user_id' => $this->user->id,
-        'agent' => 'App\\Ai\\Agents\\PageantAssistant',
+        'agent' => PageantAssistant::class,
         'role' => 'user',
         'content' => 'Fix the login bug',
         'attachments' => '[]',
