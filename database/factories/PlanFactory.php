@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Organization;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +18,7 @@ class PlanFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            'work_item_id' => WorkItem::factory(),
+            'workspace_id' => Workspace::factory(),
             'status' => 'pending',
             'summary' => fake()->paragraph(),
         ];

@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Agent;
-use App\Models\Repo;
+use App\Models\Workspace;
 use App\Models\Skill;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -27,14 +27,14 @@ new #[Title('Edit Skill')] class extends Component {
     public string $sourceReference = '';
     public string $sourceUrl = '';
     public array $selectedAgents = [];
-    public array $selectedRepos = [];
+    public array $selectedWorkspaces = [];
 
     public function mount(Skill $skill): void
     {
         $userOrgIds = auth()->user()->organizations->pluck('id');
         abort_unless($userOrgIds->contains($skill->organization_id), 403);
 
-        $this->skill = $skill->load(['agents', 'repos']);
+        $this->skill = $skill->load(['agents', 'workspaces']);
 
         $this->name = $skill->name;
         $this->description = $skill->description ?? '';
@@ -51,7 +51,7 @@ new #[Title('Edit Skill')] class extends Component {
         $this->sourceReference = $skill->source_reference ?? '';
         $this->sourceUrl = $skill->source_url ?? '';
         $this->selectedAgents = $skill->agents->pluck('id')->toArray();
-        $this->selectedRepos = $skill->repos->pluck('id')->toArray();
+        $this->selectedWorkspaces = $skill->workspaces->pluck('id')->toArray();
     }
 
     #[Computed]
@@ -64,9 +64,9 @@ new #[Title('Edit Skill')] class extends Component {
     }
 
     #[Computed]
-    public function repos(): Collection
+    public function workspaces(): Collection
     {
-        return Repo::query()
+        return Workspace::query()
             ->where('organization_id', $this->skill->organization_id)
             ->orderBy('name')
             ->get();
@@ -94,8 +94,8 @@ new #[Title('Edit Skill')] class extends Component {
             'sourceUrl' => ['nullable', 'string', 'url', 'max:255'],
             'selectedAgents' => ['array'],
             'selectedAgents.*' => ['uuid', Rule::exists('agents', 'id')->where('organization_id', $this->skill->organization_id)],
-            'selectedRepos' => ['array'],
-            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $this->skill->organization_id)],
+            'selectedWorkspaces' => ['array'],
+            'selectedWorkspaces.*' => ['uuid', Rule::exists('workspaces', 'id')->where('organization_id', $this->skill->organization_id)],
         ]);
 
         $this->skill->update([
@@ -116,7 +116,7 @@ new #[Title('Edit Skill')] class extends Component {
         ]);
 
         $this->skill->agents()->sync($this->selectedAgents);
-        $this->skill->repos()->sync($this->selectedRepos);
+        $this->skill->workspaces()->sync($this->selectedWorkspaces);
 
         $this->redirect(route('skills.show', $this->skill), navigate: true);
     }
@@ -133,7 +133,7 @@ new #[Title('Edit Skill')] class extends Component {
 
         <x-skills.form
             :agents="$this->agents"
-            :repos="$this->repos"
+            :workspaces="$this->workspaces"
             :submit-label="__('Update')"
             :cancel-url="route('skills.show', $skill)"
         />

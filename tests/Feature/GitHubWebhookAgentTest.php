@@ -7,7 +7,8 @@ use App\Ai\Tools\GetPullRequestTool;
 use App\Models\Agent;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
-use App\Models\Repo;
+use App\Models\Workspace;
+use App\Models\WorkspaceReference;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
@@ -15,8 +16,11 @@ beforeEach(function () {
         'organization_id' => $this->organization->id,
         'installation_id' => 12345,
     ]);
-    $this->repo = Repo::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $this->workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets',
     ]);

@@ -34,7 +34,7 @@ class PlanCompleted implements ShouldBroadcast
     {
         return [
             'plan_id' => $this->plan->id,
-            'work_item_id' => $this->plan->work_item_id,
+            'workspace_id' => $this->plan->workspace_id,
             'status' => $this->plan->status,
             'completed_at' => $this->plan->completed_at?->toISOString(),
         ];

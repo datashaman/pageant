@@ -9,7 +9,7 @@ use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
 use App\Models\User;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
@@ -19,13 +19,13 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $this->user->organizations()->attach($this->organization);
 
-    $this->workItem = WorkItem::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
 
     $this->plan = Plan::factory()->completed()->create([
         'organization_id' => $this->organization->id,
-        'work_item_id' => $this->workItem->id,
+        'workspace_id' => $this->workspace->id,
     ]);
 });
 
@@ -45,16 +45,16 @@ describe('Plan Events Broadcasting', function () {
 
         $data = $event->broadcastWith();
 
-        expect($data)->toHaveKeys(['plan_id', 'work_item_id', 'status', 'completed_at']);
+        expect($data)->toHaveKeys(['plan_id', 'workspace_id', 'status', 'completed_at']);
         expect($data['plan_id'])->toBe($this->plan->id);
-        expect($data['work_item_id'])->toBe($this->workItem->id);
+        expect($data['workspace_id'])->toBe($this->workspace->id);
         expect($data['status'])->toBe('completed');
     });
 
     it('broadcasts PlanFailed on the organization private channel', function () {
         $plan = Plan::factory()->failed()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $event = new PlanFailed($plan);
@@ -68,7 +68,7 @@ describe('Plan Events Broadcasting', function () {
     it('broadcasts PlanFailed with correct payload', function () {
         $plan = Plan::factory()->failed()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $event = new PlanFailed($plan);

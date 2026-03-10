@@ -2,11 +2,9 @@
 
 use App\Models\Agent;
 use App\Models\Organization;
-use App\Models\Project;
-use App\Models\Repo;
 use App\Models\Skill;
 use App\Models\User;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -47,37 +45,6 @@ it('shows no-match message when skills search yields no results', function () {
         ->assertDontSee('No skills yet');
 });
 
-// ── Projects ────────────────────────────────────────────────────────
-
-it('shows empty state on projects index when no projects exist', function () {
-    $this->actingAs($this->user)
-        ->get(route('projects.index'))
-        ->assertOk()
-        ->assertSee('No projects yet')
-        ->assertSee('Projects group related work items')
-        ->assertDontSee('Search projects...');
-});
-
-it('shows table on projects index when projects exist', function () {
-    $project = Project::factory()->for($this->organization)->create();
-
-    $this->actingAs($this->user)
-        ->get(route('projects.index'))
-        ->assertOk()
-        ->assertDontSee('No projects yet')
-        ->assertSee($project->name);
-});
-
-it('shows no-match message when projects search yields no results', function () {
-    Project::factory()->for($this->organization)->create(['name' => 'My Project']);
-
-    Livewire::actingAs($this->user)
-        ->test('pages::projects.index')
-        ->set('search', 'nonexistent-project-xyz')
-        ->assertSee('No projects match your search.')
-        ->assertDontSee('No projects yet');
-});
-
 // ── Agents ──────────────────────────────────────────────────────────
 
 it('shows empty state on agents index when no agents exist', function () {
@@ -113,92 +80,33 @@ it('shows no-match message when agents search yields no results', function () {
         ->assertDontSee('No agents yet');
 });
 
-// ── Repos ───────────────────────────────────────────────────────────
+// ── Workspaces ──────────────────────────────────────────────────────
 
-it('shows empty state on repos index when no repos exist', function () {
+it('shows empty state on workspaces index when no workspaces exist', function () {
     $this->actingAs($this->user)
-        ->get(route('repos.index'))
+        ->get(route('workspaces.index'))
         ->assertOk()
-        ->assertSee('No repos yet')
-        ->assertSee('Import repositories from your GitHub installations')
-        ->assertDontSee('Search repos...');
+        ->assertSee('No workspaces yet')
+        ->assertSee('Workspaces group repos and issues')
+        ->assertDontSee('Search workspaces...');
 });
 
-it('shows table on repos index when repos exist', function () {
-    $repo = Repo::factory()->for($this->organization)->create([
-        'source' => 'github',
-        'source_reference' => 'org/test-repo',
-    ]);
+it('shows table on workspaces index when workspaces exist', function () {
+    $workspace = Workspace::factory()->for($this->organization)->create();
 
     $this->actingAs($this->user)
-        ->get(route('repos.index'))
+        ->get(route('workspaces.index'))
         ->assertOk()
-        ->assertDontSee('No repos yet')
-        ->assertSee($repo->name);
+        ->assertDontSee('No workspaces yet')
+        ->assertSee($workspace->name);
 });
 
-it('shows no-match message when repos search yields no results', function () {
-    Repo::factory()->for($this->organization)->create([
-        'source' => 'github',
-        'source_reference' => 'org/real-repo',
-    ]);
+it('shows no-match message when workspaces search yields no results', function () {
+    Workspace::factory()->for($this->organization)->create(['name' => 'My Workspace']);
 
     Livewire::actingAs($this->user)
-        ->test('pages::repos.index')
-        ->set('search', 'nonexistent-repo-xyz')
-        ->assertSee('No repos match your search.')
-        ->assertDontSee('No repos yet');
-});
-
-// ── Work Items ──────────────────────────────────────────────────────
-
-it('shows empty state on work items index when no work items exist', function () {
-    $this->actingAs($this->user)
-        ->get(route('work-items.index'))
-        ->assertOk()
-        ->assertSee('No work items yet')
-        ->assertSee('Work items track GitHub issues and tasks')
-        ->assertDontSee('Search work items...');
-});
-
-it('shows table on work items index when work items exist', function () {
-    $workItem = WorkItem::factory()->for($this->organization)->create([
-        'source' => 'github',
-        'source_reference' => 'org/repo#1',
-    ]);
-
-    $this->actingAs($this->user)
-        ->get(route('work-items.index'))
-        ->assertOk()
-        ->assertDontSee('No work items yet')
-        ->assertSee($workItem->title);
-});
-
-it('shows no-match message when work items search yields no results', function () {
-    WorkItem::factory()->for($this->organization)->create([
-        'source' => 'github',
-        'source_reference' => 'org/repo#1',
-    ]);
-
-    Livewire::actingAs($this->user)
-        ->test('pages::work-items.index')
-        ->set('search', 'nonexistent-work-item-xyz')
-        ->assertSee('No work items match your search.')
-        ->assertDontSee('No work items yet');
-});
-
-it('shows search and table when work items statusFilter is changed on empty list', function () {
-    Livewire::actingAs($this->user)
-        ->test('pages::work-items.index')
-        ->set('statusFilter', 'closed')
-        ->assertSee('Search work items...')
-        ->assertDontSee('No work items yet');
-});
-
-it('shows search and table when work items statusFilter is all on empty list', function () {
-    Livewire::actingAs($this->user)
-        ->test('pages::work-items.index')
-        ->set('statusFilter', 'all')
-        ->assertSee('Search work items...')
-        ->assertDontSee('No work items yet');
+        ->test('pages::workspaces.index')
+        ->set('search', 'nonexistent-workspace-xyz')
+        ->assertSee('No workspaces match your search.')
+        ->assertDontSee('No workspaces yet');
 });

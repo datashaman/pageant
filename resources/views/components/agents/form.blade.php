@@ -4,7 +4,7 @@
     'eventCategories',
     'toolCategories',
     'skills',
-    'repos',
+    'workspaces',
     'selectedEventKeys' => [],
     'submitLabel' => __('Update'),
     'cancelUrl',
@@ -33,10 +33,10 @@
             class="-mb-px px-4 py-2 text-sm font-medium transition">
             {{ __('Skills') }}
         </button>
-        <button type="button" @click="tab = 'repos'"
-            :class="tab === 'repos' ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'"
+        <button type="button" @click="tab = 'workspaces'"
+            :class="tab === 'workspaces' ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'"
             class="-mb-px px-4 py-2 text-sm font-medium transition">
-            {{ __('Repos') }}
+            {{ __('Workspaces') }}
         </button>
     </div>
 
@@ -206,17 +206,17 @@
         </div>
 
         {{-- Repos tab --}}
-        <div x-show="tab === 'repos'" x-cloak>
+        <div x-show="tab === 'workspaces'" x-cloak>
             <div class="max-w-2xl space-y-4">
-                @if ($repos->isNotEmpty())
+                @if ($workspaces->isNotEmpty())
                     <flux:checkbox.group wire:model="selectedRepos">
-                        @foreach ($repos as $repo)
-                            <flux:checkbox :label="$repo->display_name ?: __('Repository')" :value="$repo->id" />
+                        @foreach ($workspaces as $workspace)
+                            <flux:checkbox :label="$workspace->name" :value="$workspace->id" />
                         @endforeach
                     </flux:checkbox.group>
                 @else
                     <flux:text class="text-zinc-500 dark:text-zinc-400">
-                        {{ __('No repos available for this organization.') }}
+                        {{ __('No workspaces available for this organization.') }}
                     </flux:text>
                 @endif
             </div>

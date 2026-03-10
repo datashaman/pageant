@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Agent;
-use App\Models\Repo;
 use App\Models\Skill;
+use App\Models\Workspace;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -25,7 +25,7 @@ new #[Title('Create Skill')] class extends Component {
     public string $sourceReference = '';
     public string $sourceUrl = '';
     public array $selectedAgents = [];
-    public array $selectedRepos = [];
+    public array $selectedWorkspaces = [];
 
     #[Computed]
     public function agents(): Collection
@@ -34,9 +34,9 @@ new #[Title('Create Skill')] class extends Component {
     }
 
     #[Computed]
-    public function repos(): Collection
+    public function workspaces(): Collection
     {
-        return Repo::query()->forCurrentOrganization()->orderBy('name')->get();
+        return Workspace::query()->forCurrentOrganization()->orderBy('name')->get();
     }
 
     public function save(): void
@@ -61,8 +61,8 @@ new #[Title('Create Skill')] class extends Component {
             'sourceUrl' => ['nullable', 'string', 'url', 'max:255'],
             'selectedAgents' => ['array'],
             'selectedAgents.*' => ['uuid', Rule::exists('agents', 'id')->where('organization_id', $organizationId)],
-            'selectedRepos' => ['array'],
-            'selectedRepos.*' => ['uuid', Rule::exists('repos', 'id')->where('organization_id', $organizationId)],
+            'selectedWorkspaces' => ['array'],
+            'selectedWorkspaces.*' => ['uuid', Rule::exists('workspaces', 'id')->where('organization_id', $organizationId)],
         ]);
 
         $skill = Skill::query()->create([
@@ -84,7 +84,7 @@ new #[Title('Create Skill')] class extends Component {
         ]);
 
         $skill->agents()->sync($this->selectedAgents);
-        $skill->repos()->sync($this->selectedRepos);
+        $skill->workspaces()->sync($this->selectedWorkspaces);
 
         $this->redirect(route('skills.show', $skill), navigate: true);
     }
@@ -101,7 +101,7 @@ new #[Title('Create Skill')] class extends Component {
 
         <x-skills.form
             :agents="$this->agents"
-            :repos="$this->repos"
+            :workspaces="$this->workspaces"
             :submit-label="__('Create')"
             :cancel-url="route('skills.index')"
         />

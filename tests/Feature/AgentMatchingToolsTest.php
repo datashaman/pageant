@@ -17,7 +17,6 @@ use App\Models\Agent;
 use App\Models\Organization;
 use App\Models\Skill;
 use App\Models\User;
-use App\Models\WorkItem;
 use Laravel\Ai\Tools\Request;
 
 beforeEach(function () {
@@ -119,32 +118,6 @@ it('searches agents by skills via AI tool', function () {
 
     expect($result['count'])->toBe(1)
         ->and($result['agents'][0]['name'])->toBe('laravel-bot');
-});
-
-it('searches agents by work item via AI tool', function () {
-    Agent::factory()->create([
-        'organization_id' => $this->organization->id,
-        'name' => 'testing-agent',
-        'description' => 'Handles testing and quality assurance',
-    ]);
-    Agent::factory()->create([
-        'organization_id' => $this->organization->id,
-        'name' => 'deploy-bot',
-        'description' => 'Deploys applications to production',
-    ]);
-
-    $workItem = WorkItem::factory()->create([
-        'organization_id' => $this->organization->id,
-        'title' => 'Fix testing pipeline',
-        'description' => 'The testing suite is failing',
-    ]);
-
-    $tool = new SearchAgentsTool($this->user);
-    $result = json_decode($tool->handle(new Request(['work_item_id' => $workItem->id])), true);
-
-    expect($result['count'])->toBeGreaterThanOrEqual(1);
-    $names = collect($result['agents'])->pluck('name')->toArray();
-    expect($names)->toContain('testing-agent');
 });
 
 it('creates a skill via AI tool', function () {

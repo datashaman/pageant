@@ -12,7 +12,7 @@ new #[Title('View Agent')] class extends Component {
         $userOrgIds = auth()->user()->organizations->pluck('id');
         abort_unless($userOrgIds->contains($agent->organization_id), 403);
 
-        $this->agent = $agent->load(['organization', 'skills', 'repos']);
+        $this->agent = $agent->load(['organization', 'skills', 'workspaces']);
     }
 
     public function confirmDelete(): void
@@ -133,11 +133,11 @@ new #[Title('View Agent')] class extends Component {
             </div>
 
             <div>
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repos') }}</flux:heading>
-                @if ($agent->repos->isNotEmpty())
+                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Workspaces') }}</flux:heading>
+                @if ($agent->workspaces->isNotEmpty())
                     <div class="flex flex-wrap gap-2 mt-1">
-                        @foreach ($agent->repos as $repo)
-                            <flux:badge>{{ $repo->name }}</flux:badge>
+                        @foreach ($agent->workspaces as $workspace)
+                            <flux:badge>{{ $workspace->name }}</flux:badge>
                         @endforeach
                     </div>
                 @else

@@ -15,7 +15,7 @@ class AgentMemory extends Model
 
     protected $fillable = [
         'organization_id',
-        'repo_id',
+        'workspace_id',
         'agent_id',
         'type',
         'content',
@@ -37,9 +37,9 @@ class AgentMemory extends Model
         return $this->belongsTo(Organization::class);
     }
 
-    public function repo(): BelongsTo
+    public function workspace(): BelongsTo
     {
-        return $this->belongsTo(Repo::class);
+        return $this->belongsTo(Workspace::class);
     }
 
     public function agent(): BelongsTo

@@ -4,14 +4,18 @@ use App\Ai\Agents\GitHubWebhookAgent;
 use App\Jobs\RunWebhookAgent;
 use App\Models\Agent;
 use App\Models\Organization;
-use App\Models\Repo;
+use App\Models\Workspace;
+use App\Models\WorkspaceReference;
 use App\Services\WebhookRelevanceFilter;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
-    $this->repo = Repo::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $this->workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets',
     ]);
@@ -24,7 +28,7 @@ it('skips the webhook agent when relevance filter returns not relevant', functio
         'provider' => 'anthropic',
         'secondary_model' => 'cheapest',
     ]);
-    $agent->repos()->attach($this->repo);
+    $this->workspace->agents()->attach($agent);
 
     $filter = Mockery::mock(WebhookRelevanceFilter::class);
     $filter->shouldReceive('isRelevant')
@@ -63,7 +67,7 @@ it('runs the webhook agent when relevance filter returns relevant', function () 
         'provider' => 'anthropic',
         'secondary_model' => 'cheapest',
     ]);
-    $agent->repos()->attach($this->repo);
+    $this->workspace->agents()->attach($agent);
 
     $filter = Mockery::mock(WebhookRelevanceFilter::class);
     $filter->shouldReceive('isRelevant')

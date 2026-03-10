@@ -6,13 +6,11 @@ use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Project>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Workspace>
  */
-class ProjectFactory extends Factory
+class WorkspaceFactory extends Factory
 {
     /**
-     * Define the model's default state.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -20,7 +18,7 @@ class ProjectFactory extends Factory
         return [
             'organization_id' => Organization::factory(),
             'name' => fake()->words(3, true),
-            'description' => fake()->sentence(),
+            'description' => fake()->optional()->paragraph(),
         ];
     }
 }

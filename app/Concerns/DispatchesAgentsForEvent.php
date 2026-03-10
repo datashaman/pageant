@@ -4,7 +4,8 @@ namespace App\Concerns;
 
 use App\Ai\EventSubscription;
 use App\Jobs\RunWebhookAgent;
-use App\Models\Repo;
+use App\Models\Agent;
+use App\Models\WorkspaceReference;
 
 trait DispatchesAgentsForEvent
 {
@@ -25,15 +26,15 @@ trait DispatchesAgentsForEvent
         string $eventContext,
         ?int $issueNumber = null,
     ): void {
-        $repo = Repo::where('source', 'github')
-            ->where('source_reference', $repoFullName)
-            ->first();
+        $workspaceIds = WorkspaceReference::where('source', 'github')
+            ->where('source_reference', 'LIKE', $repoFullName.'%')
+            ->pluck('workspace_id');
 
-        if (! $repo) {
+        if ($workspaceIds->isEmpty()) {
             return;
         }
 
-        $agents = $repo->agents()
+        $agents = Agent::whereHas('workspaces', fn ($q) => $q->whereIn('workspaces.id', $workspaceIds))
             ->where('enabled', true)
             ->where('events', 'like', "%{$eventType}%")
             ->get();

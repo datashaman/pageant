@@ -2,11 +2,9 @@
 
 use App\Models\Agent;
 use App\Models\Organization;
-use App\Models\Project;
-use App\Models\Repo;
 use App\Models\Skill;
 use App\Models\User;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 
 it('can be created via factory', function () {
     $organization = Organization::factory()->create();
@@ -38,11 +36,11 @@ it('has users relationship', function () {
         ->and($organization->users->first()->id)->toBe($user->id);
 });
 
-it('has repos relationship', function () {
+it('has workspaces relationship', function () {
     $organization = Organization::factory()->create();
-    Repo::factory()->for($organization)->create();
+    Workspace::factory()->for($organization)->create();
 
-    expect($organization->repos)->toHaveCount(1);
+    expect($organization->workspaces)->toHaveCount(1);
 });
 
 it('has skills relationship', function () {
@@ -58,18 +56,4 @@ it('has agents relationship', function () {
 
     // +1 for the auto-created planning agent from the observer
     expect($organization->agents)->toHaveCount(2);
-});
-
-it('has projects relationship', function () {
-    $organization = Organization::factory()->create();
-    Project::factory()->for($organization)->create();
-
-    expect($organization->projects)->toHaveCount(1);
-});
-
-it('has work items relationship', function () {
-    $organization = Organization::factory()->create();
-    WorkItem::factory()->for($organization)->create();
-
-    expect($organization->workItems)->toHaveCount(1);
 });

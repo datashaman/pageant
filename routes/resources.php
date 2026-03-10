@@ -8,22 +8,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('agents/{agent}', 'pages::agents.show')->name('agents.show');
     Route::livewire('agents/{agent}/edit', 'pages::agents.edit')->name('agents.edit');
 
-    Route::livewire('repos', 'pages::repos.index')->name('repos.index');
-    Route::livewire('repos/{repo}', 'pages::repos.show')->name('repos.show');
-    Route::livewire('repos/{repo}/edit', 'pages::repos.edit')->name('repos.edit');
-
     Route::livewire('skills', 'pages::skills.index')->name('skills.index');
     Route::livewire('skills/create', 'pages::skills.create')->name('skills.create');
     Route::livewire('skills/registry', 'pages::skills.registry')->name('skills.registry');
     Route::livewire('skills/{skill}', 'pages::skills.show')->name('skills.show');
     Route::livewire('skills/{skill}/edit', 'pages::skills.edit')->name('skills.edit');
 
-    Route::livewire('projects', 'pages::projects.index')->name('projects.index');
-    Route::livewire('projects/create', 'pages::projects.create')->name('projects.create');
-    Route::livewire('projects/{project}', 'pages::projects.show')->name('projects.show');
-    Route::livewire('projects/{project}/edit', 'pages::projects.edit')->name('projects.edit');
-
-    Route::livewire('work-items', 'pages::work-items.index')->name('work-items.index');
-    Route::livewire('work-items/{workItem}', 'pages::work-items.show')->name('work-items.show');
-    Route::livewire('work-items/{workItem}/edit', 'pages::work-items.edit')->name('work-items.edit');
+    Route::livewire('workspaces', 'pages::workspaces.index')->name('workspaces.index');
+    Route::livewire('workspaces/create', 'pages::workspaces.create')->name('workspaces.create');
+    Route::livewire('workspaces/{workspace}', 'pages::workspaces.show')->name('workspaces.show');
+    Route::livewire('workspaces/{workspace}/edit', 'pages::workspaces.edit')->name('workspaces.edit');
 });

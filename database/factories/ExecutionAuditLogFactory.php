@@ -19,7 +19,7 @@ class ExecutionAuditLogFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            'work_item_id' => null,
+            'workspace_id' => null,
             'agent_id' => fake()->uuid(),
             'type' => fake()->randomElement(['command', 'file_write', 'file_edit']),
             'detail' => fake()->sentence(),

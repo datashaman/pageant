@@ -5,29 +5,29 @@ use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
 use App\Models\Skill;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
-    $this->workItem = WorkItem::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
 });
 
 describe('Plan Model', function () {
-    it('belongs to a work item', function () {
+    it('belongs to a workspace', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
-        expect($plan->workItem->id)->toBe($this->workItem->id);
+        expect($plan->workspace->id)->toBe($this->workspace->id);
     });
 
     it('has many steps ordered by order', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $agent1 = Agent::factory()->create(['organization_id' => $this->organization->id]);
@@ -46,7 +46,7 @@ describe('Plan Model', function () {
     it('tracks status correctly', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
             'status' => 'pending',
         ]);
 
@@ -58,40 +58,14 @@ describe('Plan Model', function () {
     });
 });
 
-describe('WorkItem Plans', function () {
+describe('Workspace Plans', function () {
     it('has many plans', function () {
         Plan::factory()->count(2)->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
-        expect($this->workItem->plans)->toHaveCount(2);
-    });
-
-    it('returns active plan', function () {
-        Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-            'status' => 'completed',
-        ]);
-
-        $activePlan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-            'status' => 'pending',
-        ]);
-
-        expect($this->workItem->activePlan()->id)->toBe($activePlan->id);
-    });
-
-    it('returns null when no active plan', function () {
-        Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-            'status' => 'completed',
-        ]);
-
-        expect($this->workItem->activePlan())->toBeNull();
+        expect($this->workspace->plans)->toHaveCount(2);
     });
 });
 
@@ -142,7 +116,7 @@ describe('PlanStep Model', function () {
     it('belongs to a plan and agent', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
@@ -161,7 +135,7 @@ describe('PlanStep Model', function () {
     it('stores depends_on as array', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
@@ -180,7 +154,7 @@ describe('Plan Factory States', function () {
     it('creates approved plan', function () {
         $plan = Plan::factory()->approved()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         expect($plan->isApproved())->toBeTrue();
@@ -190,7 +164,7 @@ describe('Plan Factory States', function () {
     it('creates running plan', function () {
         $plan = Plan::factory()->running()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         expect($plan->isRunning())->toBeTrue();
@@ -200,7 +174,7 @@ describe('Plan Factory States', function () {
     it('creates completed plan', function () {
         $plan = Plan::factory()->completed()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         expect($plan->isCompleted())->toBeTrue();

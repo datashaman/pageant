@@ -5,8 +5,8 @@ use App\Jobs\RunWebhookAgent;
 use App\Models\Agent;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
-use App\Models\Repo;
-use App\Models\WorkItem;
+use App\Models\Workspace;
+use App\Models\WorkspaceReference;
 use App\Services\WebhookRelevanceFilter;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Messages\MessageRole;
@@ -17,8 +17,11 @@ beforeEach(function () {
         'organization_id' => $this->organization->id,
         'installation_id' => 12345,
     ]);
-    $this->repo = Repo::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $this->workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets',
     ]);
@@ -50,7 +53,7 @@ it('constructs GitHubWebhookAgent and calls prompt with event context', function
     });
 });
 
-it('creates a conversation and persists messages when work item exists', function () {
+it('creates a conversation and persists messages when workspace exists', function () {
     GitHubWebhookAgent::fake(['Agent response about the issue']);
 
     $agent = Agent::factory()->create([
@@ -60,11 +63,13 @@ it('creates a conversation and persists messages when work item exists', functio
         'model' => 'inherit',
     ]);
 
-    $workItem = WorkItem::factory()->create([
+    $workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets#42',
-        'title' => 'Fix the login bug',
     ]);
 
     $eventContext = "Event: issue_comment\nRepository: acme/widgets\nIssue #42: Fix the login bug";
@@ -72,12 +77,12 @@ it('creates a conversation and persists messages when work item exists', functio
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 42);
     $job->handle(app(ConversationStore::class), $this->relevanceFilter);
 
-    $workItem->refresh();
+    $workspace->refresh();
 
-    expect($workItem->conversation_id)->not->toBeNull();
+    expect($workspace->conversation_id)->not->toBeNull();
 
     $store = app(ConversationStore::class);
-    $messages = $store->getLatestConversationMessages($workItem->conversation_id, 10);
+    $messages = $store->getLatestConversationMessages($workspace->conversation_id, 10);
 
     expect($messages)->toHaveCount(2)
         ->and($messages[0]->role)->toBe(MessageRole::User)
@@ -98,12 +103,14 @@ it('continues existing conversation when conversation_id is set', function () {
         'model' => 'inherit',
     ]);
 
-    $workItem = WorkItem::factory()->create([
+    $workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
+        'conversation_id' => $conversationId,
+    ]);
+    WorkspaceReference::factory()->create([
+        'workspace_id' => $workspace->id,
         'source' => 'github',
         'source_reference' => 'acme/widgets#42',
-        'title' => 'Fix the login bug',
-        'conversation_id' => $conversationId,
     ]);
 
     $eventContext = "Event: issue_comment\nRepository: acme/widgets\nNew comment on #42";
@@ -111,9 +118,9 @@ it('continues existing conversation when conversation_id is set', function () {
     $job = new RunWebhookAgent($agent, $eventContext, 'acme/widgets', 42);
     $job->handle($store, $this->relevanceFilter);
 
-    $workItem->refresh();
+    $workspace->refresh();
 
-    expect($workItem->conversation_id)->toBe($conversationId);
+    expect($workspace->conversation_id)->toBe($conversationId);
 
     $messages = $store->getLatestConversationMessages($conversationId, 10);
 
@@ -122,7 +129,7 @@ it('continues existing conversation when conversation_id is set', function () {
         ->and($messages[1]->role)->toBe(MessageRole::Assistant);
 });
 
-it('does not persist conversation when no work item matches', function () {
+it('does not persist conversation when no workspace matches', function () {
     GitHubWebhookAgent::fake(['Response']);
 
     $agent = Agent::factory()->create([

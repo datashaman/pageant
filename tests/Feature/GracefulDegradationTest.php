@@ -6,12 +6,11 @@ use App\Models\Agent;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
-use App\Models\WorkItem;
-use App\Services\WorkItemOrchestrator;
+use App\Models\Workspace;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
-    $this->workItem = WorkItem::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
 });
@@ -20,7 +19,7 @@ describe('PlanStep partial status', function () {
     it('tracks partial state on the model', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
@@ -40,7 +39,7 @@ describe('PlanStep partial status', function () {
     it('stores progress_summary and turns_used fields', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
@@ -61,212 +60,11 @@ describe('PlanStep partial status', function () {
     });
 });
 
-describe('WorkItemOrchestrator turn limit warning', function () {
-    it('detects when approaching step limit at 80%', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'isApproachingStepLimit');
-
-        expect($method->invoke($orchestrator, 4, 5))->toBeTrue()
-            ->and($method->invoke($orchestrator, 5, 5))->toBeTrue()
-            ->and($method->invoke($orchestrator, 3, 5))->toBeFalse()
-            ->and($method->invoke($orchestrator, 1, 5))->toBeFalse();
-    });
-
-    it('handles zero total steps gracefully', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'isApproachingStepLimit');
-
-        expect($method->invoke($orchestrator, 1, 0))->toBeFalse();
-    });
-
-    it('includes turn limit info in the warning when agent has max_turns', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'buildTurnLimitWarning');
-
-        $plan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-        ]);
-
-        $agent = Agent::factory()->create([
-            'organization_id' => $this->organization->id,
-            'max_turns' => 20,
-        ]);
-
-        $step = PlanStep::factory()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 1,
-        ]);
-
-        $warning = $method->invoke($orchestrator, $step, false);
-
-        expect($warning)->toContain('maximum of 20 tool-calling turns');
-    });
-
-    it('includes approaching limit warning when flag is true', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'buildTurnLimitWarning');
-
-        $plan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-        ]);
-
-        $agent = Agent::factory()->create([
-            'organization_id' => $this->organization->id,
-            'max_turns' => 10,
-        ]);
-
-        $step = PlanStep::factory()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 1,
-        ]);
-
-        $warning = $method->invoke($orchestrator, $step, true);
-
-        expect($warning)->toContain('approaching the plan\'s step limit')
-            ->and($warning)->toContain('Summarize your progress');
-    });
-
-    it('returns null when no limits apply', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'buildTurnLimitWarning');
-
-        $plan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-        ]);
-
-        $agent = Agent::factory()->create([
-            'organization_id' => $this->organization->id,
-            'max_turns' => 0,
-        ]);
-
-        $step = PlanStep::factory()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 1,
-        ]);
-
-        $warning = $method->invoke($orchestrator, $step, false);
-
-        expect($warning)->toBeNull();
-    });
-});
-
-describe('WorkItemOrchestrator timeout detection', function () {
-    it('detects timeout exceptions', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'isTimeoutException');
-
-        expect($method->invoke($orchestrator, new \RuntimeException('Connection timed out')))->toBeTrue()
-            ->and($method->invoke($orchestrator, new \RuntimeException('Request timeout')))->toBeTrue()
-            ->and($method->invoke($orchestrator, new \RuntimeException('max steps exceeded')))->toBeTrue()
-            ->and($method->invoke($orchestrator, new \RuntimeException('maximum number of steps')))->toBeTrue()
-            ->and($method->invoke($orchestrator, new \Illuminate\Http\Client\ConnectionException('Connection failed')))->toBeTrue()
-            ->and($method->invoke($orchestrator, new \RuntimeException('Something else failed')))->toBeFalse();
-    });
-});
-
-describe('WorkItemOrchestrator progress summary', function () {
-    it('builds a summary of completed, partial, and remaining steps', function () {
-        $plan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-        ]);
-
-        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
-
-        PlanStep::factory()->completed()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 1,
-            'description' => 'Set up project',
-            'result' => 'Project initialized',
-        ]);
-
-        PlanStep::factory()->partial()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 2,
-            'description' => 'Implement feature',
-            'progress_summary' => 'Half of the feature done',
-        ]);
-
-        PlanStep::factory()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 3,
-            'description' => 'Write tests',
-            'status' => 'skipped',
-        ]);
-
-        PlanStep::factory()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 4,
-            'description' => 'Deploy',
-            'status' => 'pending',
-        ]);
-
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'buildProgressSummary');
-
-        $summary = $method->invoke($orchestrator, $plan);
-
-        expect($summary)->toContain('## Completed Steps')
-            ->and($summary)->toContain('Set up project')
-            ->and($summary)->toContain('Project initialized')
-            ->and($summary)->toContain('## Partially Completed Steps')
-            ->and($summary)->toContain('Implement feature')
-            ->and($summary)->toContain('Half of the feature done')
-            ->and($summary)->toContain('## Remaining Steps')
-            ->and($summary)->toContain('Write tests')
-            ->and($summary)->toContain('Deploy');
-    });
-});
-
-describe('WorkItemOrchestrator prior steps with partial status', function () {
-    it('includes partial steps in prior context', function () {
-        $plan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
-        ]);
-
-        $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
-
-        PlanStep::factory()->partial()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 1,
-            'description' => 'Partially done task',
-            'result' => 'Got halfway',
-        ]);
-
-        $currentStep = PlanStep::factory()->create([
-            'plan_id' => $plan->id,
-            'agent_id' => $agent->id,
-            'order' => 2,
-            'status' => 'pending',
-        ]);
-
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'buildPriorStepsContext');
-
-        $context = $method->invoke($orchestrator, $currentStep);
-
-        expect($context)->toContain('[PARTIAL]')
-            ->and($context)->toContain('Partially done task');
-    });
-});
-
 describe('PlanStepPartial event', function () {
     it('broadcasts on the organization channel', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
@@ -296,7 +94,7 @@ describe('PlanLimitReached event', function () {
     it('broadcasts on the organization channel with progress summary', function () {
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $progressSummary = "## Completed Steps\n- Step 1: Done";

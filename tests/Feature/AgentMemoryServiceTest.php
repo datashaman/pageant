@@ -8,8 +8,7 @@ use App\Models\AgentMemory;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
-use App\Models\Repo;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use App\Services\AgentMemoryService;
 
 beforeEach(function () {
@@ -19,14 +18,14 @@ beforeEach(function () {
 
 describe('AgentMemoryService::storeFromPlan', function () {
     it('stores a learning memory from a completed plan', function () {
-        $workItem = WorkItem::factory()->create([
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
-            'title' => 'Add user authentication',
+            'name' => 'Add user authentication',
         ]);
 
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $workItem->id,
+            'workspace_id' => $workspace->id,
             'status' => 'completed',
         ]);
 
@@ -52,18 +51,18 @@ describe('AgentMemoryService::storeFromPlan', function () {
             ->and($memory->importance)->toBeGreaterThanOrEqual(1)
             ->and($memory->importance)->toBeLessThanOrEqual(10)
             ->and($memory->metadata)->toHaveKey('plan_id')
-            ->and($memory->metadata)->toHaveKey('work_item_id');
+            ->and($memory->metadata)->toHaveKey('workspace_id');
     });
 
     it('stores a failure memory from a failed plan', function () {
-        $workItem = WorkItem::factory()->create([
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
-            'title' => 'Fix broken migration',
+            'name' => 'Fix broken migration',
         ]);
 
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $workItem->id,
+            'workspace_id' => $workspace->id,
             'status' => 'failed',
         ]);
 
@@ -84,36 +83,14 @@ describe('AgentMemoryService::storeFromPlan', function () {
             ->and($memory->importance)->toBeGreaterThanOrEqual(7);
     });
 
-    it('links memory to a repo when source reference matches', function () {
-        $repo = Repo::factory()->create([
-            'organization_id' => $this->organization->id,
-            'source_reference' => 'owner/repo',
-        ]);
-
-        $workItem = WorkItem::factory()->create([
-            'organization_id' => $this->organization->id,
-            'source_reference' => 'owner/repo#42',
-        ]);
-
-        $plan = Plan::factory()->create([
-            'organization_id' => $this->organization->id,
-            'work_item_id' => $workItem->id,
-            'status' => 'completed',
-        ]);
-
-        $memory = $this->service->storeFromPlan($plan);
-
-        expect($memory->repo_id)->toBe($repo->id);
-    });
-
     it('assigns higher importance to failures with multiple failed steps', function () {
-        $workItem = WorkItem::factory()->create([
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
         ]);
 
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $workItem->id,
+            'workspace_id' => $workspace->id,
             'status' => 'failed',
         ]);
 
@@ -171,24 +148,24 @@ describe('AgentMemoryService::retrieve', function () {
             ->and($failures)->toHaveCount(3);
     });
 
-    it('includes org-wide memories when filtering by repo', function () {
-        $repo = Repo::factory()->create([
+    it('includes org-wide memories when filtering by workspace', function () {
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
         ]);
 
         AgentMemory::factory()->create([
             'organization_id' => $this->organization->id,
-            'repo_id' => $repo->id,
-            'summary' => 'Repo-specific memory',
+            'workspace_id' => $workspace->id,
+            'summary' => 'Workspace-specific memory',
         ]);
 
         AgentMemory::factory()->create([
             'organization_id' => $this->organization->id,
-            'repo_id' => null,
+            'workspace_id' => null,
             'summary' => 'Org-wide memory',
         ]);
 
-        $memories = $this->service->retrieve($this->organization->id, $repo->id);
+        $memories = $this->service->retrieve($this->organization->id, $workspace->id);
 
         expect($memories)->toHaveCount(2);
     });
@@ -254,13 +231,13 @@ describe('AgentMemoryService::buildContext', function () {
 
 describe('StoreAgentMemory listener', function () {
     it('stores memory when plan completes', function () {
-        $workItem = WorkItem::factory()->create([
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
         ]);
 
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $workItem->id,
+            'workspace_id' => $workspace->id,
             'status' => 'completed',
         ]);
 
@@ -271,13 +248,13 @@ describe('StoreAgentMemory listener', function () {
     });
 
     it('stores memory when plan fails', function () {
-        $workItem = WorkItem::factory()->create([
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
         ]);
 
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $workItem->id,
+            'workspace_id' => $workspace->id,
             'status' => 'failed',
         ]);
 
@@ -299,17 +276,17 @@ describe('AgentMemory model', function () {
         expect($memory->organization->id)->toBe($this->organization->id);
     });
 
-    it('optionally belongs to a repo', function () {
-        $repo = Repo::factory()->create([
+    it('optionally belongs to a workspace', function () {
+        $workspace = Workspace::factory()->create([
             'organization_id' => $this->organization->id,
         ]);
 
         $memory = AgentMemory::factory()->create([
             'organization_id' => $this->organization->id,
-            'repo_id' => $repo->id,
+            'workspace_id' => $workspace->id,
         ]);
 
-        expect($memory->repo->id)->toBe($repo->id);
+        expect($memory->workspace->id)->toBe($workspace->id);
     });
 
     it('optionally belongs to an agent', function () {

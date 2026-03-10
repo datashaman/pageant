@@ -1,6 +1,6 @@
 @props([
     'agents',
-    'repos',
+    'workspaces',
     'submitLabel' => __('Update'),
     'cancelUrl',
 ])
@@ -45,11 +45,11 @@
         </fieldset>
     @endif
 
-    @if ($repos->isNotEmpty())
+    @if ($workspaces->isNotEmpty())
         <fieldset class="space-y-2">
-            <flux:heading size="sm">{{ __('Associated Repos') }}</flux:heading>
-            @foreach ($repos as $repo)
-                <flux:checkbox wire:model="selectedRepos" :label="$repo->display_name" :value="$repo->id" />
+            <flux:heading size="sm">{{ __('Associated Workspaces') }}</flux:heading>
+            @foreach ($workspaces as $workspace)
+                <flux:checkbox wire:model="selectedWorkspaces" :label="$workspace->name" :value="$workspace->id" />
             @endforeach
         </fieldset>
     @endif

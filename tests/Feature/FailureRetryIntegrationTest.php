@@ -5,14 +5,13 @@ use App\Models\Agent;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use App\Services\FailureClassifier;
 use App\Services\RetryPolicy;
-use App\Services\WorkItemOrchestrator;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
-    $this->workItem = WorkItem::factory()->create([
+    $this->workspace = Workspace::factory()->create([
         'organization_id' => $this->organization->id,
     ]);
 });
@@ -22,7 +21,7 @@ describe('PlanStep failure_category column', function () {
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $step = PlanStep::factory()->failedWithCategory(FailureCategory::RateLimit, 4)->create([
@@ -41,7 +40,7 @@ describe('PlanStep failure_category column', function () {
         $agent = Agent::factory()->create(['organization_id' => $this->organization->id]);
         $plan = Plan::factory()->create([
             'organization_id' => $this->organization->id,
-            'work_item_id' => $this->workItem->id,
+            'workspace_id' => $this->workspace->id,
         ]);
 
         $step = PlanStep::factory()->completed()->create([
@@ -75,22 +74,5 @@ describe('RetryPolicy integration', function () {
         $unknownPolicy = RetryPolicy::forCategory(FailureCategory::Unknown);
 
         expect($rateLimitPolicy->maxAttempts)->toBeGreaterThan($unknownPolicy->maxAttempts);
-    });
-});
-
-describe('WorkItemOrchestrator retryCapInstructions', function () {
-    it('generates retry cap instructions for agent prompts', function () {
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $method = new ReflectionMethod($orchestrator, 'retryCapInstructions');
-
-        $instructions = $method->invoke($orchestrator);
-
-        expect($instructions)->toContain('Retry Policies')
-            ->and($instructions)->toContain('rate limit')
-            ->and($instructions)->toContain('timeout')
-            ->and($instructions)->toContain('github api')
-            ->and($instructions)->toContain('tool error')
-            ->and($instructions)->toContain('model error')
-            ->and($instructions)->toContain('unknown');
     });
 });

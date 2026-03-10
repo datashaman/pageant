@@ -3,7 +3,7 @@
 use App\Exceptions\CommandDeniedException;
 use App\Models\ExecutionAuditLog;
 use App\Models\Organization;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use App\Services\AuditLogger;
 use App\Services\CommandPolicy;
 use App\Services\LocalExecutionDriver;
@@ -133,13 +133,13 @@ describe('AuditLogger', function () {
         ]);
     });
 
-    it('logs with work item and agent context', function () {
+    it('logs with workspace and agent context', function () {
         $organization = Organization::factory()->create();
-        $workItem = WorkItem::factory()->create(['organization_id' => $organization->id]);
+        $workspace = Workspace::factory()->create(['organization_id' => $organization->id]);
 
         $logger = new AuditLogger(
             organizationId: $organization->id,
-            workItemId: $workItem->id,
+            workspaceId: $workspace->id,
             agentId: 'agent-123',
         );
 
@@ -147,7 +147,7 @@ describe('AuditLogger', function () {
 
         $this->assertDatabaseHas('execution_audit_logs', [
             'organization_id' => $organization->id,
-            'work_item_id' => $workItem->id,
+            'workspace_id' => $workspace->id,
             'agent_id' => 'agent-123',
             'type' => 'command',
         ]);
