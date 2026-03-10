@@ -100,12 +100,14 @@ new #[Title('API Keys')] class extends Component {
                 <div class="space-y-3">
                     <div class="flex items-center gap-2">
                         <flux:heading size="sm">{{ $config['label'] }}</flux:heading>
-                        @if (isset($this->statuses[$provider]))
+                        @if (isset($this->storedKeys[$provider]))
                             @if ($this->statuses[$provider] === 'valid')
-                                <flux:badge size="sm" color="green">{{ __('Valid') }}</flux:badge>
+                                <flux:badge size="sm" color="green">{{ __('Configured') }}</flux:badge>
                             @else
                                 <flux:badge size="sm" color="red">{{ __('Invalid') }}</flux:badge>
                             @endif
+                        @else
+                            <flux:badge size="sm" variant="outline">{{ __('Not configured') }}</flux:badge>
                         @endif
                     </div>
 
@@ -123,7 +125,7 @@ new #[Title('API Keys')] class extends Component {
                             <flux:input
                                 wire:model="{{ $config['property'] }}"
                                 type="password"
-                                :placeholder="$config['placeholder']"
+                                :placeholder="isset($this->storedKeys[$provider]) ? __('Enter new key to replace') : __('Paste your API key')"
                             />
                         </div>
                         <flux:button variant="primary" wire:click="saveKey('{{ $provider }}')">

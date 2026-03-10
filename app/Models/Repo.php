@@ -59,6 +59,14 @@ class Repo extends Model
     }
 
     /**
+     * Get the display name for the repo (owner/repo for GitHub, fallback to name).
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->source_reference ?: $this->name;
+    }
+
+    /**
      * Infer the project ID when the repo belongs to exactly one project.
      */
     public function inferProjectId(): ?string

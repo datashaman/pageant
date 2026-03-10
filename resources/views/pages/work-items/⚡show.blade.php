@@ -135,7 +135,7 @@ new #[Title('Work Item')] class extends Component {
                     {{ __('Edit') }}
                 </flux:button>
                 @if ($workItem->isOpen())
-                    <flux:button variant="ghost" wire:click="confirmClose" wire:target="confirmClose">
+                    <flux:button variant="outline" wire:click="confirmClose" wire:target="confirmClose">
                         {{ __('Close') }}
                     </flux:button>
                 @else
@@ -175,24 +175,14 @@ new #[Title('Work Item')] class extends Component {
                 </div>
             @endif
 
-            <div>
-                <flux:label>{{ __('Source') }}</flux:label>
-                <flux:text>{{ $workItem->source }}</flux:text>
-            </div>
-
-            @if ($workItem->source_reference)
+            @if ($workItem->source_reference || $workItem->source_url)
                 <div>
-                    <flux:label>{{ __('Source Reference') }}</flux:label>
-                    <flux:text>{{ $workItem->source_reference }}</flux:text>
-                </div>
-            @endif
-
-            @if ($workItem->source_url)
-                <div>
-                    <flux:label>{{ __('Source URL') }}</flux:label>
-                    <flux:link href="{{ $workItem->source_url }}" target="_blank">
-                        {{ $workItem->source_url }}
-                    </flux:link>
+                    <flux:label>{{ __('Source') }}</flux:label>
+                    <x-source-link
+                        :source="$workItem->source"
+                        :source-reference="$workItem->source_reference"
+                        :source-url="$workItem->source_url"
+                    />
                 </div>
             @endif
 
@@ -212,10 +202,10 @@ new #[Title('Work Item')] class extends Component {
             <div class="flex items-center justify-between">
                 <flux:heading size="lg">{{ __('Plans') }}</flux:heading>
                 @if ($workItem->isOpen() && $workItem->source === 'github' && $workItem->source_reference && ! $this->plans->contains(fn ($p) => $p->isPending() || $p->isApproved() || $p->isRunning() || $p->isPaused()))
-                    <flux:button size="sm" variant="primary" wire:click="generatePlan" wire:target="generatePlan">
-                        <flux:icon.bolt class="size-4" wire:loading.remove wire:target="generatePlan" />
-                        <flux:icon.arrow-path class="size-4 animate-spin" wire:loading wire:target="generatePlan" />
-                        {{ __('Generate Plan') }}
+                    <flux:button size="sm" variant="primary" wire:click="generatePlan" wire:target="generatePlan" class="inline-flex items-center gap-2">
+                        <flux:icon.bolt class="size-4 shrink-0" wire:loading.remove wire:target="generatePlan" />
+                        <flux:icon.arrow-path class="size-4 shrink-0 animate-spin" wire:loading wire:target="generatePlan" />
+                        <span>{{ __('Generate Plan') }}</span>
                     </flux:button>
                 @endif
             </div>

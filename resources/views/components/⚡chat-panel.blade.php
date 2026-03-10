@@ -288,7 +288,6 @@ new class extends Component
         }
     }"
     x-init="if (open) $nextTick(() => scrollToBottom())"
-    @keydown.meta.k.window="toggle()"
     @toggle-chat-panel.window="toggle()"
     x-show="open"
     x-cloak
@@ -440,9 +439,6 @@ new class extends Component
                     <option value="gemini:gemini-2.0-flash" @disabled(! $this->availableProviders['gemini'])>Gemini 2.0 Flash</option>
                 </optgroup>
             </select>
-            <flux:text size="xs" class="text-zinc-400">
-                {{ __('Cmd+K to toggle') }}
-            </flux:text>
         </div>
     </div>
 </div>

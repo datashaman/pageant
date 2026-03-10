@@ -18,6 +18,12 @@ new #[Title('Browse Skill Registry')] class extends Component {
     public string $importMessage = '';
     public string $importError = '';
 
+    public function mount(): void
+    {
+        $service = app(SkillRegistryService::class);
+        $this->results = $service->listPopular(24)->toArray();
+    }
+
     public function searchRegistry(): void
     {
         $this->validate([
@@ -144,15 +150,25 @@ new #[Title('Browse Skill Registry')] class extends Component {
             </flux:callout>
         @endif
 
-        @if ($hasSearched)
-            @if (empty($results))
+        @if (empty($results))
+            @if ($hasSearched)
                 <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
                     <flux:icon.magnifying-glass class="size-10 text-zinc-400 dark:text-zinc-500" />
                     <flux:heading size="lg" class="mt-4">{{ __('No results found') }}</flux:heading>
                     <flux:text class="mt-1 max-w-sm">{{ __('Try a different search term to find skills in the public registries.') }}</flux:text>
                 </div>
             @else
-                <flux:table :paginate="$this->paginatedResults()">
+                <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
+                    <flux:icon.globe-alt class="size-10 text-zinc-400 dark:text-zinc-500" />
+                    <flux:heading size="lg" class="mt-4">{{ __('Search public registries') }}</flux:heading>
+                    <flux:text class="mt-1 max-w-sm">{{ __('Unable to load popular skills. Enter a search term above to find skills from the MCP Registry and Smithery.') }}</flux:text>
+                </div>
+            @endif
+        @else
+            <flux:heading size="lg" class="text-zinc-600 dark:text-zinc-400">
+                {{ $hasSearched ? __('Search results') : __('Popular skills') }}
+            </flux:heading>
+            <flux:table :paginate="$this->paginatedResults()">
                     <flux:table.columns>
                         <flux:table.column>{{ __('Name') }}</flux:table.column>
                         <flux:table.column>{{ __('Description') }}</flux:table.column>
@@ -189,13 +205,6 @@ new #[Title('Browse Skill Registry')] class extends Component {
                         @endforeach
                     </flux:table.rows>
                 </flux:table>
-            @endif
-        @elseif (! $hasSearched)
-            <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
-                <flux:icon.globe-alt class="size-10 text-zinc-400 dark:text-zinc-500" />
-                <flux:heading size="lg" class="mt-4">{{ __('Search public registries') }}</flux:heading>
-                <flux:text class="mt-1 max-w-sm">{{ __('Enter a search term above to find skills and MCP servers from the official MCP Registry and Smithery.') }}</flux:text>
-            </div>
         @endif
     </div>
 </div>

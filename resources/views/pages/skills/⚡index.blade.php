@@ -76,14 +76,16 @@ new #[Title('Skills')] class extends Component {
         </div>
 
         @if ($this->skills->isEmpty() && ! $this->search)
-            <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
-                <flux:icon.bolt class="size-10 text-zinc-400 dark:text-zinc-500" />
-                <flux:heading size="lg" class="mt-4">{{ __('No skills yet') }}</flux:heading>
-                <flux:text class="mt-1 max-w-sm">{{ __('Skills define reusable capabilities that agents can use when working on tasks, such as code review, testing, or deployment.') }}</flux:text>
-                <flux:button variant="primary" href="{{ route('skills.create') }}" wire:navigate class="mt-6">
-                    {{ __('Create Skill') }}
-                </flux:button>
-            </div>
+            <x-empty-state :heading="__('No skills yet')" :description="__('Skills define reusable capabilities that agents can use when working on tasks, such as code review, testing, or deployment.')">
+                <x-slot:icon>
+                    <flux:icon.bolt class="size-10 text-zinc-400 dark:text-zinc-500" />
+                </x-slot:icon>
+                <x-slot:action>
+                    <flux:button variant="primary" href="{{ route('skills.create') }}" wire:navigate>
+                        {{ __('Create Skill') }}
+                    </flux:button>
+                </x-slot:action>
+            </x-empty-state>
         @else
             <flux:input wire:model.live="search" placeholder="{{ __('Search skills...') }}" icon="magnifying-glass" />
 
@@ -126,21 +128,17 @@ new #[Title('Skills')] class extends Component {
                                     <flux:button size="sm" href="{{ route('skills.edit', $skill) }}" wire:navigate>
                                         {{ __('Edit') }}
                                     </flux:button>
-                                    <flux:button size="sm" variant="ghost" wire:click="confirmDelete('{{ $skill->id }}')">
+                                    <flux:button size="sm" variant="outline" wire:click="confirmDelete('{{ $skill->id }}')">
                                         {{ __('Delete') }}
                                     </flux:button>
                                 </div>
 
-                                <flux:modal name="confirm-delete-{{ $skill->id }}">
-                                    <div class="space-y-6">
-                                        <flux:heading size="lg">{{ __('Delete Skill') }}</flux:heading>
-                                        <flux:text>{{ __('Are you sure you want to delete ":name"? This action cannot be undone.', ['name' => $skill->name]) }}</flux:text>
-                                        <div class="flex justify-end gap-3">
-                                            <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                                            <flux:button variant="danger" wire:click="delete('{{ $skill->id }}')">{{ __('Delete') }}</flux:button>
-                                        </div>
-                                    </div>
-                                </flux:modal>
+                                <x-confirm-delete-modal
+                                    :id="'confirm-delete-' . $skill->id"
+                                    :title="__('Delete Skill')"
+                                    :item-name="$skill->name"
+                                    :delete-id="$skill->id"
+                                />
                             </flux:table.cell>
                         </flux:table.row>
                     @empty

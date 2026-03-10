@@ -5,7 +5,11 @@ use App\Http\Controllers\GitHubAuthController;
 use App\Http\Controllers\GitHubWebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome')->name('home');
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : view('welcome');
+})->name('home');
 
 Route::get('auth/github', [GitHubAuthController::class, 'redirect'])->name('auth.github');
 Route::get('auth/github/callback', [GitHubAuthController::class, 'callback'])->name('auth.github.callback');

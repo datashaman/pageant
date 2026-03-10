@@ -30,22 +30,11 @@ new #[Title('View Repo')] class extends Component {
 
 <div class="w-full" data-chat-context="{{ json_encode(['page' => 'repos.show', 'repo_id' => $repo->id, 'repo_name' => $repo->name, 'repo_source' => $repo->source, 'repo_source_reference' => $repo->source_reference]) }}">
     <div class="space-y-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <flux:button href="{{ route('repos.index') }}" wire:navigate>
-                    {{ __('Back') }}
-                </flux:button>
-                <flux:heading size="xl">{{ $repo->name }}</flux:heading>
-            </div>
-            <div class="flex items-center gap-2">
-                <flux:button href="{{ route('repos.edit', $repo) }}" wire:navigate>
-                    {{ __('Edit') }}
-                </flux:button>
-                <flux:button variant="ghost" wire:click="confirmDelete">
-                    {{ __('Delete') }}
-                </flux:button>
-            </div>
-        </div>
+        <x-show-header
+            :back-url="route('repos.index')"
+            :title="$repo->display_name"
+            :edit-url="route('repos.edit', $repo)"
+        />
 
         <div class="max-w-xl space-y-4">
             <div>
@@ -53,22 +42,14 @@ new #[Title('View Repo')] class extends Component {
                 <flux:text>{{ $repo->organization->name }}</flux:text>
             </div>
 
-            <div>
-                <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source') }}</flux:heading>
-                <flux:text>{{ $repo->source }}</flux:text>
-            </div>
-
-            @if ($repo->source_reference)
+            @if ($repo->source_reference || $repo->source_url)
                 <div>
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source Reference') }}</flux:heading>
-                    <flux:text>{{ $repo->source_reference }}</flux:text>
-                </div>
-            @endif
-
-            @if ($repo->source_url)
-                <div>
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source URL') }}</flux:heading>
-                    <flux:link href="{{ $repo->source_url }}" target="_blank">{{ $repo->source_url }}</flux:link>
+                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source') }}</flux:heading>
+                    <x-source-link
+                        :source="$repo->source"
+                        :source-reference="$repo->display_name"
+                        :source-url="$repo->source_url"
+                    />
                 </div>
             @endif
 

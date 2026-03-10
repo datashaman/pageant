@@ -173,14 +173,16 @@ new #[Title('Repos')] class extends Component {
         </div>
 
         @if ($this->repos->isEmpty() && ! $this->search)
-            <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
-                <flux:icon.code-bracket class="size-10 text-zinc-400 dark:text-zinc-500" />
-                <flux:heading size="lg" class="mt-4">{{ __('No repos yet') }}</flux:heading>
-                <flux:text class="mt-1 max-w-sm">{{ __('Import repositories from your GitHub installations to track them and enable agents to work on your code.') }}</flux:text>
-                <flux:button variant="primary" wire:click="openImportModal" class="mt-6">
-                    {{ __('Import Repo') }}
-                </flux:button>
-            </div>
+            <x-empty-state :heading="__('No repos yet')" :description="__('Import repositories from your GitHub installations to track them and enable agents to work on your code.')">
+                <x-slot:icon>
+                    <flux:icon.code-bracket class="size-10 text-zinc-400 dark:text-zinc-500" />
+                </x-slot:icon>
+                <x-slot:action>
+                    <flux:button variant="primary" wire:click="openImportModal">
+                        {{ __('Import Repo') }}
+                    </flux:button>
+                </x-slot:action>
+            </x-empty-state>
         @else
             <flux:input wire:model.live="search" placeholder="{{ __('Search repos...') }}" icon="magnifying-glass" />
 
@@ -209,13 +211,7 @@ new #[Title('Repos')] class extends Component {
                                 </flux:link>
                             </flux:table.cell>
                             <flux:table.cell>
-                                @if ($repo->source_url)
-                                    <flux:link href="{{ $repo->source_url }}" target="_blank">
-                                        {{ $repo->source_reference }}
-                                    </flux:link>
-                                @else
-                                    {{ $repo->source_reference }}
-                                @endif
+                                <x-repo-label :repo="$repo" />
                             </flux:table.cell>
                             <flux:table.cell>{{ $repo->organization->name }}</flux:table.cell>
                             <flux:table.cell align="end">
@@ -223,21 +219,17 @@ new #[Title('Repos')] class extends Component {
                                     <flux:button size="sm" href="{{ route('repos.edit', $repo) }}" wire:navigate>
                                         {{ __('Edit') }}
                                     </flux:button>
-                                    <flux:button size="sm" variant="ghost" wire:click="confirmDelete('{{ $repo->id }}')">
+                                    <flux:button size="sm" variant="outline" wire:click="confirmDelete('{{ $repo->id }}')">
                                         {{ __('Delete') }}
                                     </flux:button>
                                 </div>
 
-                                <flux:modal name="confirm-delete-{{ $repo->id }}">
-                                    <div class="space-y-6">
-                                        <flux:heading size="lg">{{ __('Delete Repo') }}</flux:heading>
-                                        <flux:text>{{ __('Are you sure you want to delete ":name"? This action cannot be undone.', ['name' => $repo->name]) }}</flux:text>
-                                        <div class="flex justify-end gap-3">
-                                            <flux:button x-on:click="$flux.modal.close()">{{ __('Cancel') }}</flux:button>
-                                            <flux:button variant="danger" wire:click="delete('{{ $repo->id }}')">{{ __('Delete') }}</flux:button>
-                                        </div>
-                                    </div>
-                                </flux:modal>
+                                <x-confirm-delete-modal
+                                    :id="'confirm-delete-' . $repo->id"
+                                    :title="__('Delete Repo')"
+                                    :item-name="$repo->display_name"
+                                    :delete-id="$repo->id"
+                                />
                             </flux:table.cell>
                         </flux:table.row>
                     @empty
@@ -273,16 +265,23 @@ new #[Title('Repos')] class extends Component {
                 @if ($selectedInstallationId && count($this->githubRepos) > 0)
                     <div x-data="{
                         filter: '',
+                        sortBy: 'name',
                         repos: @js($this->githubRepos),
                         tracked: @js($this->trackedRepoKeys),
                         visibleCount: 30,
                         get filtered() {
-                            if (!this.filter) return this.repos;
-                            const q = this.filter.toLowerCase();
-                            return this.repos.filter(r =>
-                                r.full_name.toLowerCase().includes(q) ||
-                                (r.description && r.description.toLowerCase().includes(q))
-                            );
+                            let list = this.repos;
+                            if (this.filter) {
+                                const q = this.filter.toLowerCase();
+                                list = list.filter(r =>
+                                    r.full_name.toLowerCase().includes(q) ||
+                                    (r.description && r.description.toLowerCase().includes(q))
+                                );
+                            }
+                            if (this.sortBy === 'name') {
+                                list = [...list].sort((a, b) => a.full_name.localeCompare(b.full_name));
+                            }
+                            return list;
                         },
                         get visible() {
                             return this.filtered.slice(0, this.visibleCount);
@@ -296,7 +295,15 @@ new #[Title('Repos')] class extends Component {
                     }"
                          x-on:repo-tracked.window="tracked = [...tracked, $event.detail.fullName]"
                          x-on:repo-untracked.window="tracked = tracked.filter(r => r !== $event.detail.fullName)">
-                        <flux:input x-model="filter" x-on:input="visibleCount = 30" placeholder="{{ __('Filter repositories...') }}" icon="magnifying-glass" />
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div class="flex-1">
+                                <flux:input x-model="filter" x-on:input="visibleCount = 30" placeholder="{{ __('Filter repositories...') }}" icon="magnifying-glass" />
+                            </div>
+                            <flux:select x-model="sortBy" class="w-full sm:w-44" aria-label="{{ __('Sort by') }}">
+                                <flux:select.option value="name">{{ __('Name (A–Z)') }}</flux:select.option>
+                                <flux:select.option value="api">{{ __('Default (API order)') }}</flux:select.option>
+                            </flux:select>
+                        </div>
 
                         <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-2" x-text="filtered.length + ' repositories'"></div>
 

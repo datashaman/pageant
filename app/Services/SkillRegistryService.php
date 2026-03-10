@@ -13,6 +13,48 @@ class SkillRegistryService
     private const SMITHERY_API_BASE = 'https://api.smithery.ai';
 
     /**
+     * List popular/recent skills from the MCP Registry (no search required).
+     *
+     * @return Collection<int, array{
+     *     registry: string,
+     *     name: string,
+     *     description: string,
+     *     source_url: string,
+     *     source_reference: string,
+     *     repository_url: string|null,
+     *     version: string|null,
+     * }>
+     */
+    public function listPopular(int $limit = 24): Collection
+    {
+        try {
+            $response = Http::timeout(10)
+                ->get(self::MCP_REGISTRY_BASE.'/servers', [
+                    'limit' => min($limit * 2, 100),
+                ]);
+
+            if (! $response->successful()) {
+                Log::warning('MCP Registry list failed', ['status' => $response->status()]);
+
+                return collect();
+            }
+
+            $data = $response->json();
+            $servers = $data['servers'] ?? [];
+
+            return collect($servers)
+                ->filter(fn (array $entry): bool => ($entry['_meta']['io.modelcontextprotocol.registry/official']['isLatest'] ?? false) === true)
+                ->take($limit)
+                ->map(fn (array $entry) => $this->mapMcpEntryToResult($entry))
+                ->values();
+        } catch (\Throwable $e) {
+            Log::warning('MCP Registry list error', ['error' => $e->getMessage()]);
+
+            return collect();
+        }
+    }
+
+    /**
      * Search across all configured registries.
      *
      * @return Collection<int, array{
@@ -66,22 +108,7 @@ class SkillRegistryService
             $data = $response->json();
             $servers = $data['servers'] ?? [];
 
-            return collect($servers)->map(function (array $entry) {
-                $server = $entry['server'];
-                $name = $server['name'] ?? '';
-                $description = $server['description'] ?? '';
-                $repoUrl = $server['repository']['url'] ?? null;
-
-                return [
-                    'registry' => 'mcp-registry',
-                    'name' => $name,
-                    'description' => $description,
-                    'source_url' => $repoUrl ?? '',
-                    'source_reference' => $name,
-                    'repository_url' => $repoUrl,
-                    'version' => $server['version'] ?? null,
-                ];
-            });
+            return collect($servers)->map(fn (array $entry) => $this->mapMcpEntryToResult($entry));
         } catch (\Throwable $e) {
             Log::warning('MCP Registry search error', [
                 'error' => $e->getMessage(),
@@ -149,5 +176,27 @@ class SkillRegistryService
 
             return collect();
         }
+    }
+
+    /**
+     * @return array{registry: string, name: string, description: string, source_url: string, source_reference: string, repository_url: string|null, version: string|null}
+     */
+    private function mapMcpEntryToResult(array $entry): array
+    {
+        $server = $entry['server'];
+        $name = $server['name'] ?? '';
+        $description = $server['description'] ?? '';
+        $repoUrl = ($server['repository'] ?? [])['url'] ?? null;
+        $websiteUrl = $server['websiteUrl'] ?? null;
+
+        return [
+            'registry' => 'mcp-registry',
+            'name' => $name,
+            'description' => $description,
+            'source_url' => $repoUrl ?? $websiteUrl ?? '',
+            'source_reference' => $name,
+            'repository_url' => $repoUrl,
+            'version' => $server['version'] ?? null,
+        ];
     }
 }

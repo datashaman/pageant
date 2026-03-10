@@ -23,15 +23,12 @@ test('welcome page shows tagline and description for guests', function () {
         ->assertDontSee('Go to Dashboard');
 });
 
-test('welcome page shows dashboard link for authenticated users', function () {
+test('authenticated users are redirected to dashboard', function () {
     $user = User::factory()->create();
 
     $response = $this->actingAs($user)->get(route('home'));
 
-    $response
-        ->assertOk()
-        ->assertSee('Go to Dashboard')
-        ->assertDontSee('Sign in with GitHub');
+    $response->assertRedirect(route('dashboard'));
 });
 
 test('welcome page mentions GitHub integration', function () {

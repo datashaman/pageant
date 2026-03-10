@@ -60,23 +60,10 @@ new #[Title('Edit Project')] class extends Component {
     <div class="flex flex-col gap-6">
         <flux:heading size="xl">{{ __('Edit Project') }}</flux:heading>
 
-        <form wire:submit="save" class="space-y-6">
-            <flux:input wire:model="name" label="{{ __('Name') }}" placeholder="{{ __('Project name') }}" />
-
-            <flux:textarea wire:model="description" label="{{ __('Description') }}" placeholder="{{ __('Project description') }}" rows="4" />
-
-            @if ($this->repos->isNotEmpty())
-                <flux:checkbox.group wire:model="selectedRepos" label="{{ __('Repos') }}">
-                    @foreach ($this->repos as $repo)
-                        <flux:checkbox :value="$repo->id" :label="$repo->name" />
-                    @endforeach
-                </flux:checkbox.group>
-            @endif
-
-            <div class="flex gap-2">
-                <flux:button type="submit" variant="primary">{{ __('Update Project') }}</flux:button>
-                <flux:button href="{{ route('projects.show', $project) }}" wire:navigate variant="ghost">{{ __('Cancel') }}</flux:button>
-            </div>
-        </form>
+        <x-projects.form
+            :repos="$this->repos"
+            :submit-label="__('Update Project')"
+            :cancel-url="route('projects.show', $project)"
+        />
     </div>
 </div>
