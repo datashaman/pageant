@@ -5,7 +5,6 @@ namespace App\Ai\Tools;
 use App\Jobs\ExecutePlan;
 use App\Models\Plan;
 use App\Models\User;
-use App\Services\WorkItemOrchestrator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -32,8 +31,8 @@ class ResumePlanTool implements Tool
             ]);
         }
 
-        $orchestrator = app(WorkItemOrchestrator::class);
-        $orchestrator->prepareForResume($plan);
+        $plan->resetForResume();
+        $plan->update(['status' => 'running']);
 
         ExecutePlan::dispatch($plan);
 

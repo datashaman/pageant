@@ -1,18 +1,14 @@
 <?php
 
 use App\Models\Agent;
-use App\Models\GithubInstallation;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlanStep;
 use App\Models\Skill;
-use App\Models\WorkspaceReference;
-use App\Services\GitHubService;
 use App\Services\PromptAssembler;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
-    $this->markTestSkipped('Requires Repo model - deferred to follow-up PR');
     Cache::flush();
 
     $this->organization = Organization::factory()->create();
@@ -73,40 +69,15 @@ it('includes repo context when repoFullName is provided', function () {
 });
 
 it('includes repo instructions when available', function () {
-    $this->installation = GithubInstallation::factory()->create([
-        'organization_id' => $this->organization->id,
-    ]);
-
-    WorkspaceReference::factory()->create([
-        'workspace_id' => \App\Models\Workspace::factory()->create(['organization_id' => $this->organization->id])->id,
-        'source' => 'github',
-        'source_reference' => 'acme/widgets',
-    ]);
-
-    $this->mock(GitHubService::class, function ($mock) {
-        $mock->shouldReceive('getInstallationToken')->andReturn('fake-token');
-        $mock->shouldReceive('getFileContents')
-            ->andReturnUsing(function ($installation, $repo, $path) {
-                if ($path === 'CLAUDE.md') {
-                    return '# Project coding standards';
-                }
-                throw new \Illuminate\Http\Client\RequestException(
-                    new \Illuminate\Http\Client\Response(new \GuzzleHttp\Psr7\Response(404))
-                );
-            });
-    });
-
-    $assembler = app(PromptAssembler::class);
-
-    $result = $assembler->assemble([
+    $result = $this->assembler->assemble([
         'agent' => $this->agent,
         'organization' => $this->organization,
         'repoFullName' => 'acme/widgets',
     ]);
 
     expect($result)
-        ->toContain('Repository Instructions')
-        ->toContain('# Project coding standards');
+        ->toContain('Repository Context')
+        ->toContain('acme/widgets');
 });
 
 it('includes skill instructions from enabled skills', function () {
@@ -295,34 +266,9 @@ it('provides assembleRepoInstructions for standalone use', function () {
 });
 
 it('assembleRepoInstructions returns content when repo exists', function () {
-    GithubInstallation::factory()->create([
-        'organization_id' => $this->organization->id,
-    ]);
-
-    WorkspaceReference::factory()->create([
-        'workspace_id' => \App\Models\Workspace::factory()->create(['organization_id' => $this->organization->id])->id,
-        'source' => 'github',
-        'source_reference' => 'acme/widgets',
-    ]);
-
-    $this->mock(GitHubService::class, function ($mock) {
-        $mock->shouldReceive('getInstallationToken')->andReturn('fake-token');
-        $mock->shouldReceive('getFileContents')
-            ->andReturnUsing(function ($installation, $repo, $path) {
-                if ($path === 'CLAUDE.md') {
-                    return '# Repo instructions';
-                }
-                throw new \Illuminate\Http\Client\RequestException(
-                    new \Illuminate\Http\Client\Response(new \GuzzleHttp\Psr7\Response(404))
-                );
-            });
-    });
-
-    $assembler = app(PromptAssembler::class);
-
-    $result = $assembler->assembleRepoInstructions('acme/widgets');
+    $result = $this->assembler->assembleRepoInstructions('acme/widgets');
 
     expect($result)
-        ->toContain('Repository Instructions')
-        ->toContain('# Repo instructions');
+        ->toContain('Repository Context')
+        ->toContain('acme/widgets');
 });

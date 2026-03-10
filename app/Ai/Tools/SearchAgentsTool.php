@@ -4,7 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Models\Agent;
 use App\Models\User;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -17,37 +17,22 @@ class SearchAgentsTool implements Tool
 
     public function description(): string
     {
-        return 'Search for agents that match a work item\'s requirements based on tools, skills, and description.';
+        return 'Search for agents that match requirements based on tools, skills, and description.';
     }
 
     public function handle(Request $request): string
     {
         $query = Agent::forCurrentOrganization($this->user)
             ->where('enabled', true)
-            ->with('skills', 'repos');
+            ->with('skills', 'workspaces');
 
-        if (! empty($request['work_item_id'])) {
-            $workItem = WorkItem::forCurrentOrganization($this->user)
-                ->findOrFail($request['work_item_id']);
+        if (! empty($request['workspace_id'])) {
+            $workspace = Workspace::forCurrentOrganization($this->user)
+                ->findOrFail($request['workspace_id']);
 
-            $stopWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'has', 'her', 'was', 'one', 'our', 'out', 'his', 'had', 'its', 'how', 'may', 'who', 'did', 'get', 'let', 'say', 'she', 'too', 'use', 'that', 'this', 'with', 'have', 'from', 'they', 'been', 'said', 'each', 'will', 'other', 'about', 'many', 'then', 'them', 'these', 'some', 'would', 'make', 'like', 'into', 'than', 'just', 'over', 'also', 'back', 'after', 'could', 'when', 'what', 'your', 'which', 'their', 'there', 'should', 'does', 'need', 'must', 'been', 'being', 'were', 'more', 'very'];
-
-            $searchTerms = array_unique(array_filter(
-                array_merge(
-                    str_word_count(strtolower($workItem->title), 1),
-                    str_word_count(strtolower($workItem->description ?? ''), 1),
-                ),
-                fn (string $term) => strlen($term) >= 3 && ! in_array($term, $stopWords),
-            ));
-
-            if (! empty($searchTerms)) {
-                $query->where(function ($q) use ($searchTerms) {
-                    foreach ($searchTerms as $term) {
-                        $q->orWhere('name', 'like', "%{$term}%")
-                            ->orWhere('description', 'like', "%{$term}%");
-                    }
-                });
-            }
+            $query->whereHas('workspaces', function ($q) use ($workspace) {
+                $q->where('workspaces.id', $workspace->id);
+            });
         }
 
         if (! empty($request['tools'])) {
@@ -89,8 +74,8 @@ class SearchAgentsTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'work_item_id' => $schema->string()
-                ->description('The UUID of a work item to find matching agents for.'),
+            'workspace_id' => $schema->string()
+                ->description('The UUID of a workspace to find attached agents for.'),
             'tools' => $schema->array()
                 ->items($schema->string())
                 ->description('Tool names the agent should have.'),

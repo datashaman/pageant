@@ -32,7 +32,7 @@ class ListAgentsTool implements Tool
             });
         }
 
-        $agents = $query->with('skills', 'repos')->get();
+        $agents = $query->with('skills', 'workspaces')->get();
 
         return json_encode($agents->toArray(), JSON_PRETTY_PRINT);
     }

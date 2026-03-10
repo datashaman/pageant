@@ -89,7 +89,7 @@ describe('Skill Wiring', function () {
         expect($webhookAgent->instructions())->toContain('I am a code agent.');
         expect($webhookAgent->instructions())->toContain('Always write tests using Pest.');
         expect($webhookAgent->instructions())->toContain('## Skills');
-    })->skip('Requires Repo model - deferred to follow-up PR');
+    });
 
     it('excludes disabled skills from instructions', function () {
         $agent = Agent::factory()->create([
@@ -109,7 +109,7 @@ describe('Skill Wiring', function () {
 
         expect($webhookAgent->instructions())->not->toContain('This should not appear.');
         expect($webhookAgent->instructions())->not->toContain('## Skills');
-    })->skip('Requires Repo model - deferred to follow-up PR');
+    });
 });
 
 describe('PlanStep Model', function () {

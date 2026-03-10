@@ -1,22 +1,19 @@
 <?php
 
 use App\Ai\ToolRegistry;
-use App\Ai\Tools\CloseWorkItemTool;
 use App\Ai\Tools\CreateAgentTool;
-use App\Ai\Tools\CreateWorkItemTool;
-use App\Ai\Tools\ReopenWorkItemTool;
+use App\Ai\Tools\CreateIssueTool;
 use App\Models\User;
 
 it('includes flexible tools in availableForContext when no repo is selected', function () {
     $available = ToolRegistry::availableForContext(null);
 
     expect($available)
-        ->toHaveKey('create_work_item')
-        ->toHaveKey('close_work_item')
-        ->toHaveKey('reopen_work_item')
         ->toHaveKey('create_agent')
         ->toHaveKey('create_issue')
-        ->toHaveKey('update_issue');
+        ->toHaveKey('update_issue')
+        ->toHaveKey('list_workspaces')
+        ->toHaveKey('create_workspace');
 });
 
 it('excludes non-flexible github tools from availableForContext when no repo is selected', function () {
@@ -33,19 +30,10 @@ it('includes all tools in availableForContext when a repo is selected', function
     $available = ToolRegistry::availableForContext('acme/widgets');
 
     expect($available)
-        ->toHaveKey('create_work_item')
         ->toHaveKey('get_issue')
         ->toHaveKey('list_issues')
-        ->toHaveKey('create_pull_request');
-});
-
-it('resolves flexible tools without a repo context', function () {
-    $tools = ToolRegistry::resolve(['create_work_item', 'close_work_item', 'reopen_work_item'], null);
-
-    expect($tools)->toHaveCount(3)
-        ->and($tools[0])->toBeInstanceOf(CreateWorkItemTool::class)
-        ->and($tools[1])->toBeInstanceOf(CloseWorkItemTool::class)
-        ->and($tools[2])->toBeInstanceOf(ReopenWorkItemTool::class);
+        ->toHaveKey('create_pull_request')
+        ->toHaveKey('create_workspace');
 });
 
 it('resolves create_agent as a local tool with a user', function () {
@@ -57,26 +45,11 @@ it('resolves create_agent as a local tool with a user', function () {
         ->and($tools[0])->toBeInstanceOf(CreateAgentTool::class);
 });
 
-it('requires repo parameter in schema when no repo context is provided', function () {
-    $tool = new CreateWorkItemTool(app(\App\Services\GitHubService::class));
-    $schema = new \Illuminate\JsonSchema\JsonSchemaTypeFactory;
+it('resolves flexible tools without a repo context', function () {
+    $tools = ToolRegistry::resolve(['create_issue', 'update_issue'], null);
 
-    $fields = $tool->schema($schema);
-
-    expect($fields)->toHaveKey('repo');
-});
-
-it('omits repo parameter in schema when repo context is provided', function () {
-    $tool = new CreateWorkItemTool(
-        app(\App\Services\GitHubService::class),
-        null,
-        'acme/widgets',
-    );
-    $schema = new \Illuminate\JsonSchema\JsonSchemaTypeFactory;
-
-    $fields = $tool->schema($schema);
-
-    expect($fields)->not->toHaveKey('repo');
+    expect($tools)->toHaveCount(2)
+        ->and($tools[0])->toBeInstanceOf(CreateIssueTool::class);
 });
 
 it('does not require repo in create_agent schema', function () {
@@ -86,6 +59,6 @@ it('does not require repo in create_agent schema', function () {
 
     $fields = $tool->schema($schema);
 
-    expect($fields)->toHaveKey('repo')
-        ->and($fields)->toHaveKey('name');
+    expect($fields)->toHaveKey('name')
+        ->and($fields)->toHaveKey('workspace_ids');
 });

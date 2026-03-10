@@ -3,7 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
-use App\Models\Repo;
+use App\Models\WorkspaceReference;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -28,8 +28,11 @@ class UpdateIssueTool implements Tool
         $installation = $this->installation;
 
         if (! $installation) {
-            $repo = Repo::where('source', 'github')->where('source_reference', $repoFullName)->firstOrFail();
-            $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+            $reference = WorkspaceReference::where('source', 'github')
+                ->where('source_reference', $repoFullName)
+                ->firstOrFail();
+
+            $installation = GithubInstallation::where('organization_id', $reference->workspace->organization_id)->firstOrFail();
         }
 
         $data = [];

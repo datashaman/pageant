@@ -4,36 +4,33 @@ namespace App\Ai;
 
 use App\Ai\Tools\AddLabelsToIssueTool;
 use App\Ai\Tools\AddPlanStepTool;
+use App\Ai\Tools\AddWorkspaceReferenceTool;
 use App\Ai\Tools\ApprovePlanTool;
-use App\Ai\Tools\AttachRepoToProjectTool;
 use App\Ai\Tools\AttachSkillToAgentTool;
 use App\Ai\Tools\BashTool;
 use App\Ai\Tools\CancelPlanTool;
 use App\Ai\Tools\CloseIssueTool;
-use App\Ai\Tools\CloseWorkItemTool;
+use App\Ai\Tools\CloseWorkspaceIssueTool;
 use App\Ai\Tools\CreateAgentTool;
 use App\Ai\Tools\CreateBranchTool;
 use App\Ai\Tools\CreateCommentTool;
 use App\Ai\Tools\CreateIssueTool;
 use App\Ai\Tools\CreateLabelTool;
 use App\Ai\Tools\CreatePlanTool;
-use App\Ai\Tools\CreateProjectTool;
 use App\Ai\Tools\CreatePullRequestReviewTool;
 use App\Ai\Tools\CreatePullRequestTool;
 use App\Ai\Tools\CreateSkillTool;
-use App\Ai\Tools\CreateWorkItemTool;
+use App\Ai\Tools\CreateWorkspaceIssueTool;
+use App\Ai\Tools\CreateWorkspaceTool;
 use App\Ai\Tools\DeleteLabelTool;
-use App\Ai\Tools\DeleteProjectTool;
-use App\Ai\Tools\DeleteRepoTool;
-use App\Ai\Tools\DetachRepoFromProjectTool;
+use App\Ai\Tools\DeleteWorkspaceTool;
 use App\Ai\Tools\EditFileTool;
 use App\Ai\Tools\GetCommitStatusTool;
 use App\Ai\Tools\GetIssueTool;
 use App\Ai\Tools\GetPlanTool;
-use App\Ai\Tools\GetProjectTool;
 use App\Ai\Tools\GetPullRequestDiffTool;
 use App\Ai\Tools\GetPullRequestTool;
-use App\Ai\Tools\GetRepoTool;
+use App\Ai\Tools\GetWorkspaceTool;
 use App\Ai\Tools\GitCommitTool;
 use App\Ai\Tools\GitDiffTool;
 use App\Ai\Tools\GitLogTool;
@@ -51,16 +48,18 @@ use App\Ai\Tools\ListIssueLabelsTool;
 use App\Ai\Tools\ListIssuesTool;
 use App\Ai\Tools\ListLabelsTool;
 use App\Ai\Tools\ListPlansTool;
-use App\Ai\Tools\ListProjectsTool;
 use App\Ai\Tools\ListPullRequestFilesTool;
 use App\Ai\Tools\ListPullRequestsTool;
-use App\Ai\Tools\ListReposTool;
 use App\Ai\Tools\ListSkillsTool;
+use App\Ai\Tools\ListWorkspaceReferencesTool;
+use App\Ai\Tools\ListWorkspacesTool;
 use App\Ai\Tools\MergePullRequestTool;
 use App\Ai\Tools\PausePlanTool;
 use App\Ai\Tools\ReadFileTool;
 use App\Ai\Tools\RemoveLabelFromIssueTool;
-use App\Ai\Tools\ReopenWorkItemTool;
+use App\Ai\Tools\RemoveWorkspaceIssueTool;
+use App\Ai\Tools\RemoveWorkspaceReferenceTool;
+use App\Ai\Tools\ReopenWorkspaceIssueTool;
 use App\Ai\Tools\RequestReviewersTool;
 use App\Ai\Tools\ResumePlanTool;
 use App\Ai\Tools\SearchAgentsTool;
@@ -68,14 +67,13 @@ use App\Ai\Tools\SearchIssuesTool;
 use App\Ai\Tools\SearchRegistrySkillsTool;
 use App\Ai\Tools\SearchSkillsTool;
 use App\Ai\Tools\UpdateIssueTool;
-use App\Ai\Tools\UpdateProjectTool;
 use App\Ai\Tools\UpdatePullRequestTool;
-use App\Ai\Tools\UpdateRepoTool;
+use App\Ai\Tools\UpdateWorkspaceTool;
 use App\Ai\Tools\WriteFileTool;
 use App\Contracts\ExecutionDriver;
 use App\Models\GithubInstallation;
-use App\Models\Repo;
 use App\Models\User;
+use App\Models\WorkspaceReference;
 use App\Services\GitHubService;
 use Laravel\Ai\Contracts\Tool;
 
@@ -122,15 +120,16 @@ class ToolRegistry
         'get_commit_status' => ['class' => GetCommitStatusTool::class, 'description' => 'Get commit status', 'group' => 'CI / Status'],
         'list_check_runs' => ['class' => ListCheckRunsTool::class, 'description' => 'List check runs', 'group' => 'CI / Status'],
 
-        // Work Items
-        'create_work_item' => ['class' => CreateWorkItemTool::class, 'description' => 'Create a work item from an issue', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
-        'close_work_item' => ['class' => CloseWorkItemTool::class, 'description' => 'Close a work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
-        'reopen_work_item' => ['class' => ReopenWorkItemTool::class, 'description' => 'Reopen a closed work item', 'group' => 'Work Items', 'category' => 'pageant', 'flexible' => true],
+        // Workspace Issues
+        'create_workspace_issue' => ['class' => CreateWorkspaceIssueTool::class, 'description' => 'Create a GitHub issue and add it to a workspace', 'group' => 'Workspace Issues', 'flexible' => true],
+        'close_workspace_issue' => ['class' => CloseWorkspaceIssueTool::class, 'description' => 'Close a GitHub issue in a workspace', 'group' => 'Workspace Issues', 'flexible' => true],
+        'reopen_workspace_issue' => ['class' => ReopenWorkspaceIssueTool::class, 'description' => 'Reopen a GitHub issue in a workspace', 'group' => 'Workspace Issues', 'flexible' => true],
+        'remove_workspace_issue' => ['class' => RemoveWorkspaceIssueTool::class, 'description' => 'Remove an issue reference from a workspace', 'group' => 'Workspace Issues', 'local' => true],
 
         // Agents
         'create_agent' => ['class' => CreateAgentTool::class, 'description' => 'Create a new agent', 'group' => 'Agents', 'local' => true],
         'list_agents' => ['class' => ListAgentsTool::class, 'description' => 'List agents in the organization', 'group' => 'Agents', 'local' => true],
-        'search_agents' => ['class' => SearchAgentsTool::class, 'description' => 'Search for agents matching work item requirements', 'group' => 'Agents', 'local' => true],
+        'search_agents' => ['class' => SearchAgentsTool::class, 'description' => 'Search for agents by capability', 'group' => 'Agents', 'local' => true],
 
         // Skills
         'list_skills' => ['class' => ListSkillsTool::class, 'description' => 'List skills in the organization', 'group' => 'Skills', 'local' => true],
@@ -141,29 +140,26 @@ class ToolRegistry
         'import_registry_skill' => ['class' => ImportRegistrySkillTool::class, 'description' => 'Import a skill from a public registry', 'group' => 'Skills', 'local' => true],
 
         // Plans
-        'create_plan' => ['class' => CreatePlanTool::class, 'description' => 'Create an execution plan for a work item', 'group' => 'Plans', 'local' => true],
+        'create_plan' => ['class' => CreatePlanTool::class, 'description' => 'Create an execution plan for a workspace', 'group' => 'Plans', 'local' => true],
         'get_plan' => ['class' => GetPlanTool::class, 'description' => 'Get a plan with its steps', 'group' => 'Plans', 'local' => true],
-        'list_plans' => ['class' => ListPlansTool::class, 'description' => 'List plans for work items', 'group' => 'Plans', 'local' => true],
+        'list_plans' => ['class' => ListPlansTool::class, 'description' => 'List plans for workspaces', 'group' => 'Plans', 'local' => true],
         'approve_plan' => ['class' => ApprovePlanTool::class, 'description' => 'Approve a pending plan for execution', 'group' => 'Plans', 'local' => true],
         'cancel_plan' => ['class' => CancelPlanTool::class, 'description' => 'Cancel a pending or running plan', 'group' => 'Plans', 'local' => true],
         'add_plan_step' => ['class' => AddPlanStepTool::class, 'description' => 'Add a step to an existing plan', 'group' => 'Plans', 'local' => true],
         'pause_plan' => ['class' => PausePlanTool::class, 'description' => 'Pause a running plan', 'group' => 'Plans', 'local' => true],
         'resume_plan' => ['class' => ResumePlanTool::class, 'description' => 'Resume a paused plan', 'group' => 'Plans', 'local' => true],
 
-        // Repos (organization-scoped, no GitHub API needed)
-        'list_repos' => ['class' => ListReposTool::class, 'description' => 'List repos in the current organization', 'group' => 'Repos', 'local' => true],
-        'get_repo' => ['class' => GetRepoTool::class, 'description' => 'Get a repo by ID', 'group' => 'Repos', 'local' => true],
-        'update_repo' => ['class' => UpdateRepoTool::class, 'description' => 'Update a repo name', 'group' => 'Repos', 'local' => true],
-        'delete_repo' => ['class' => DeleteRepoTool::class, 'description' => 'Delete a repo', 'group' => 'Repos', 'local' => true],
+        // Workspace References
+        'list_workspace_references' => ['class' => ListWorkspaceReferencesTool::class, 'description' => 'List references in a workspace', 'group' => 'Workspace References', 'local' => true],
+        'add_workspace_reference' => ['class' => AddWorkspaceReferenceTool::class, 'description' => 'Add a source reference to a workspace', 'group' => 'Workspace References', 'local' => true],
+        'remove_workspace_reference' => ['class' => RemoveWorkspaceReferenceTool::class, 'description' => 'Remove a reference from a workspace', 'group' => 'Workspace References', 'local' => true],
 
-        // Projects
-        'list_projects' => ['class' => ListProjectsTool::class, 'description' => 'List projects in the current organization', 'group' => 'Projects', 'local' => true],
-        'get_project' => ['class' => GetProjectTool::class, 'description' => 'Get a project by ID', 'group' => 'Projects', 'local' => true],
-        'create_project' => ['class' => CreateProjectTool::class, 'description' => 'Create a project', 'group' => 'Projects', 'local' => true],
-        'update_project' => ['class' => UpdateProjectTool::class, 'description' => 'Update a project', 'group' => 'Projects', 'local' => true],
-        'delete_project' => ['class' => DeleteProjectTool::class, 'description' => 'Delete a project', 'group' => 'Projects', 'local' => true],
-        'attach_repo_to_project' => ['class' => AttachRepoToProjectTool::class, 'description' => 'Attach a repo to a project', 'group' => 'Projects', 'local' => true],
-        'detach_repo_from_project' => ['class' => DetachRepoFromProjectTool::class, 'description' => 'Detach a repo from a project', 'group' => 'Projects', 'local' => true],
+        // Workspaces
+        'list_workspaces' => ['class' => ListWorkspacesTool::class, 'description' => 'List workspaces in the organization', 'group' => 'Workspaces', 'local' => true],
+        'get_workspace' => ['class' => GetWorkspaceTool::class, 'description' => 'Get a workspace by ID', 'group' => 'Workspaces', 'local' => true],
+        'create_workspace' => ['class' => CreateWorkspaceTool::class, 'description' => 'Create a workspace', 'group' => 'Workspaces', 'local' => true],
+        'update_workspace' => ['class' => UpdateWorkspaceTool::class, 'description' => 'Update a workspace', 'group' => 'Workspaces', 'local' => true],
+        'delete_workspace' => ['class' => DeleteWorkspaceTool::class, 'description' => 'Delete a workspace', 'group' => 'Workspaces', 'local' => true],
 
         // Worktree - Files
         'read_file' => ['class' => ReadFileTool::class, 'description' => 'Read file contents from the worktree', 'group' => 'Files', 'worktree' => true, 'category' => 'worktree'],
@@ -203,10 +199,13 @@ class ToolRegistry
 
         if ($hasGithubTools && $repoFullName) {
             $github = app(GitHubService::class);
-            $repo = Repo::where('source', 'github')
-                ->where('source_reference', $repoFullName)
+            $ref = WorkspaceReference::where('source', 'github')
+                ->where(function ($q) use ($repoFullName) {
+                    $q->where('source_reference', $repoFullName)
+                        ->orWhere('source_reference', 'LIKE', $repoFullName.'#%');
+                })
                 ->firstOrFail();
-            $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+            $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
         }
 
         $tools = [];

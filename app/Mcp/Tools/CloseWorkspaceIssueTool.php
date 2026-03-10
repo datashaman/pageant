@@ -2,21 +2,24 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Repo;
-use App\Models\WorkItem;
+use App\Models\GithubInstallation;
+use App\Models\WorkspaceReference;
+use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
-#[Description('Delete a work item that was created from a GitHub issue.')]
-#[IsDestructive]
+#[Description('Close a GitHub issue that is tracked as a workspace reference.')]
 #[IsOpenWorld]
-class DeleteWorkItemTool extends Tool
+class CloseWorkspaceIssueTool extends Tool
 {
+    public function __construct(
+        protected GitHubService $github,
+    ) {}
+
     public function handle(Request $request): Response
     {
         $validated = $request->validate([
@@ -24,18 +27,19 @@ class DeleteWorkItemTool extends Tool
             'issue_number' => 'required|integer|min:1',
         ]);
 
-        $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
-
         $sourceReference = $validated['repo'].'#'.$validated['issue_number'];
 
-        $workItem = WorkItem::where('organization_id', $repo->organization_id)
-            ->where('source', 'github')
+        $ref = WorkspaceReference::where('source', 'github')
             ->where('source_reference', $sourceReference)
             ->firstOrFail();
+        $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
 
-        $workItem->delete();
+        $issue = $this->github->updateIssue($installation, $validated['repo'], $validated['issue_number'], [
+            'state' => 'closed',
+            'state_reason' => 'completed',
+        ]);
 
-        return Response::text("Work item for {$sourceReference} deleted successfully.");
+        return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -48,7 +52,7 @@ class DeleteWorkItemTool extends Tool
                 ->description('The repository in owner/repo format.')
                 ->required(),
             'issue_number' => $schema->integer()
-                ->description('The GitHub issue number of the work item to delete.')
+                ->description('The GitHub issue number to close.')
                 ->required(),
         ];
     }

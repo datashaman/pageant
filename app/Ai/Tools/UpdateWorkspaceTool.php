@@ -2,13 +2,13 @@
 
 namespace App\Ai\Tools;
 
-use App\Models\Project;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
-class UpdateProjectTool implements Tool
+class UpdateWorkspaceTool implements Tool
 {
     public function __construct(
         protected User $user,
@@ -16,12 +16,12 @@ class UpdateProjectTool implements Tool
 
     public function description(): string
     {
-        return 'Update a project.';
+        return 'Update a workspace.';
     }
 
     public function handle(Request $request): string
     {
-        $project = Project::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization($this->user)
             ->findOrFail($request['id']);
 
@@ -30,21 +30,21 @@ class UpdateProjectTool implements Tool
             'description' => $request['description'] ?? null,
         ], fn ($value) => $value !== null);
 
-        $project->update($data);
+        $workspace->update($data);
 
-        return json_encode($project->fresh(), JSON_PRETTY_PRINT);
+        return json_encode($workspace->fresh(), JSON_PRETTY_PRINT);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
             'id' => $schema->string()
-                ->description('The project ID.')
+                ->description('The workspace ID.')
                 ->required(),
             'name' => $schema->string()
-                ->description('The new project name.'),
+                ->description('The new workspace name.'),
             'description' => $schema->string()
-                ->description('The new project description.'),
+                ->description('The new workspace description.'),
         ];
     }
 }

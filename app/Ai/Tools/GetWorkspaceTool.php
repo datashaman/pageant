@@ -2,13 +2,13 @@
 
 namespace App\Ai\Tools;
 
-use App\Models\Project;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
-class DeleteProjectTool implements Tool
+class GetWorkspaceTool implements Tool
 {
     public function __construct(
         protected User $user,
@@ -16,26 +16,24 @@ class DeleteProjectTool implements Tool
 
     public function description(): string
     {
-        return 'Delete a project.';
+        return 'Get a workspace by ID with its references.';
     }
 
     public function handle(Request $request): string
     {
-        $project = Project::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization($this->user)
+            ->with('references')
             ->findOrFail($request['id']);
 
-        $name = $project->name;
-        $project->delete();
-
-        return "Project '{$name}' deleted successfully.";
+        return json_encode($workspace, JSON_PRETTY_PRINT);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
             'id' => $schema->string()
-                ->description('The project ID.')
+                ->description('The workspace ID.')
                 ->required(),
         ];
     }

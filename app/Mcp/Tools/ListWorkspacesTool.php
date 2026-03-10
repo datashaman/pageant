@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Repo;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -11,18 +11,18 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('List repositories in the current organization.')]
+#[Description('List workspaces in the current organization.')]
 #[IsReadOnly]
 #[IsOpenWorld]
-class ListReposTool extends Tool
+class ListWorkspacesTool extends Tool
 {
     public function handle(Request $request): Response
     {
-        $repos = Repo::query()
+        $workspaces = Workspace::query()
             ->forCurrentOrganization()
-            ->get(['id', 'name', 'source', 'source_reference', 'source_url']);
+            ->get(['id', 'name', 'description']);
 
-        return Response::text(json_encode($repos, JSON_PRETTY_PRINT));
+        return Response::text(json_encode($workspaces, JSON_PRETTY_PRINT));
     }
 
     /**

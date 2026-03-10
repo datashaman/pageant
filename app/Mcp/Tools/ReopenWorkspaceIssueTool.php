@@ -2,8 +2,9 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Repo;
-use App\Models\WorkItem;
+use App\Models\GithubInstallation;
+use App\Models\WorkspaceReference;
+use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -11,10 +12,14 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
-#[Description('Close a work item that was created from a GitHub issue.')]
+#[Description('Reopen a GitHub issue that is tracked as a workspace reference.')]
 #[IsOpenWorld]
-class CloseWorkItemTool extends Tool
+class ReopenWorkspaceIssueTool extends Tool
 {
+    public function __construct(
+        protected GitHubService $github,
+    ) {}
+
     public function handle(Request $request): Response
     {
         $validated = $request->validate([
@@ -22,21 +27,19 @@ class CloseWorkItemTool extends Tool
             'issue_number' => 'required|integer|min:1',
         ]);
 
-        $repo = Repo::forCurrentOrganization()
-            ->where('source', 'github')
-            ->where('source_reference', $validated['repo'])
-            ->firstOrFail();
-
         $sourceReference = $validated['repo'].'#'.$validated['issue_number'];
 
-        $workItem = WorkItem::forCurrentOrganization()
-            ->where('source', 'github')
+        $ref = WorkspaceReference::where('source', 'github')
             ->where('source_reference', $sourceReference)
             ->firstOrFail();
+        $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
 
-        $workItem->update(['status' => 'closed']);
+        $issue = $this->github->updateIssue($installation, $validated['repo'], $validated['issue_number'], [
+            'state' => 'open',
+            'state_reason' => 'reopened',
+        ]);
 
-        return Response::text("Work item for {$sourceReference} closed successfully.");
+        return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -49,7 +52,7 @@ class CloseWorkItemTool extends Tool
                 ->description('The repository in owner/repo format.')
                 ->required(),
             'issue_number' => $schema->integer()
-                ->description('The GitHub issue number of the work item to close.')
+                ->description('The GitHub issue number to reopen.')
                 ->required(),
         ];
     }
