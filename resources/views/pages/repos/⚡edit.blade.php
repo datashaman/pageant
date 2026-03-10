@@ -150,11 +150,7 @@ new #[Title('Edit Repo')] class extends Component {
 
             <div>
                 <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repository') }}</flux:heading>
-                @if ($repo->source_url)
-                    <flux:link href="{{ $repo->source_url }}" target="_blank">{{ $repo->source_reference }}</flux:link>
-                @else
-                    <flux:text>{{ $repo->source_reference }}</flux:text>
-                @endif
+                <x-repo-label :repo="$repo" />
             </div>
 
             <div class="space-y-2">
@@ -192,14 +188,7 @@ new #[Title('Edit Repo')] class extends Component {
                 </flux:checkbox.group>
             @endif
 
-            <div class="flex items-center gap-4">
-                <flux:button variant="primary" type="submit">
-                    {{ __('Update') }}
-                </flux:button>
-                <flux:button href="{{ route('repos.show', $repo) }}" wire:navigate>
-                    {{ __('Cancel') }}
-                </flux:button>
-            </div>
+            <x-form-actions submitLabel="{{ __('Update') }}" :cancel-url="route('repos.show', $repo)" />
         </form>
     </div>
 </div>

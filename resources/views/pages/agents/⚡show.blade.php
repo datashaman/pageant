@@ -30,22 +30,11 @@ new #[Title('View Agent')] class extends Component {
 
 <div class="w-full" data-chat-context="{{ json_encode(['page' => 'agents.show', 'agent_id' => $agent->id, 'agent_name' => $agent->name, 'agent_description' => Str::limit($agent->description, 200)]) }}">
     <div class="space-y-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <flux:button href="{{ route('agents.index') }}" wire:navigate>
-                    {{ __('Back') }}
-                </flux:button>
-                <flux:heading size="xl">{{ $agent->name }}</flux:heading>
-            </div>
-            <div class="flex items-center gap-2">
-                <flux:button href="{{ route('agents.edit', $agent) }}" wire:navigate>
-                    {{ __('Edit') }}
-                </flux:button>
-                <flux:button variant="ghost" wire:click="confirmDelete">
-                    {{ __('Delete') }}
-                </flux:button>
-            </div>
-        </div>
+        <x-show-header
+            :back-url="route('agents.index')"
+            :title="$agent->name"
+            :edit-url="route('agents.edit', $agent)"
+        />
 
         <div class="max-w-xl space-y-6">
             <div>

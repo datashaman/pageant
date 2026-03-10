@@ -69,14 +69,16 @@ new #[Title('Projects')] class extends Component {
         </div>
 
         @if ($this->projects->isEmpty() && ! $this->search)
-            <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
-                <flux:icon.folder class="size-10 text-zinc-400 dark:text-zinc-500" />
-                <flux:heading size="lg" class="mt-4">{{ __('No projects yet') }}</flux:heading>
-                <flux:text class="mt-1 max-w-sm">{{ __('Projects group related work items, repos, and agents together so you can organize and track progress.') }}</flux:text>
-                <flux:button variant="primary" href="{{ route('projects.create') }}" wire:navigate class="mt-6">
-                    {{ __('Create Project') }}
-                </flux:button>
-            </div>
+            <x-empty-state :heading="__('No projects yet')" :description="__('Projects group related work items, repos, and agents together so you can organize and track progress.')">
+                <x-slot:icon>
+                    <flux:icon.folder class="size-10 text-zinc-400 dark:text-zinc-500" />
+                </x-slot:icon>
+                <x-slot:action>
+                    <flux:button variant="primary" href="{{ route('projects.create') }}" wire:navigate>
+                        {{ __('Create Project') }}
+                    </flux:button>
+                </x-slot:action>
+            </x-empty-state>
         @else
             <flux:input wire:model.live.debounce.300ms="search" placeholder="{{ __('Search projects...') }}" icon="magnifying-glass" />
 
@@ -105,25 +107,17 @@ new #[Title('Projects')] class extends Component {
                                     </flux:button>
 
                                     <flux:modal.trigger :name="'delete-project-' . $project->id">
-                                        <flux:button size="sm" variant="ghost">
+                                        <flux:button size="sm" variant="outline">
                                             {{ __('Delete') }}
                                         </flux:button>
                                     </flux:modal.trigger>
 
-                                    <flux:modal :name="'delete-project-' . $project->id">
-                                        <div class="space-y-6">
-                                            <flux:heading size="lg">{{ __('Delete Project') }}</flux:heading>
-                                            <p>{{ __('Are you sure you want to delete :name? This action cannot be undone.', ['name' => $project->name]) }}</p>
-                                            <div class="flex gap-2">
-                                                <flux:modal.close>
-                                                    <flux:button variant="ghost">{{ __('Cancel') }}</flux:button>
-                                                </flux:modal.close>
-                                                <flux:button wire:click="delete('{{ $project->id }}')" variant="danger">
-                                                    {{ __('Delete') }}
-                                                </flux:button>
-                                            </div>
-                                        </div>
-                                    </flux:modal>
+                                    <x-confirm-delete-modal
+                                        :id="'delete-project-' . $project->id"
+                                        :title="__('Delete Project')"
+                                        :item-name="$project->name"
+                                        :delete-id="$project->id"
+                                    />
                                 </div>
                             </flux:table.cell>
                         </flux:table.row>

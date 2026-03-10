@@ -30,25 +30,17 @@ new #[Title('View Skill')] class extends Component {
 
 <div class="w-full" data-chat-context="{{ json_encode(['page' => 'skills.show', 'skill_id' => $skill->id, 'skill_name' => $skill->name]) }}">
     <div class="space-y-6">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <flux:button href="{{ route('skills.index') }}" wire:navigate>
-                    {{ __('Back') }}
-                </flux:button>
-                <flux:heading size="xl">{{ $skill->name }}</flux:heading>
+        <x-show-header
+            :back-url="route('skills.index')"
+            :title="$skill->name"
+            :edit-url="route('skills.edit', $skill)"
+        >
+            <x-slot:titleExtras>
                 <flux:badge :variant="$skill->enabled ? 'primary' : 'outline'" size="sm">
                     {{ $skill->enabled ? __('Enabled') : __('Disabled') }}
                 </flux:badge>
-            </div>
-            <div class="flex items-center gap-2">
-                <flux:button href="{{ route('skills.edit', $skill) }}" wire:navigate>
-                    {{ __('Edit') }}
-                </flux:button>
-                <flux:button variant="ghost" wire:click="confirmDelete">
-                    {{ __('Delete') }}
-                </flux:button>
-            </div>
-        </div>
+            </x-slot:titleExtras>
+        </x-show-header>
 
         <div class="max-w-xl space-y-4">
             <div>
@@ -121,24 +113,14 @@ new #[Title('View Skill')] class extends Component {
                 </div>
             @endif
 
-            @if ($skill->source)
+            @if ($skill->source_reference || $skill->source_url)
                 <div>
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source') }}</flux:heading>
-                    <flux:text>{{ ucfirst($skill->source) }}</flux:text>
-                </div>
-            @endif
-
-            @if ($skill->source_reference)
-                <div>
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source Reference') }}</flux:heading>
-                    <flux:text>{{ $skill->source_reference }}</flux:text>
-                </div>
-            @endif
-
-            @if ($skill->source_url)
-                <div>
-                    <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Source URL') }}</flux:heading>
-                    <flux:link href="{{ $skill->source_url }}" target="_blank">{{ $skill->source_url }}</flux:link>
+                    <x-source-link
+                        :source="$skill->source"
+                        :source-reference="$skill->source_reference"
+                        :source-url="$skill->source_url"
+                    />
                 </div>
             @endif
         </div>

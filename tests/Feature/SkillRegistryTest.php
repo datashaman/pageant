@@ -178,6 +178,49 @@ describe('SkillRegistryService', function () {
             ->and($results[2]['name'])->toBe('mcp/zebra');
     });
 
+    it('lists popular skills from MCP registry without search', function () {
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => [
+                    [
+                        'server' => [
+                            'name' => 'io.modelcontextprotocol/filesystem',
+                            'description' => 'Filesystem tools',
+                            'repository' => ['url' => 'https://github.com/mcp/filesystem'],
+                            'version' => '1.0.0',
+                        ],
+                        '_meta' => [
+                            'io.modelcontextprotocol.registry/official' => [
+                                'isLatest' => true,
+                            ],
+                        ],
+                    ],
+                    [
+                        'server' => [
+                            'name' => 'io.modelcontextprotocol/database',
+                            'description' => 'Database tools',
+                            'repository' => ['url' => 'https://github.com/mcp/database'],
+                            'version' => '1.0.0',
+                        ],
+                        '_meta' => [
+                            'io.modelcontextprotocol.registry/official' => [
+                                'isLatest' => false,
+                            ],
+                        ],
+                    ],
+                ],
+                'metadata' => ['count' => 2, 'nextCursor' => null],
+            ]),
+        ]);
+
+        $service = new SkillRegistryService;
+        $results = $service->listPopular(24);
+
+        expect($results)->toHaveCount(1)
+            ->and($results->first()['name'])->toBe('io.modelcontextprotocol/filesystem')
+            ->and($results->first()['registry'])->toBe('mcp-registry');
+    });
+
     it('sorts results case-insensitively', function () {
         Http::fake([
             'https://registry.modelcontextprotocol.io/*' => Http::response([
@@ -221,11 +264,58 @@ describe('SkillRegistryService', function () {
 });
 
 describe('Skills Registry UI', function () {
-    it('shows the registry browse page', function () {
+    function fakePopularRegistry(): void
+    {
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => [
+                    [
+                        'server' => [
+                            'name' => 'io.modelcontextprotocol/example',
+                            'description' => 'Example server',
+                            'repository' => ['url' => 'https://github.com/example'],
+                            'version' => '1.0.0',
+                        ],
+                        '_meta' => [
+                            'io.modelcontextprotocol.registry/official' => [
+                                'isLatest' => true,
+                            ],
+                        ],
+                    ],
+                ],
+                'metadata' => ['count' => 1, 'nextCursor' => null],
+            ]),
+        ]);
+    }
+
+    it('shows the registry browse page with popular skills', function () {
+        Http::fake([
+            'https://registry.modelcontextprotocol.io/*' => Http::response([
+                'servers' => [
+                    [
+                        'server' => [
+                            'name' => 'io.modelcontextprotocol/filesystem',
+                            'description' => 'Filesystem MCP server',
+                            'repository' => ['url' => 'https://github.com/mcp/filesystem'],
+                            'version' => '1.0.0',
+                        ],
+                        '_meta' => [
+                            'io.modelcontextprotocol.registry/official' => [
+                                'isLatest' => true,
+                            ],
+                        ],
+                    ],
+                ],
+                'metadata' => ['count' => 1, 'nextCursor' => null],
+            ]),
+        ]);
+
         $this->actingAs($this->user)
             ->get(route('skills.registry'))
             ->assertOk()
-            ->assertSee('Browse Skill Registry');
+            ->assertSee('Browse Skill Registry')
+            ->assertSee('Popular skills')
+            ->assertSee('io.modelcontextprotocol/filesystem');
     });
 
     it('shows browse registry button on skills index', function () {
@@ -354,6 +444,8 @@ describe('Skills Registry UI', function () {
     });
 
     it('validates search term is required', function () {
+        fakePopularRegistry();
+
         Livewire\Livewire::actingAs($this->user)
             ->test('pages::skills.registry')
             ->set('search', '')

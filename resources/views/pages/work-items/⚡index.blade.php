@@ -244,14 +244,16 @@ new #[Title('Work Items')] class extends Component {
         </div>
 
         @if ($this->workItems->isEmpty() && ! $this->search && $this->statusFilter === 'open')
-            <div class="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-600">
-                <flux:icon.clipboard-document-list class="size-10 text-zinc-400 dark:text-zinc-500" />
-                <flux:heading size="lg" class="mt-4">{{ __('No work items yet') }}</flux:heading>
-                <flux:text class="mt-1 max-w-sm">{{ __('Work items track GitHub issues and tasks that agents can pick up and work on. Import issues from your tracked repos to get started.') }}</flux:text>
-                <flux:button variant="primary" wire:click="openImportModal" class="mt-6">
-                    {{ __('Import Issues') }}
-                </flux:button>
-            </div>
+            <x-empty-state :heading="__('No work items yet')" :description="__('Work items track GitHub issues and tasks that agents can pick up and work on. Import issues from your tracked repos to get started.')">
+                <x-slot:icon>
+                    <flux:icon.clipboard-document-list class="size-10 text-zinc-400 dark:text-zinc-500" />
+                </x-slot:icon>
+                <x-slot:action>
+                    <flux:button variant="primary" wire:click="openImportModal">
+                        {{ __('Import Issues') }}
+                    </flux:button>
+                </x-slot:action>
+            </x-empty-state>
         @else
             <div class="flex items-center gap-4">
                 <div class="flex-1">
@@ -295,12 +297,14 @@ new #[Title('Work Items')] class extends Component {
                                 </flux:link>
                             </flux:table.cell>
                             <flux:table.cell>
-                                @if ($workItem->source_url)
-                                    <flux:link href="{{ $workItem->source_url }}" target="_blank">
-                                        {{ $workItem->source_reference }}
-                                    </flux:link>
+                                @if ($workItem->source_reference || $workItem->source_url)
+                                    <x-source-link
+                                        :source="$workItem->source"
+                                        :source-reference="$workItem->source_reference"
+                                        :source-url="$workItem->source_url"
+                                    />
                                 @else
-                                    {{ $workItem->source_reference }}
+                                    &mdash;
                                 @endif
                             </flux:table.cell>
                             <flux:table.cell>
@@ -324,7 +328,7 @@ new #[Title('Work Items')] class extends Component {
                                         {{ __('Edit') }}
                                     </flux:button>
                                     @if ($workItem->isOpen())
-                                        <flux:button size="sm" variant="ghost" wire:click="confirmClose('{{ $workItem->id }}')" wire:target="confirmClose('{{ $workItem->id }}')">
+                                        <flux:button size="sm" variant="outline" wire:click="confirmClose('{{ $workItem->id }}')" wire:target="confirmClose('{{ $workItem->id }}')">
                                             {{ __('Close') }}
                                         </flux:button>
                                     @else

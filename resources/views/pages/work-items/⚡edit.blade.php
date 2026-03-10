@@ -63,10 +63,14 @@ new #[Title('Edit Work Item')] class extends Component {
         </div>
 
         <form wire:submit="save" class="max-w-xl space-y-6">
-            @if ($workItem->source_reference)
+            @if ($workItem->source_reference || $workItem->source_url)
                 <div>
                     <flux:label>{{ __('Source') }}</flux:label>
-                    <flux:text>{{ $workItem->source }} &mdash; {{ $workItem->source_reference }}</flux:text>
+                    <x-source-link
+                        :source="$workItem->source"
+                        :source-reference="$workItem->source_reference"
+                        :source-url="$workItem->source_url"
+                    />
                 </div>
             @endif
 
@@ -81,14 +85,7 @@ new #[Title('Edit Work Item')] class extends Component {
                 @endforeach
             </flux:select>
 
-            <div class="flex items-center gap-4">
-                <flux:button variant="primary" type="submit">
-                    {{ __('Update') }}
-                </flux:button>
-                <flux:button href="{{ route('work-items.show', $workItem) }}" wire:navigate>
-                    {{ __('Cancel') }}
-                </flux:button>
-            </div>
+            <x-form-actions submitLabel="{{ __('Update') }}" :cancel-url="route('work-items.show', $workItem)" />
         </form>
     </div>
 </div>
