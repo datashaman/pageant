@@ -45,48 +45,48 @@ new #[Title('Dashboard')] class extends Component {
 }; ?>
 
 <div class="w-full" data-chat-context="{{ json_encode(['page' => 'dashboard']) }}">
-    <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
+    <div class="flex h-full w-full flex-1 flex-col gap-6">
         <flux:heading size="xl">{{ __('Dashboard') }}</flux:heading>
 
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="{{ route('projects.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <a href="{{ route('projects.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
                 <div class="flex items-center gap-3">
                     <flux:icon name="rectangle-stack" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Projects') }}</flux:heading>
                 </div>
-                <flux:heading size="xl" class="mt-3">{{ $this->projectCount }}</flux:heading>
+                <flux:heading size="lg" class="mt-2">{{ $this->projectCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('repos.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+            <a href="{{ route('repos.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
                 <div class="flex items-center gap-3">
                     <flux:icon name="folder-git-2" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Repos') }}</flux:heading>
                 </div>
-                <flux:heading size="xl" class="mt-3">{{ $this->repoCount }}</flux:heading>
+                <flux:heading size="lg" class="mt-2">{{ $this->repoCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('work-items.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+            <a href="{{ route('work-items.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
                 <div class="flex items-center gap-3">
                     <flux:icon name="clipboard-document-list" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Work Items') }}</flux:heading>
                 </div>
-                <flux:heading size="xl" class="mt-3">{{ $this->workItemCount }}</flux:heading>
+                <flux:heading size="lg" class="mt-2">{{ $this->workItemCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('agents.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+            <a href="{{ route('agents.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
                 <div class="flex items-center gap-3">
                     <flux:icon name="cpu-chip" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Agents') }}</flux:heading>
                 </div>
-                <flux:heading size="xl" class="mt-3">{{ $this->agentCount }}</flux:heading>
+                <flux:heading size="lg" class="mt-2">{{ $this->agentCount }}</flux:heading>
             </a>
 
-            <a href="{{ route('skills.index') }}" wire:navigate class="group rounded-xl border border-neutral-200 p-6 transition hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm dark:border-neutral-700 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/50">
+            <a href="{{ route('skills.index') }}" wire:navigate class="group rounded-lg border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:hover:border-zinc-600 dark:hover:bg-zinc-700/80">
                 <div class="flex items-center gap-3">
                     <flux:icon name="bolt" variant="outline" class="size-5 text-zinc-400 transition group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300" />
                     <flux:heading size="sm" class="text-zinc-500 dark:text-zinc-400">{{ __('Skills') }}</flux:heading>
                 </div>
-                <flux:heading size="xl" class="mt-3">{{ $this->skillCount }}</flux:heading>
+                <flux:heading size="lg" class="mt-2">{{ $this->skillCount }}</flux:heading>
             </a>
         </div>
     </div>

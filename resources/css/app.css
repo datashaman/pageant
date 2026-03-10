@@ -9,23 +9,30 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --color-zinc-50: #fafafa;
-    --color-zinc-100: #f5f5f5;
-    --color-zinc-200: #e5e5e5;
-    --color-zinc-300: #d4d4d4;
-    --color-zinc-400: #a3a3a3;
-    --color-zinc-500: #737373;
-    --color-zinc-600: #525252;
-    --color-zinc-700: #404040;
-    --color-zinc-800: #262626;
-    --color-zinc-900: #171717;
-    --color-zinc-950: #0a0a0a;
+    --color-zinc-100: #f4f4f5;
+    --color-zinc-200: #e4e4e7;
+    --color-zinc-300: #d4d4d8;
+    --color-zinc-400: #a1a1aa;
+    --color-zinc-500: #71717a;
+    --color-zinc-600: #52525b;
+    --color-zinc-700: #3f3f46;
+    --color-zinc-800: #27272a;
+    --color-zinc-900: #18181b;
+    --color-zinc-950: #09090b;
 
-    --color-accent: var(--color-neutral-800);
-    --color-accent-content: var(--color-neutral-800);
-    --color-accent-foreground: var(--color-white);
+    /* Slate for surfaces - GitHub-inspired */
+    --color-slate-50: #f8fafc;
+    --color-slate-100: #f1f5f9;
+    --color-slate-200: #e2e8f0;
+    --color-slate-800: #1e293b;
+    --color-slate-900: #0f172a;
+
+    --color-accent: var(--color-zinc-800);
+    --color-accent-content: var(--color-white);
+    --color-accent-foreground: var(--color-zinc-800);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -44,7 +51,7 @@
     .dark {
         --color-accent: var(--color-white);
         --color-accent-content: var(--color-white);
-        --color-accent-foreground: var(--color-neutral-800);
+        --color-accent-foreground: var(--color-zinc-900);
     }
 }
 
@@ -154,4 +161,55 @@ select:focus[data-flux-control] {
 
 .chat-markdown blockquote {
     @apply my-1 border-l-2 border-current/20 pl-3 italic first:mt-0 last:mb-0;
+}
+
+/* Colorblind-friendly overrides: avoid red/green as sole differentiators.
+   Success → blue, danger → amber for deuteranopia/protanopia. */
+[data-colorblind="deuteranopia"] .bg-green-500,
+[data-colorblind="deuteranopia"] .bg-green-600,
+[data-colorblind="deuteranopia"] .bg-emerald-500,
+[data-colorblind="deuteranopia"] .bg-emerald-600,
+[data-colorblind="protanopia"] .bg-green-500,
+[data-colorblind="protanopia"] .bg-green-600,
+[data-colorblind="protanopia"] .bg-emerald-500,
+[data-colorblind="protanopia"] .bg-emerald-600 {
+    background-color: rgb(37 99 235);
+}
+
+[data-colorblind="deuteranopia"] .text-green-500,
+[data-colorblind="deuteranopia"] .text-green-600,
+[data-colorblind="deuteranopia"] .text-green-400,
+[data-colorblind="protanopia"] .text-green-500,
+[data-colorblind="protanopia"] .text-green-600,
+[data-colorblind="protanopia"] .text-green-400 {
+    color: rgb(37 99 235);
+}
+
+/* Danger states: red → amber for clearer distinction from success (blue) */
+[data-colorblind="deuteranopia"] .bg-red-50,
+[data-colorblind="deuteranopia"] .dark .bg-red-950\/30,
+[data-colorblind="protanopia"] .bg-red-50,
+[data-colorblind="protanopia"] .dark .bg-red-950\/30 {
+    background-color: rgb(254 243 199);
+}
+
+.dark [data-colorblind="deuteranopia"] .bg-red-950\/30,
+.dark [data-colorblind="protanopia"] .bg-red-950\/30 {
+    background-color: rgb(120 53 15 / 0.3);
+}
+
+[data-colorblind="deuteranopia"] .bg-red-500,
+[data-colorblind="deuteranopia"] .bg-red-600,
+[data-colorblind="protanopia"] .bg-red-500,
+[data-colorblind="protanopia"] .bg-red-600 {
+    background-color: rgb(245 158 11);
+}
+
+[data-colorblind="deuteranopia"] .text-red-500,
+[data-colorblind="deuteranopia"] .text-red-600,
+[data-colorblind="deuteranopia"] .text-red-400,
+[data-colorblind="protanopia"] .text-red-500,
+[data-colorblind="protanopia"] .text-red-600,
+[data-colorblind="protanopia"] .text-red-400 {
+    color: rgb(245 158 11);
 }

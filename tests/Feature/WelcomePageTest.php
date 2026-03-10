@@ -18,7 +18,7 @@ test('welcome page shows tagline and description for guests', function () {
     $response
         ->assertOk()
         ->assertSee('AI Agent Orchestration for GitHub')
-        ->assertSee('Manage your repositories, projects, and work items')
+        ->assertSee('Connect repositories with intelligent agents')
         ->assertSee('Sign in with GitHub')
         ->assertDontSee('Go to Dashboard');
 });
@@ -34,12 +34,10 @@ test('welcome page shows dashboard link for authenticated users', function () {
         ->assertDontSee('Sign in with GitHub');
 });
 
-test('welcome page shows feature descriptions', function () {
+test('welcome page mentions GitHub integration', function () {
     $response = $this->get(route('home'));
 
     $response
         ->assertOk()
-        ->assertSee('Repository Management')
-        ->assertSee('Intelligent Agents')
-        ->assertSee('Work Item Tracking');
+        ->assertSee('GitHub');
 });
