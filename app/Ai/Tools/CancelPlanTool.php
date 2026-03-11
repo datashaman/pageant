@@ -4,7 +4,6 @@ namespace App\Ai\Tools;
 
 use App\Models\Plan;
 use App\Models\User;
-use App\Services\WorkItemOrchestrator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -31,7 +30,11 @@ class CancelPlanTool implements Tool
             ]);
         }
 
-        app(WorkItemOrchestrator::class)->cancel($plan);
+        $plan->update(['status' => 'cancelled']);
+
+        $plan->steps()
+            ->whereIn('status', ['pending', 'running'])
+            ->update(['status' => 'cancelled']);
 
         return json_encode([
             'message' => 'Plan cancelled.',

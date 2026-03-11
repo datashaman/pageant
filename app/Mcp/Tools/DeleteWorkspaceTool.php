@@ -2,19 +2,19 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Repo;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
-use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Get a repository by ID.')]
-#[IsReadOnly]
+#[Description('Delete a workspace.')]
+#[IsDestructive]
 #[IsOpenWorld]
-class GetRepoTool extends Tool
+class DeleteWorkspaceTool extends Tool
 {
     public function handle(Request $request): Response
     {
@@ -22,11 +22,14 @@ class GetRepoTool extends Tool
             'id' => 'required|string',
         ]);
 
-        $repo = Repo::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization()
             ->findOrFail($validated['id']);
 
-        return Response::text(json_encode($repo, JSON_PRETTY_PRINT));
+        $name = $workspace->name;
+        $workspace->delete();
+
+        return Response::text("Workspace '{$name}' deleted successfully.");
     }
 
     /**
@@ -36,7 +39,7 @@ class GetRepoTool extends Tool
     {
         return [
             'id' => $schema->string()
-                ->description('The repository ID.')
+                ->description('The workspace ID.')
                 ->required(),
         ];
     }

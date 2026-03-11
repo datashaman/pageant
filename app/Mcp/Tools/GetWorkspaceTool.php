@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Project;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -11,10 +11,10 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Get a project by ID with its repos.')]
+#[Description('Get a workspace by ID with its references.')]
 #[IsReadOnly]
 #[IsOpenWorld]
-class GetProjectTool extends Tool
+class GetWorkspaceTool extends Tool
 {
     public function handle(Request $request): Response
     {
@@ -22,11 +22,11 @@ class GetProjectTool extends Tool
             'id' => 'required|string',
         ]);
 
-        $project = Project::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization()
             ->findOrFail($validated['id']);
 
-        return Response::text(json_encode($project->load('repos'), JSON_PRETTY_PRINT));
+        return Response::text(json_encode($workspace->load('references'), JSON_PRETTY_PRINT));
     }
 
     /**
@@ -36,7 +36,7 @@ class GetProjectTool extends Tool
     {
         return [
             'id' => $schema->string()
-                ->description('The project ID.')
+                ->description('The workspace ID.')
                 ->required(),
         ];
     }

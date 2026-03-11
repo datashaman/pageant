@@ -5,7 +5,7 @@ namespace App\Ai\Tools;
 use App\Models\Agent;
 use App\Models\Plan;
 use App\Models\User;
-use App\Models\WorkItem;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -18,17 +18,17 @@ class CreatePlanTool implements Tool
 
     public function description(): string
     {
-        return 'Create an execution plan for a work item, defining which agents run in what order.';
+        return 'Create an execution plan for a workspace, defining which agents run in what order.';
     }
 
     public function handle(Request $request): string
     {
-        $workItem = WorkItem::forCurrentOrganization($this->user)
-            ->findOrFail($request['work_item_id']);
+        $workspace = Workspace::forCurrentOrganization($this->user)
+            ->findOrFail($request['workspace_id']);
 
         $plan = Plan::create([
-            'organization_id' => $workItem->organization_id,
-            'work_item_id' => $workItem->id,
+            'organization_id' => $workspace->organization_id,
+            'workspace_id' => $workspace->id,
             'status' => 'pending',
             'summary' => $request['summary'],
             'created_by' => $this->user->id,
@@ -59,11 +59,11 @@ class CreatePlanTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'work_item_id' => $schema->string()
-                ->description('The UUID of the work item this plan is for.')
+            'workspace_id' => $schema->string()
+                ->description('The UUID of the workspace this plan is for.')
                 ->required(),
             'summary' => $schema->string()
-                ->description('A summary of the overall approach for resolving this work item.')
+                ->description('A summary of the overall approach for this plan.')
                 ->required(),
             'steps' => $schema->array()
                 ->items($schema->object([

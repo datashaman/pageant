@@ -37,7 +37,7 @@ it('resolves instructions from the agent model description', function () {
 
     expect($webhookAgent->instructions())->toContain('You are a helpful code review bot.')
         ->and($webhookAgent->instructions())->toContain('acme/widgets');
-})->skip('Requires Repo model - deferred to follow-up PR');
+});
 
 it('resolves tools from the agent model tools config', function () {
     $agent = Agent::factory()->create([
@@ -52,7 +52,7 @@ it('resolves tools from the agent model tools config', function () {
         ->and($tools[0])->toBeInstanceOf(CreateCommentTool::class)
         ->and($tools[1])->toBeInstanceOf(GetIssueTool::class)
         ->and($tools[2])->toBeInstanceOf(GetPullRequestTool::class);
-})->skip('Requires Repo model - deferred to follow-up PR');
+});
 
 it('returns empty tools when agent has no tools configured', function () {
     $agent = Agent::factory()->create([

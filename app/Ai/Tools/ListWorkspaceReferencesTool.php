@@ -2,13 +2,13 @@
 
 namespace App\Ai\Tools;
 
-use App\Models\Repo;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
-class UpdateRepoTool implements Tool
+class ListWorkspaceReferencesTool implements Tool
 {
     public function __construct(
         protected User $user,
@@ -16,28 +16,26 @@ class UpdateRepoTool implements Tool
 
     public function description(): string
     {
-        return 'Update a repository name.';
+        return 'List references in a workspace.';
     }
 
     public function handle(Request $request): string
     {
-        $repo = Repo::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization($this->user)
-            ->findOrFail($request['id']);
+            ->findOrFail($request['workspace_id']);
 
-        $repo->update(['name' => $request['name']]);
+        $references = $workspace->references()
+            ->get(['id', 'workspace_id', 'source', 'source_reference', 'source_url']);
 
-        return json_encode($repo->fresh(), JSON_PRETTY_PRINT);
+        return json_encode($references, JSON_PRETTY_PRINT);
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'id' => $schema->string()
-                ->description('The repository ID.')
-                ->required(),
-            'name' => $schema->string()
-                ->description('The new name for the repository.')
+            'workspace_id' => $schema->string()
+                ->description('The workspace ID.')
                 ->required(),
         ];
     }

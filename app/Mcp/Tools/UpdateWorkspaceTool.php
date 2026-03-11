@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Project;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -11,10 +11,10 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
-#[Description('Update a project.')]
+#[Description('Update a workspace.')]
 #[IsIdempotent]
 #[IsOpenWorld]
-class UpdateProjectTool extends Tool
+class UpdateWorkspaceTool extends Tool
 {
     public function handle(Request $request): Response
     {
@@ -24,7 +24,7 @@ class UpdateProjectTool extends Tool
             'description' => 'nullable|string',
         ]);
 
-        $project = Project::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization()
             ->findOrFail($validated['id']);
 
@@ -33,9 +33,9 @@ class UpdateProjectTool extends Tool
             'description' => $validated['description'] ?? null,
         ], fn ($value) => $value !== null);
 
-        $project->update($data);
+        $workspace->update($data);
 
-        return Response::text(json_encode($project->fresh(), JSON_PRETTY_PRINT));
+        return Response::text(json_encode($workspace->fresh(), JSON_PRETTY_PRINT));
     }
 
     /**
@@ -45,12 +45,12 @@ class UpdateProjectTool extends Tool
     {
         return [
             'id' => $schema->string()
-                ->description('The project ID.')
+                ->description('The workspace ID.')
                 ->required(),
             'name' => $schema->string()
-                ->description('The new project name.'),
+                ->description('The new workspace name.'),
             'description' => $schema->string()
-                ->description('The new project description.'),
+                ->description('The new workspace description.'),
         ];
     }
 }

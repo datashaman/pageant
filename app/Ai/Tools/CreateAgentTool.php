@@ -5,8 +5,8 @@ namespace App\Ai\Tools;
 use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
-use App\Models\Repo;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -51,23 +51,18 @@ class CreateAgentTool implements Tool
 
         $agent = Agent::create($data);
 
-        $repoNames = $request['repo_names'] ?? [];
+        $workspaceIds = $request['workspace_ids'] ?? [];
 
-        if (! empty($request['repo'])) {
-            array_unshift($repoNames, $request['repo']);
-        }
-
-        if (! empty($repoNames)) {
-            $repoIds = Repo::where('source', 'github')
-                ->whereIn('source_reference', array_unique($repoNames))
-                ->where('organization_id', $organizationId)
+        if (! empty($workspaceIds)) {
+            $validIds = Workspace::where('organization_id', $organizationId)
+                ->whereIn('id', $workspaceIds)
                 ->pluck('id')
                 ->all();
 
-            $agent->repos()->sync($repoIds);
+            $agent->workspaces()->sync($validIds);
         }
 
-        return json_encode($agent->load('repos')->toArray(), JSON_PRETTY_PRINT);
+        return json_encode($agent->load('workspaces')->toArray(), JSON_PRETTY_PRINT);
     }
 
     public function schema(JsonSchema $schema): array
@@ -78,8 +73,9 @@ class CreateAgentTool implements Tool
                 ->required(),
             'description' => $schema->string()
                 ->description('A description of what the agent does, used as its system instructions.'),
-            'repo' => $schema->string()
-                ->description('A repository in owner/repo format to attach the agent to. Optional — the agent will be created in the user\'s current organization regardless.'),
+            'workspace_ids' => $schema->array()
+                ->items($schema->string())
+                ->description('Workspace IDs to attach the agent to.'),
             'tools' => $schema->array()
                 ->description('Tool names the agent can use. Available: '.implode(', ', array_keys(ToolRegistry::available()))),
             'events' => $schema->array()
@@ -98,9 +94,6 @@ class CreateAgentTool implements Tool
                 ->description('Isolation mode. Set to "worktree" to give the agent an isolated copy of the repository.'),
             'enabled' => $schema->boolean()
                 ->description('Whether the agent is enabled. Defaults to true.'),
-            'repo_names' => $schema->array()
-                ->items($schema->string())
-                ->description('Repository full names (owner/repo) to attach the agent to.'),
         ];
     }
 }

@@ -5,7 +5,8 @@ namespace App\Mcp\Tools;
 use App\Ai\EventRegistry;
 use App\Ai\ToolRegistry;
 use App\Models\Agent;
-use App\Models\Repo;
+use App\Models\Workspace;
+use App\Models\WorkspaceReference;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -33,15 +34,21 @@ class CreateAgentTool extends Tool
             'background' => 'nullable|boolean',
             'isolation' => 'nullable|string|in:worktree',
             'enabled' => 'nullable|boolean',
-            'repo_names' => 'nullable|array',
-            'repo_names.*' => 'string',
+            'workspace_ids' => 'nullable|array',
+            'workspace_ids.*' => 'string',
         ]);
 
         $organizationId = null;
 
         if (! empty($validated['repo'])) {
-            $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->first();
-            $organizationId = $repo?->organization_id;
+            $ref = WorkspaceReference::where('source', 'github')
+                ->whereHas('workspace', fn ($q) => $q->forCurrentOrganization())
+                ->where(function ($q) use ($validated) {
+                    $q->where('source_reference', $validated['repo'])
+                        ->orWhere('source_reference', 'LIKE', $validated['repo'].'#%');
+                })
+                ->first();
+            $organizationId = $ref?->workspace?->organization_id;
         }
 
         if (! $organizationId) {
@@ -87,23 +94,19 @@ class CreateAgentTool extends Tool
 
         $agent = Agent::create($data);
 
-        $repoNames = $validated['repo_names'] ?? [];
+        $workspaceIds = $validated['workspace_ids'] ?? [];
 
-        if (! empty($validated['repo'])) {
-            array_unshift($repoNames, $validated['repo']);
-        }
-
-        if (! empty($repoNames)) {
-            $repoIds = Repo::where('source', 'github')
-                ->whereIn('source_reference', array_unique($repoNames))
+        if (! empty($workspaceIds)) {
+            $validIds = Workspace::query()
                 ->where('organization_id', $organizationId)
+                ->whereIn('id', $workspaceIds)
                 ->pluck('id')
                 ->toArray();
 
-            $agent->repos()->sync($repoIds);
+            $agent->workspaces()->sync($validIds);
         }
 
-        return Response::text(json_encode($agent->load('repos')->toArray(), JSON_PRETTY_PRINT));
+        return Response::text(json_encode($agent->load('workspaces')->toArray(), JSON_PRETTY_PRINT));
     }
 
     /**
@@ -113,7 +116,7 @@ class CreateAgentTool extends Tool
     {
         return [
             'repo' => $schema->string()
-                ->description('A repository in owner/repo format to attach the agent to. Optional — the agent will be created in the user\'s current organization if not provided.'),
+                ->description('A repository in owner/repo format to determine the organization. Optional — the agent will be created in the user\'s current organization if not provided.'),
             'name' => $schema->string()
                 ->description('The name of the agent.')
                 ->required(),
@@ -137,8 +140,8 @@ class CreateAgentTool extends Tool
                 ->description('Isolation mode. Set to "worktree" to give the agent an isolated copy of the repository.'),
             'enabled' => $schema->boolean()
                 ->description('Whether the agent is enabled. Defaults to true.'),
-            'repo_names' => $schema->array()
-                ->description('Additional repository full names (owner/repo) to attach the agent to.'),
+            'workspace_ids' => $schema->array()
+                ->description('Workspace IDs to attach the agent to.'),
         ];
     }
 }

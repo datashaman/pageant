@@ -3,7 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Models\GithubInstallation;
-use App\Models\Repo;
+use App\Models\WorkspaceReference;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -29,8 +29,14 @@ class ListPullRequestsTool extends Tool
             'state' => 'nullable|string|in:open,closed,all',
         ]);
 
-        $repo = Repo::where('source', 'github')->where('source_reference', $validated['repo'])->firstOrFail();
-        $installation = GithubInstallation::where('organization_id', $repo->organization_id)->firstOrFail();
+        $ref = WorkspaceReference::where('source', 'github')
+            ->whereHas('workspace', fn ($q) => $q->forCurrentOrganization())
+            ->where(function ($q) use ($validated) {
+                $q->where('source_reference', $validated['repo'])
+                    ->orWhere('source_reference', 'LIKE', $validated['repo'].'#%');
+            })
+            ->firstOrFail();
+        $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
 
         $prs = $this->github->listPullRequests($installation, $validated['repo'], $validated['state'] ?? 'open');
 

@@ -2,7 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Project;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -10,9 +10,9 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 
-#[Description('Create a new project.')]
+#[Description('Create a new workspace.')]
 #[IsOpenWorld]
-class CreateProjectTool extends Tool
+class CreateWorkspaceTool extends Tool
 {
     public function handle(Request $request): Response
     {
@@ -21,13 +21,13 @@ class CreateProjectTool extends Tool
             'description' => 'nullable|string',
         ]);
 
-        $project = Project::create([
+        $workspace = Workspace::create([
             'organization_id' => auth()->user()->currentOrganizationId(),
             'name' => $validated['name'],
             'description' => $validated['description'] ?? '',
         ]);
 
-        return Response::text(json_encode($project, JSON_PRETTY_PRINT));
+        return Response::text(json_encode($workspace, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -37,10 +37,10 @@ class CreateProjectTool extends Tool
     {
         return [
             'name' => $schema->string()
-                ->description('The project name.')
+                ->description('The workspace name.')
                 ->required(),
             'description' => $schema->string()
-                ->description('An optional project description.'),
+                ->description('An optional workspace description.'),
         ];
     }
 }

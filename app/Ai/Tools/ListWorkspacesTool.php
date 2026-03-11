@@ -2,13 +2,13 @@
 
 namespace App\Ai\Tools;
 
-use App\Models\Repo;
 use App\Models\User;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
-class DeleteRepoTool implements Tool
+class ListWorkspacesTool implements Tool
 {
     public function __construct(
         protected User $user,
@@ -16,27 +16,20 @@ class DeleteRepoTool implements Tool
 
     public function description(): string
     {
-        return 'Delete a repository.';
+        return 'List workspaces in the current organization.';
     }
 
     public function handle(Request $request): string
     {
-        $repo = Repo::query()
+        $workspaces = Workspace::query()
             ->forCurrentOrganization($this->user)
-            ->findOrFail($request['id']);
+            ->get(['id', 'name', 'description']);
 
-        $name = $repo->name;
-        $repo->delete();
-
-        return "Repository '{$name}' deleted successfully.";
+        return json_encode($workspaces, JSON_PRETTY_PRINT);
     }
 
     public function schema(JsonSchema $schema): array
     {
-        return [
-            'id' => $schema->string()
-                ->description('The repository ID.')
-                ->required(),
-        ];
+        return [];
     }
 }

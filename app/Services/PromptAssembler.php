@@ -15,10 +15,6 @@ class PromptAssembler
      */
     public const RETRY_CAP = 3;
 
-    public function __construct(
-        protected RepoInstructionsService $repoInstructionsService,
-    ) {}
-
     /**
      * Assemble a complete system prompt from layered context sections.
      *
@@ -76,7 +72,7 @@ class PromptAssembler
     }
 
     /**
-     * Layer 2: Repository-level instructions (CLAUDE.md, etc.).
+     * Layer 2: Repository-level instructions.
      */
     protected function buildRepoInstructions(?string $repoFullName): ?string
     {
@@ -84,18 +80,7 @@ class PromptAssembler
             return null;
         }
 
-        try {
-            $instructions = $this->repoInstructionsService->loadForRepo($repoFullName);
-
-            return $instructions !== '' ? $instructions : null;
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Repo instructions load failed', [
-                'repo' => $repoFullName,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
+        return "## Repository Context\n\nOperating on: {$repoFullName}";
     }
 
     /**

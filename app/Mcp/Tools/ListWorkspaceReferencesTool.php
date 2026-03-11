@@ -2,34 +2,34 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\Repo;
+use App\Models\Workspace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
-#[Description('Delete a repository.')]
-#[IsDestructive]
+#[Description('List references in a workspace.')]
+#[IsReadOnly]
 #[IsOpenWorld]
-class DeleteRepoTool extends Tool
+class ListWorkspaceReferencesTool extends Tool
 {
     public function handle(Request $request): Response
     {
         $validated = $request->validate([
-            'id' => 'required|string',
+            'workspace_id' => 'required|string',
         ]);
 
-        $repo = Repo::query()
+        $workspace = Workspace::query()
             ->forCurrentOrganization()
-            ->findOrFail($validated['id']);
+            ->findOrFail($validated['workspace_id']);
 
-        $name = $repo->name;
-        $repo->delete();
+        $references = $workspace->references()
+            ->get(['id', 'source', 'source_reference', 'source_url']);
 
-        return Response::text("Repository '{$name}' deleted successfully.");
+        return Response::text(json_encode($references, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -38,8 +38,8 @@ class DeleteRepoTool extends Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'id' => $schema->string()
-                ->description('The repository ID.')
+            'workspace_id' => $schema->string()
+                ->description('The workspace ID.')
                 ->required(),
         ];
     }

@@ -25,7 +25,7 @@ class ListAgentsTool extends Tool
         $query = Agent::query()
             ->forCurrentOrganization()
             ->where('enabled', true)
-            ->with('skills', 'repos');
+            ->with('skills', 'workspaces');
 
         if (! empty($validated['search'])) {
             $search = $validated['search'];
