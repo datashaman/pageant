@@ -22,7 +22,7 @@ class GetPlanTool implements Tool
     public function handle(Request $request): string
     {
         $plan = Plan::forCurrentOrganization($this->user)
-            ->with('steps.agent', 'workItem')
+            ->with('steps.agent', 'workspace')
             ->findOrFail($request['plan_id']);
 
         return json_encode($plan->toArray(), JSON_PRETTY_PRINT);

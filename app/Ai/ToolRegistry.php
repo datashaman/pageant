@@ -209,7 +209,7 @@ class ToolRegistry
                 $query->whereHas('workspace', fn ($q) => $q->where('organization_id', $user->currentOrganizationId()));
             }
 
-            $ref = $query->firstOrFail();
+            $ref = $query->with('workspace')->firstOrFail();
             $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
         }
 

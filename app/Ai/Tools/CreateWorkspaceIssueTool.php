@@ -24,7 +24,7 @@ class CreateWorkspaceIssueTool implements Tool
 
     public function handle(Request $request): string
     {
-        $workspace = Workspace::findOrFail($request['workspace_id']);
+        $workspace = Workspace::query()->forCurrentOrganization()->findOrFail($request['workspace_id']);
 
         $repoFullName = $this->repoFullName;
 

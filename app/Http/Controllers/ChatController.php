@@ -223,11 +223,6 @@ class ChatController extends Controller
             $candidate = Str::before($context['source_reference'], '#');
         }
 
-        // Legacy repo page context: repo_source_reference
-        if (! $candidate && ! empty($context['repo_source_reference']) && ($context['repo_source'] ?? '') === 'github') {
-            $candidate = Str::before($context['repo_source_reference'], '#');
-        }
-
         if (! $candidate) {
             return null;
         }
@@ -250,7 +245,6 @@ class ChatController extends Controller
     private const CONTEXT_DISPLAY_KEYS = [
         'workspace_id', 'workspace_name',
         'source', 'source_reference',
-        'repo_id', 'repo_name', 'repo_source', 'repo_source_reference',
         'agent_id', 'agent_name', 'agent_description',
         'skill_id', 'skill_name',
     ];

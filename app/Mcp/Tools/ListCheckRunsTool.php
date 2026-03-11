@@ -2,8 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Models\GithubInstallation;
-use App\Models\WorkspaceReference;
+use App\Concerns\ResolvesGithubInstallation;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -18,6 +17,8 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsOpenWorld]
 class ListCheckRunsTool extends Tool
 {
+    use ResolvesGithubInstallation;
+
     public function __construct(
         protected GitHubService $github,
     ) {}
@@ -29,14 +30,7 @@ class ListCheckRunsTool extends Tool
             'ref' => 'required|string',
         ]);
 
-        $ref = WorkspaceReference::where('source', 'github')
-            ->whereHas('workspace', fn ($q) => $q->forCurrentOrganization())
-            ->where(function ($q) use ($validated) {
-                $q->where('source_reference', $validated['repo'])
-                    ->orWhere('source_reference', 'LIKE', $validated['repo'].'#%');
-            })
-            ->firstOrFail();
-        $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
+        [, $installation] = $this->resolveInstallation($validated['repo']);
 
         $checkRuns = $this->github->listCheckRuns($installation, $validated['repo'], $validated['ref']);
 
