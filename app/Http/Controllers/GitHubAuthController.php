@@ -140,10 +140,6 @@ class GitHubAuthController extends Controller
 
         if ($orgIds) {
             $user->organizations()->syncWithoutDetaching($orgIds);
-
-            if (! $user->current_organization_id) {
-                $user->update(['current_organization_id' => $orgIds[0]]);
-            }
         }
     }
 }

@@ -153,58 +153,6 @@ it('creates organizations from github callback using app installations', functio
     expect(GithubInstallation::query()->count())->toBe(2);
     expect(GithubInstallation::query()->where('installation_id', 1001)->exists())->toBeTrue();
     expect(GithubInstallation::query()->where('installation_id', 1002)->exists())->toBeTrue();
-
-    expect($user->current_organization_id)->not->toBeNull();
-    expect($user->currentOrganizationId())->not->toBeNull();
-});
-
-it('sets current_organization_id on first login when user has no current organization', function () {
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('listAppInstallations')->once()->andReturn([
-            ['id' => 3001, 'account' => ['login' => 'my-org', 'type' => 'Organization'], 'permissions' => [], 'events' => []],
-        ]);
-    });
-
-    $socialiteUser = createSocialiteUser();
-
-    Socialite::shouldReceive('driver')
-        ->with('github')
-        ->andReturn(mockSocialiteDriver($socialiteUser));
-
-    $this->get(route('auth.github.callback'));
-
-    $user = User::query()->where('github_id', 123456)->first();
-    $org = Organization::query()->where('slug', 'my-org')->first();
-
-    expect($user->current_organization_id)->toBe($org->id);
-    expect($user->currentOrganizationId())->toBe($org->id);
-});
-
-it('preserves existing current_organization_id on subsequent login', function () {
-    $existingOrg = Organization::factory()->create();
-    $existingUser = User::factory()->create([
-        'github_id' => 123456,
-        'current_organization_id' => $existingOrg->id,
-    ]);
-    $existingUser->organizations()->attach($existingOrg);
-
-    $this->mock(GitHubService::class, function (MockInterface $mock) {
-        $mock->shouldReceive('listAppInstallations')->once()->andReturn([
-            ['id' => 4001, 'account' => ['login' => 'new-org', 'type' => 'Organization'], 'permissions' => [], 'events' => []],
-        ]);
-    });
-
-    $socialiteUser = createSocialiteUser();
-
-    Socialite::shouldReceive('driver')
-        ->with('github')
-        ->andReturn(mockSocialiteDriver($socialiteUser));
-
-    $this->get(route('auth.github.callback'));
-
-    $existingUser->refresh();
-
-    expect($existingUser->current_organization_id)->toBe($existingOrg->id);
 });
 
 it('attaches user to existing organization by slug', function () {
