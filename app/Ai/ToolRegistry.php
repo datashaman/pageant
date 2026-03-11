@@ -172,12 +172,12 @@ class ToolRegistry
         // Worktree - Commands
         'bash' => ['class' => BashTool::class, 'description' => 'Execute a shell command in the worktree', 'group' => 'Commands', 'worktree' => true, 'category' => 'worktree'],
 
-        // Worktree - Git
-        'git_status' => ['class' => GitStatusTool::class, 'description' => 'Show working tree status', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_diff' => ['class' => GitDiffTool::class, 'description' => 'Show changes in the worktree', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_commit' => ['class' => GitCommitTool::class, 'description' => 'Stage and commit changes', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_push' => ['class' => GitPushTool::class, 'description' => 'Push commits to remote', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
-        'git_log' => ['class' => GitLogTool::class, 'description' => 'View commit history', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree'],
+        // Worktree - Git (these accept user for attribution)
+        'git_status' => ['class' => GitStatusTool::class, 'description' => 'Show working tree status', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree', 'accepts_user' => true],
+        'git_diff' => ['class' => GitDiffTool::class, 'description' => 'Show changes in the worktree', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree', 'accepts_user' => true],
+        'git_commit' => ['class' => GitCommitTool::class, 'description' => 'Stage and commit changes', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree', 'accepts_user' => true],
+        'git_push' => ['class' => GitPushTool::class, 'description' => 'Push commits to remote', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree', 'accepts_user' => true],
+        'git_log' => ['class' => GitLogTool::class, 'description' => 'View commit history', 'group' => 'Git', 'worktree' => true, 'category' => 'worktree', 'accepts_user' => true],
     ];
 
     /**
@@ -224,7 +224,9 @@ class ToolRegistry
 
             if (! empty($entry['worktree'])) {
                 if ($driver) {
-                    $tools[] = new ($entry['class'])($driver, $user);
+                    $tools[] = ! empty($entry['accepts_user'])
+                        ? new ($entry['class'])($driver, $user)
+                        : new ($entry['class'])($driver);
                 }
             } elseif (! empty($entry['local'])) {
                 if ($user) {

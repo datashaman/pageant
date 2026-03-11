@@ -93,7 +93,7 @@ class User extends Authenticatable implements OAuthenticatable
      */
     public function hasGithubToken(): bool
     {
-        return $this->github_token !== null;
+        return filled($this->github_token);
     }
 
     /**

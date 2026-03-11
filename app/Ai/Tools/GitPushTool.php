@@ -46,7 +46,7 @@ class GitPushTool implements Tool
         }
 
         if ($this->user?->hasGithubToken()) {
-            $this->configureGitCredentials();
+            $command = $this->withUserCredentials($command);
         }
 
         $result = $this->driver->exec($command);
@@ -65,25 +65,15 @@ class GitPushTool implements Tool
     }
 
     /**
-     * Configure git to use the user's GitHub token for HTTPS push authentication.
+     * Wrap a git command with user credentials via http.extraHeader, avoiding persistent storage.
      */
-    protected function configureGitCredentials(): void
+    protected function withUserCredentials(string $command): string
     {
         $token = $this->user->github_token;
-        $username = $this->user->github_username ?? 'x-access-token';
+        $encoded = base64_encode("x-access-token:{$token}");
+        $header = escapeshellarg("Authorization: basic {$encoded}");
 
-        $remoteResult = $this->driver->exec('git remote get-url origin');
-
-        if (! $remoteResult->isSuccessful()) {
-            return;
-        }
-
-        $remoteUrl = trim($remoteResult->stdout);
-
-        if (preg_match('#^https?://github\.com/(.+?)(?:\.git)?$#', $remoteUrl, $matches)) {
-            $authenticatedUrl = "https://{$username}:{$token}@github.com/{$matches[1]}.git";
-            $this->driver->exec('git remote set-url origin '.escapeshellarg($authenticatedUrl));
-        }
+        return str_replace('git push', "git -c http.extraHeader={$header} push", $command);
     }
 
     public function schema(JsonSchema $schema): array
