@@ -16,16 +16,16 @@ class ListPlansTool implements Tool
 
     public function description(): string
     {
-        return 'List plans, optionally filtered by work item or status.';
+        return 'List plans, optionally filtered by workspace or status.';
     }
 
     public function handle(Request $request): string
     {
         $query = Plan::forCurrentOrganization($this->user)
-            ->with('steps.agent', 'workItem');
+            ->with('steps.agent', 'workspace');
 
-        if (! empty($request['work_item_id'])) {
-            $query->where('work_item_id', $request['work_item_id']);
+        if (! empty($request['workspace_id'])) {
+            $query->where('workspace_id', $request['workspace_id']);
         }
 
         if (! empty($request['status'])) {
@@ -40,8 +40,8 @@ class ListPlansTool implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'work_item_id' => $schema->string()
-                ->description('Filter by work item UUID.'),
+            'workspace_id' => $schema->string()
+                ->description('Filter by workspace.'),
             'status' => $schema->string()
                 ->description('Filter by status: pending, approved, running, completed, failed, cancelled.'),
         ];

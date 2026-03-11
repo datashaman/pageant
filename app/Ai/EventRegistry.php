@@ -52,24 +52,6 @@ class EventRegistry
             'filters' => ['labels', 'base_branch'],
         ],
 
-        // Work Items
-        'work_item_created' => [
-            'label' => 'Work Items',
-            'description' => 'Created',
-            'group' => 'Work Items',
-            'category' => 'pageant',
-            'actions' => [],
-            'filters' => [],
-        ],
-        'work_item_deleted' => [
-            'label' => 'Work Items',
-            'description' => 'Deleted',
-            'group' => 'Work Items',
-            'category' => 'pageant',
-            'actions' => [],
-            'filters' => [],
-        ],
-
         // Plans
         'plan_step_completed' => [
             'label' => 'Plans',

@@ -22,6 +22,9 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
 
     protected ?string $executionContext = null;
 
+    /** @var array<int, string>|null */
+    protected ?array $cachedToolNames = null;
+
     public function __construct(
         protected Agent $agentModel,
         protected string $repoFullName,
@@ -65,6 +68,10 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
      */
     protected function resolveActiveToolNames(): array
     {
+        if ($this->cachedToolNames !== null) {
+            return $this->cachedToolNames;
+        }
+
         $this->agentModel->loadMissing('skills');
 
         $agentTools = $this->agentModel->tools ?? [];
@@ -78,7 +85,7 @@ class GitHubWebhookAgent implements AgentContract, Conversational, HasTools
             ->values()
             ->all();
 
-        return array_unique(array_merge($agentTools, $skillTools));
+        return $this->cachedToolNames = array_unique(array_merge($agentTools, $skillTools));
     }
 
     public function messages(): iterable

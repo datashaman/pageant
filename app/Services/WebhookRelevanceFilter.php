@@ -23,6 +23,8 @@ class WebhookRelevanceFilter
             return is_string($event) ? $event : ($event['event'] ?? 'unknown');
         })->implode(', ');
 
+        $agent->loadMissing('workspaces.references');
+
         $subscribedRepos = $agent->workspaces->flatMap(fn ($ws) => $ws->references->pluck('source_reference'))->implode(', ');
 
         $prompt = implode("\n", [

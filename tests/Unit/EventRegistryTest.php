@@ -23,10 +23,10 @@ describe('EventRegistry', function () {
         $categories = EventRegistry::groupedByCategory();
         $pageantGroups = $categories['pageant'];
 
-        expect($pageantGroups)->toHaveKeys(['Work Items', 'Plans']);
+        expect($pageantGroups)->toHaveKeys(['Plans']);
 
         $allEventNames = collect($pageantGroups)->flatMap(fn ($group) => array_keys($group))->all();
-        expect($allEventNames)->toContain('work_item_created', 'work_item_deleted', 'plan_completed', 'plan_failed');
+        expect($allEventNames)->toContain('plan_completed', 'plan_failed');
     });
 
     it('includes actions and filters in category details', function () {
