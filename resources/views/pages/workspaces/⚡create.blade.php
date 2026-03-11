@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\Agent;
+use App\Models\GithubInstallation;
 use App\Models\Skill;
 use App\Models\Workspace;
 use App\Models\WorkspaceReference;
+use App\Services\GitHubService;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -20,6 +22,34 @@ new #[Title('Create Workspace')] class extends Component {
     public function mount(): void
     {
         $this->references = [['source' => 'github', 'source_reference' => '', 'source_url' => '']];
+    }
+
+    #[Computed]
+    public function repositories(): Collection
+    {
+        $orgId = auth()->user()->currentOrganizationId();
+        if (! $orgId) {
+            return collect();
+        }
+
+        $installation = GithubInstallation::query()
+            ->where('organization_id', $orgId)
+            ->first();
+
+        if (! $installation) {
+            return collect();
+        }
+
+        try {
+            $repos = app(GitHubService::class)->listRepositories($installation);
+
+            return collect($repos)->map(fn (array $repo) => [
+                'full_name' => $repo['full_name'],
+                'html_url' => $repo['html_url'],
+            ])->sortBy('full_name')->values();
+        } catch (\Throwable) {
+            return collect();
+        }
     }
 
     #[Computed]
@@ -54,9 +84,7 @@ new #[Title('Create Workspace')] class extends Component {
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'references' => ['array'],
-            'references.*.source' => ['required', 'string', 'max:255'],
             'references.*.source_reference' => ['required', 'string', 'max:255'],
-            'references.*.source_url' => ['nullable', 'string', 'url', 'max:255'],
             'selectedAgents' => ['array'],
             'selectedAgents.*' => ['uuid', Rule::exists('agents', 'id')->where('organization_id', $organizationId)],
             'selectedSkills' => ['array'],
@@ -72,9 +100,9 @@ new #[Title('Create Workspace')] class extends Component {
         foreach ($this->references as $ref) {
             if (! empty($ref['source_reference'])) {
                 $workspace->references()->create([
-                    'source' => $ref['source'],
+                    'source' => 'github',
                     'source_reference' => $ref['source_reference'],
-                    'source_url' => $ref['source_url'] ?: null,
+                    'source_url' => "https://github.com/{$ref['source_reference']}",
                 ]);
             }
         }
@@ -110,13 +138,16 @@ new #[Title('Create Workspace')] class extends Component {
                 @foreach ($references as $index => $ref)
                     <div class="flex items-end gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700" wire:key="ref-{{ $index }}">
                         <div class="flex-1 space-y-3">
-                            <flux:select wire:model="references.{{ $index }}.source" :label="__('Source')">
-                                <option value="github">{{ __('GitHub') }}</option>
-                                <option value="gitlab">{{ __('GitLab') }}</option>
-                                <option value="bitbucket">{{ __('Bitbucket') }}</option>
-                            </flux:select>
-                            <flux:input wire:model="references.{{ $index }}.source_reference" :label="__('Reference')" :description="__('e.g. owner/repo or owner/repo#42')" type="text" />
-                            <flux:input wire:model="references.{{ $index }}.source_url" :label="__('URL')" type="text" />
+                            @if ($this->repositories->isNotEmpty())
+                                <flux:select wire:model="references.{{ $index }}.source_reference" :label="__('Repository')">
+                                    <option value="">{{ __('Select a repository...') }}</option>
+                                    @foreach ($this->repositories as $repo)
+                                        <option value="{{ $repo['full_name'] }}">{{ $repo['full_name'] }}</option>
+                                    @endforeach
+                                </flux:select>
+                            @else
+                                <flux:input wire:model="references.{{ $index }}.source_reference" :label="__('Reference')" :description="__('e.g. owner/repo')" type="text" />
+                            @endif
                         </div>
                         @if (count($references) > 1)
                             <flux:button size="sm" variant="danger" type="button" wire:click="removeReference({{ $index }})">
