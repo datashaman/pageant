@@ -30,6 +30,7 @@ class ListCommentsTool extends Tool
         ]);
 
         $ref = WorkspaceReference::where('source', 'github')
+            ->whereHas('workspace', fn ($q) => $q->forCurrentOrganization())
             ->where(function ($q) use ($validated) {
                 $q->where('source_reference', $validated['repo'])
                     ->orWhere('source_reference', 'LIKE', $validated['repo'].'#%');

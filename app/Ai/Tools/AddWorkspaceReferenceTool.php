@@ -25,11 +25,13 @@ class AddWorkspaceReferenceTool implements Tool
             ->forCurrentOrganization($this->user)
             ->findOrFail($request['workspace_id']);
 
-        $reference = $workspace->references()->create([
-            'source' => $request['source'] ?? 'github',
-            'source_reference' => $request['source_reference'],
-            'source_url' => $request['source_url'] ?? '',
-        ]);
+        $reference = $workspace->references()->firstOrCreate(
+            ['source_reference' => $request['source_reference']],
+            [
+                'source' => $request['source'] ?? 'github',
+                'source_url' => $request['source_url'] ?? '',
+            ],
+        );
 
         return json_encode($reference, JSON_PRETTY_PRINT);
     }

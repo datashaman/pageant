@@ -56,11 +56,13 @@ class CreateWorkspaceIssueTool implements Tool
 
         $issue = $this->github->createIssue($installation, $repoFullName, $data);
 
-        $reference = $workspace->references()->create([
-            'source' => 'github',
-            'source_reference' => $repoFullName.'#'.$issue['number'],
-            'source_url' => $issue['html_url'] ?? '',
-        ]);
+        $reference = $workspace->references()->updateOrCreate(
+            ['source_reference' => $repoFullName.'#'.$issue['number']],
+            [
+                'source' => 'github',
+                'source_url' => $issue['html_url'] ?? '',
+            ],
+        );
 
         return json_encode([
             'issue' => $issue,

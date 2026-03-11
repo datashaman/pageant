@@ -29,6 +29,7 @@ use App\Mcp\Tools\UpdateIssueTool;
 use App\Mcp\Tools\UpdatePullRequestTool;
 use App\Models\GithubInstallation;
 use App\Models\Organization;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceReference;
 use App\Services\GitHubService;
@@ -36,6 +37,9 @@ use Mockery\MockInterface;
 
 beforeEach(function () {
     $this->organization = Organization::factory()->create();
+    $this->user = User::factory()->create(['current_organization_id' => $this->organization->id]);
+    $this->user->organizations()->attach($this->organization);
+    $this->actingAs($this->user);
     $this->installation = GithubInstallation::factory()->create([
         'organization_id' => $this->organization->id,
     ]);

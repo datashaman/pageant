@@ -29,7 +29,10 @@ class UpdateIssueTool implements Tool
 
         if (! $installation) {
             $reference = WorkspaceReference::where('source', 'github')
-                ->where('source_reference', $repoFullName)
+                ->where(function ($q) use ($repoFullName) {
+                    $q->where('source_reference', $repoFullName)
+                        ->orWhere('source_reference', 'LIKE', $repoFullName.'#%');
+                })
                 ->firstOrFail();
 
             $installation = GithubInstallation::where('organization_id', $reference->workspace->organization_id)->firstOrFail();

@@ -34,7 +34,9 @@ class SearchAgentsTool extends Tool
             ->with('skills', 'workspaces');
 
         if (! empty($validated['reference_id'])) {
-            $reference = WorkspaceReference::findOrFail($validated['reference_id']);
+            $reference = WorkspaceReference::query()
+                ->whereHas('workspace', fn ($q) => $q->forCurrentOrganization())
+                ->findOrFail($validated['reference_id']);
 
             $stopWords = ['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'has', 'her', 'was', 'one', 'our', 'out', 'his', 'had', 'its', 'how', 'may', 'who', 'did', 'get', 'let', 'say', 'she', 'too', 'use', 'that', 'this', 'with', 'have', 'from', 'they', 'been', 'said', 'each', 'will', 'other', 'about', 'many', 'then', 'them', 'these', 'some', 'would', 'make', 'like', 'into', 'than', 'just', 'over', 'also', 'back', 'after', 'could', 'when', 'what', 'your', 'which', 'their', 'there', 'should', 'does', 'need', 'must', 'been', 'being', 'were', 'more', 'very'];
 

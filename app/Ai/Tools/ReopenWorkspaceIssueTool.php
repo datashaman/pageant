@@ -35,6 +35,15 @@ class ReopenWorkspaceIssueTool implements Tool
         $repoFullName = $matches[1];
         $issueNumber = (int) $matches[2];
 
+        $hasReference = $workspace->references()
+            ->where('source', 'github')
+            ->where('source_reference', $issueReference)
+            ->exists();
+
+        if (! $hasReference) {
+            return json_encode(['error' => "Issue {$issueReference} is not referenced in this workspace."]);
+        }
+
         $installation = $this->installation
             ?? GithubInstallation::where('organization_id', $workspace->organization_id)->firstOrFail();
 

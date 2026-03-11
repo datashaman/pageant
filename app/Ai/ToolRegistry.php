@@ -199,12 +199,17 @@ class ToolRegistry
 
         if ($hasGithubTools && $repoFullName) {
             $github = app(GitHubService::class);
-            $ref = WorkspaceReference::where('source', 'github')
+            $query = WorkspaceReference::where('source', 'github')
                 ->where(function ($q) use ($repoFullName) {
                     $q->where('source_reference', $repoFullName)
                         ->orWhere('source_reference', 'LIKE', $repoFullName.'#%');
-                })
-                ->firstOrFail();
+                });
+
+            if ($user) {
+                $query->whereHas('workspace', fn ($q) => $q->where('organization_id', $user->currentOrganizationId()));
+            }
+
+            $ref = $query->firstOrFail();
             $installation = GithubInstallation::where('organization_id', $ref->workspace->organization_id)->firstOrFail();
         }
 
