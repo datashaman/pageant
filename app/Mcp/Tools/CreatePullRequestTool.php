@@ -46,7 +46,7 @@ class CreatePullRequestTool extends Tool
             }
         }
 
-        $pr = $this->github->createPullRequest($installation, $validated['repo'], $data);
+        $pr = $this->github->createPullRequest($installation, $validated['repo'], $data, auth()->user());
 
         return Response::text(json_encode($pr, JSON_PRETTY_PRINT));
     }

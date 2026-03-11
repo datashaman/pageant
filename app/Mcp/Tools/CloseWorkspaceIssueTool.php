@@ -37,7 +37,7 @@ class CloseWorkspaceIssueTool extends Tool
         $issue = $this->github->updateIssue($installation, $validated['repo'], $validated['issue_number'], [
             'state' => 'closed',
             'state_reason' => 'completed',
-        ]);
+        ], auth()->user());
 
         return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
     }

@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
+use App\Models\User;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -14,6 +15,7 @@ class CreateBranchTool implements Tool
         protected GitHubService $github,
         protected GithubInstallation $installation,
         protected string $repoFullName,
+        protected ?User $user = null,
     ) {}
 
     public function description(): string
@@ -28,6 +30,7 @@ class CreateBranchTool implements Tool
             $this->repoFullName,
             $request['branch'],
             $request['sha'],
+            $this->user,
         );
 
         return json_encode($ref, JSON_PRETTY_PRINT);

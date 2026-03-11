@@ -38,6 +38,7 @@ class MergePullRequestTool extends Tool
             $validated['pull_number'],
             $validated['commit_title'] ?? null,
             $validated['merge_method'] ?? null,
+            auth()->user(),
         );
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));

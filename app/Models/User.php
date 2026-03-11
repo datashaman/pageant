@@ -29,6 +29,9 @@ class User extends Authenticatable implements OAuthenticatable
         'password',
         'github_id',
         'avatar_url',
+        'github_token',
+        'github_refresh_token',
+        'github_username',
         'current_organization_id',
     ];
 
@@ -42,6 +45,8 @@ class User extends Authenticatable implements OAuthenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
+        'github_token',
+        'github_refresh_token',
     ];
 
     /**
@@ -54,6 +59,8 @@ class User extends Authenticatable implements OAuthenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'github_token' => 'encrypted',
+            'github_refresh_token' => 'encrypted',
         ];
     }
 
@@ -79,6 +86,14 @@ class User extends Authenticatable implements OAuthenticatable
     public function organizations(): BelongsToMany
     {
         return $this->belongsToMany(Organization::class);
+    }
+
+    /**
+     * Check if the user has a GitHub token for API operations.
+     */
+    public function hasGithubToken(): bool
+    {
+        return $this->github_token !== null;
     }
 
     /**

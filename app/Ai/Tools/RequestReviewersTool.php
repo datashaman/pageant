@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
+use App\Models\User;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -14,6 +15,7 @@ class RequestReviewersTool implements Tool
         protected GitHubService $github,
         protected GithubInstallation $installation,
         protected string $repoFullName,
+        protected ?User $user = null,
     ) {}
 
     public function description(): string
@@ -29,6 +31,7 @@ class RequestReviewersTool implements Tool
             (int) $request['pull_number'],
             $request['reviewers'] ?? [],
             $request['team_reviewers'] ?? [],
+            $this->user,
         );
 
         return json_encode($result, JSON_PRETTY_PRINT);

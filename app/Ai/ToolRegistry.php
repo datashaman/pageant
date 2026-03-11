@@ -224,7 +224,7 @@ class ToolRegistry
 
             if (! empty($entry['worktree'])) {
                 if ($driver) {
-                    $tools[] = new ($entry['class'])($driver);
+                    $tools[] = new ($entry['class'])($driver, $user);
                 }
             } elseif (! empty($entry['local'])) {
                 if ($user) {
@@ -235,9 +235,10 @@ class ToolRegistry
                     $github ?? app(GitHubService::class),
                     $installation,
                     $repoFullName,
+                    $user,
                 );
             } elseif ($github && $installation && $repoFullName) {
-                $tools[] = new ($entry['class'])($github, $installation, $repoFullName);
+                $tools[] = new ($entry['class'])($github, $installation, $repoFullName, $user);
             }
         }
 

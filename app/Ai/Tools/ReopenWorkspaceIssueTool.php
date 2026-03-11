@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,6 +16,7 @@ class ReopenWorkspaceIssueTool implements Tool
         protected GitHubService $github,
         protected ?GithubInstallation $installation = null,
         protected ?string $repoFullName = null,
+        protected ?User $user = null,
     ) {}
 
     public function description(): string
@@ -49,7 +51,7 @@ class ReopenWorkspaceIssueTool implements Tool
 
         $issue = $this->github->updateIssue($installation, $repoFullName, $issueNumber, [
             'state' => 'open',
-        ]);
+        ], $this->user);
 
         return json_encode([
             'message' => "Issue {$issueReference} reopened successfully.",

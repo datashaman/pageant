@@ -3,13 +3,17 @@
 namespace App\Ai\Tools;
 
 use App\Contracts\ExecutionDriver;
+use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
 class GitCommitTool implements Tool
 {
-    public function __construct(protected ExecutionDriver $driver) {}
+    public function __construct(
+        protected ExecutionDriver $driver,
+        protected ?User $user = null,
+    ) {}
 
     public function description(): string
     {
@@ -35,7 +39,14 @@ class GitCommitTool implements Tool
         }
 
         $message = escapeshellarg($request['message']);
-        $commitResult = $this->driver->exec("git commit -m {$message}");
+
+        $authorArgs = '';
+        if ($this->user) {
+            $author = escapeshellarg("{$this->user->name} <{$this->user->email}>");
+            $authorArgs = " --author={$author}";
+        }
+
+        $commitResult = $this->driver->exec("git commit -m {$message}{$authorArgs}");
 
         if (! $commitResult->isSuccessful()) {
             return json_encode([

@@ -46,6 +46,19 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the model has a GitHub account with OAuth token.
+     */
+    public function withGithubToken(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'github_id' => fake()->unique()->randomNumber(8),
+            'github_username' => fake()->unique()->userName(),
+            'github_token' => Str::random(40),
+            'github_refresh_token' => Str::random(40),
+        ]);
+    }
+
+    /**
      * Indicate that the model has two-factor authentication configured.
      */
     public function withTwoFactor(): static
