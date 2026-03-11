@@ -129,7 +129,7 @@ describe('workspace edit with repo picker', function () {
             'organization_id' => $this->organization->id,
         ]);
 
-        $existingRef = WorkspaceReference::factory()->create([
+        WorkspaceReference::factory()->create([
             'workspace_id' => $workspace->id,
             'source' => 'github',
             'source_reference' => 'acme/old-repo',
