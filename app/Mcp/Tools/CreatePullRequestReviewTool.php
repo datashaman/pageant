@@ -46,6 +46,7 @@ class CreatePullRequestReviewTool extends Tool
             $validated['event'],
             $validated['body'] ?? null,
             $validated['comments'] ?? [],
+            auth()->user(),
         );
 
         return Response::text(json_encode($review, JSON_PRETTY_PRINT));

@@ -3,13 +3,17 @@
 namespace App\Ai\Tools;
 
 use App\Contracts\ExecutionDriver;
+use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
 class GitPushTool implements Tool
 {
-    public function __construct(protected ExecutionDriver $driver) {}
+    public function __construct(
+        protected ExecutionDriver $driver,
+        protected ?User $user = null,
+    ) {}
 
     public function description(): string
     {
@@ -41,6 +45,10 @@ class GitPushTool implements Tool
             $command .= ' -u origin '.escapeshellarg($branch);
         }
 
+        if ($this->user?->hasGithubToken()) {
+            $command = $this->withUserCredentials($command);
+        }
+
         $result = $this->driver->exec($command);
 
         if (! $result->isSuccessful()) {
@@ -54,6 +62,18 @@ class GitPushTool implements Tool
             'branch' => $branch,
             'output' => trim($result->stdout)."\n".trim($result->stderr),
         ], JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Wrap a git command with user credentials via http.extraHeader, avoiding persistent storage.
+     */
+    protected function withUserCredentials(string $command): string
+    {
+        $token = $this->user->github_token;
+        $encoded = base64_encode("x-access-token:{$token}");
+        $header = escapeshellarg("Authorization: basic {$encoded}");
+
+        return str_replace('git push', "git -c http.extraHeader={$header} push", $command);
     }
 
     public function schema(JsonSchema $schema): array

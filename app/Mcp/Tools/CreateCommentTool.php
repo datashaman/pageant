@@ -36,6 +36,7 @@ class CreateCommentTool extends Tool
             $validated['repo'],
             $validated['issue_number'],
             $validated['body'],
+            auth()->user(),
         );
 
         return Response::text(json_encode($comment, JSON_PRETTY_PRINT));

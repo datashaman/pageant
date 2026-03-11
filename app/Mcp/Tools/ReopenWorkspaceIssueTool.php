@@ -37,7 +37,7 @@ class ReopenWorkspaceIssueTool extends Tool
         $issue = $this->github->updateIssue($installation, $validated['repo'], $validated['issue_number'], [
             'state' => 'open',
             'state_reason' => 'reopened',
-        ]);
+        ], auth()->user());
 
         return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
     }

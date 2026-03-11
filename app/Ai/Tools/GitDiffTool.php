@@ -3,13 +3,17 @@
 namespace App\Ai\Tools;
 
 use App\Contracts\ExecutionDriver;
+use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
 class GitDiffTool implements Tool
 {
-    public function __construct(protected ExecutionDriver $driver) {}
+    public function __construct(
+        protected ExecutionDriver $driver,
+        protected ?User $user = null,
+    ) {}
 
     public function description(): string
     {

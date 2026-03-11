@@ -3,13 +3,41 @@
 namespace App\Services;
 
 use App\Models\GithubInstallation;
+use App\Models\User;
 use Firebase\JWT\JWT;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class GitHubService
 {
     private const API_BASE = 'https://api.github.com';
+
+    /**
+     * Resolve the appropriate token for an API call.
+     *
+     * Prefers the user's OAuth token for user-attributed operations,
+     * falling back to the installation token.
+     */
+    public function resolveToken(GithubInstallation $installation, ?User $user = null): string
+    {
+        if ($user?->hasGithubToken()) {
+            return $user->github_token;
+        }
+
+        return $this->getInstallationToken($installation->installation_id);
+    }
+
+    /**
+     * Create a configured HTTP client for GitHub API requests.
+     */
+    protected function githubRequest(string $token, string $accept = 'application/vnd.github+json'): PendingRequest
+    {
+        return Http::withHeaders([
+            'Authorization' => "Bearer {$token}",
+            'Accept' => $accept,
+        ]);
+    }
 
     public function generateJwt(): string
     {
@@ -145,72 +173,62 @@ class GitHubService
         return array_values(array_filter($issues, fn ($issue) => ! isset($issue['pull_request'])));
     }
 
-    public function createIssue(GithubInstallation $installation, string $repo, array $data): array
+    public function createIssue(GithubInstallation $installation, string $repo, array $data, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->post(self::API_BASE."/repos/{$repo}/issues", $data);
+        $response = $this->githubRequest($token)
+            ->post(self::API_BASE."/repos/{$repo}/issues", $data);
 
         $response->throw();
 
         return $response->json();
     }
 
-    public function updateIssue(GithubInstallation $installation, string $repo, int $issueNumber, array $data): array
+    public function updateIssue(GithubInstallation $installation, string $repo, int $issueNumber, array $data, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->patch(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}", $data);
+        $response = $this->githubRequest($token)
+            ->patch(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}", $data);
 
         $response->throw();
 
         return $response->json();
     }
 
-    public function createComment(GithubInstallation $installation, string $repo, int $issueNumber, string $body): array
+    public function createComment(GithubInstallation $installation, string $repo, int $issueNumber, string $body, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->post(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}/comments", [
-            'body' => $body,
-        ]);
+        $response = $this->githubRequest($token)
+            ->post(self::API_BASE."/repos/{$repo}/issues/{$issueNumber}/comments", [
+                'body' => $body,
+            ]);
 
         $response->throw();
 
         return $response->json();
     }
 
-    public function createPullRequest(GithubInstallation $installation, string $repo, array $data): array
+    public function createPullRequest(GithubInstallation $installation, string $repo, array $data, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->post(self::API_BASE."/repos/{$repo}/pulls", $data);
+        $response = $this->githubRequest($token)
+            ->post(self::API_BASE."/repos/{$repo}/pulls", $data);
 
         $response->throw();
 
         return $response->json();
     }
 
-    public function updatePullRequest(GithubInstallation $installation, string $repo, int $pullNumber, array $data): array
+    public function updatePullRequest(GithubInstallation $installation, string $repo, int $pullNumber, array $data, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->patch(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}", $data);
+        $response = $this->githubRequest($token)
+            ->patch(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}", $data);
 
         $response->throw();
 
@@ -373,17 +391,15 @@ class GitHubService
     /**
      * @return array{ref: string, object: array{sha: string, type: string}}
      */
-    public function createBranch(GithubInstallation $installation, string $repo, string $branchName, string $sha): array
+    public function createBranch(GithubInstallation $installation, string $repo, string $branchName, string $sha, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->post(self::API_BASE."/repos/{$repo}/git/refs", [
-            'ref' => "refs/heads/{$branchName}",
-            'sha' => $sha,
-        ]);
+        $response = $this->githubRequest($token)
+            ->post(self::API_BASE."/repos/{$repo}/git/refs", [
+                'ref' => "refs/heads/{$branchName}",
+                'sha' => $sha,
+            ]);
 
         $response->throw();
 
@@ -485,9 +501,9 @@ class GitHubService
         return $comments;
     }
 
-    public function mergePullRequest(GithubInstallation $installation, string $repo, int $pullNumber, ?string $commitTitle = null, ?string $mergeMethod = null): array
+    public function mergePullRequest(GithubInstallation $installation, string $repo, int $pullNumber, ?string $commitTitle = null, ?string $mergeMethod = null, ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
         $data = [];
         if ($commitTitle !== null) {
@@ -497,10 +513,8 @@ class GitHubService
             $data['merge_method'] = $mergeMethod;
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->put(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/merge", $data);
+        $response = $this->githubRequest($token)
+            ->put(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/merge", $data);
 
         $response->throw();
 
@@ -544,9 +558,9 @@ class GitHubService
      * @param  array<int, string>  $reviewers
      * @param  array<int, string>  $teamReviewers
      */
-    public function requestReviewers(GithubInstallation $installation, string $repo, int $pullNumber, array $reviewers = [], array $teamReviewers = []): array
+    public function requestReviewers(GithubInstallation $installation, string $repo, int $pullNumber, array $reviewers = [], array $teamReviewers = [], ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
         $data = [];
         if (! empty($reviewers)) {
@@ -556,10 +570,8 @@ class GitHubService
             $data['team_reviewers'] = $teamReviewers;
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->post(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/requested_reviewers", $data);
+        $response = $this->githubRequest($token)
+            ->post(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/requested_reviewers", $data);
 
         $response->throw();
 
@@ -569,9 +581,9 @@ class GitHubService
     /**
      * @param  array<int, array{path: string, body: string, line: int, side?: string, start_line?: int, start_side?: string}>  $comments
      */
-    public function createPullRequestReview(GithubInstallation $installation, string $repo, int $pullNumber, string $event, ?string $body = null, array $comments = []): array
+    public function createPullRequestReview(GithubInstallation $installation, string $repo, int $pullNumber, string $event, ?string $body = null, array $comments = [], ?User $user = null): array
     {
-        $token = $this->getInstallationToken($installation->installation_id);
+        $token = $this->resolveToken($installation, $user);
 
         $data = ['event' => $event];
         if ($body !== null) {
@@ -581,10 +593,8 @@ class GitHubService
             $data['comments'] = $comments;
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$token}",
-            'Accept' => 'application/vnd.github+json',
-        ])->post(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/reviews", $data);
+        $response = $this->githubRequest($token)
+            ->post(self::API_BASE."/repos/{$repo}/pulls/{$pullNumber}/reviews", $data);
 
         $response->throw();
 

@@ -40,6 +40,7 @@ class RequestReviewersTool extends Tool
             $validated['pull_number'],
             $validated['reviewers'] ?? [],
             $validated['team_reviewers'] ?? [],
+            auth()->user(),
         );
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));

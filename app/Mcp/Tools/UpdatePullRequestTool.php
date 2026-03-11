@@ -42,7 +42,7 @@ class UpdatePullRequestTool extends Tool
             }
         }
 
-        $pr = $this->github->updatePullRequest($installation, $validated['repo'], $validated['pull_number'], $data);
+        $pr = $this->github->updatePullRequest($installation, $validated['repo'], $validated['pull_number'], $data, auth()->user());
 
         return Response::text(json_encode($pr, JSON_PRETTY_PRINT));
     }

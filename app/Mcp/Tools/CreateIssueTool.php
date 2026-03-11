@@ -44,7 +44,7 @@ class CreateIssueTool extends Tool
             }
         }
 
-        $issue = $this->github->createIssue($installation, $validated['repo'], $data);
+        $issue = $this->github->createIssue($installation, $validated['repo'], $data, auth()->user());
 
         return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
     }

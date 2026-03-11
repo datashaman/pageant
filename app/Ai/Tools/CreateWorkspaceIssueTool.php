@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,6 +16,7 @@ class CreateWorkspaceIssueTool implements Tool
         protected GitHubService $github,
         protected ?GithubInstallation $installation = null,
         protected ?string $repoFullName = null,
+        protected ?User $user = null,
     ) {}
 
     public function description(): string
@@ -54,7 +56,7 @@ class CreateWorkspaceIssueTool implements Tool
             $data['labels'] = $request['labels'];
         }
 
-        $issue = $this->github->createIssue($installation, $repoFullName, $data);
+        $issue = $this->github->createIssue($installation, $repoFullName, $data, $this->user);
 
         $reference = $workspace->references()->updateOrCreate(
             ['source_reference' => $repoFullName.'#'.$issue['number']],

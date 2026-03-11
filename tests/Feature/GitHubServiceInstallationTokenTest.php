@@ -85,9 +85,12 @@ it('uses installation tokens for all repo API calls', function () {
     });
 });
 
-it('user model no longer exposes github_token fields', function () {
+it('user model exposes github_token fields for user attribution', function () {
     $user = new \App\Models\User;
 
-    expect($user->getFillable())->not->toContain('github_token');
-    expect($user->getFillable())->not->toContain('github_refresh_token');
+    expect($user->getFillable())->toContain('github_token');
+    expect($user->getFillable())->toContain('github_refresh_token');
+    expect($user->getFillable())->toContain('github_username');
+    expect($user->getHidden())->toContain('github_token');
+    expect($user->getHidden())->toContain('github_refresh_token');
 });

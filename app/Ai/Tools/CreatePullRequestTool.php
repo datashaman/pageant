@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\GithubInstallation;
+use App\Models\User;
 use App\Services\GitHubService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -14,6 +15,7 @@ class CreatePullRequestTool implements Tool
         protected GitHubService $github,
         protected GithubInstallation $installation,
         protected string $repoFullName,
+        protected ?User $user = null,
     ) {}
 
     public function description(): string
@@ -35,7 +37,7 @@ class CreatePullRequestTool implements Tool
             }
         }
 
-        $pr = $this->github->createPullRequest($this->installation, $this->repoFullName, $data);
+        $pr = $this->github->createPullRequest($this->installation, $this->repoFullName, $data, $this->user);
 
         return json_encode($pr, JSON_PRETTY_PRINT);
     }

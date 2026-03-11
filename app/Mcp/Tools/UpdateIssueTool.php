@@ -47,7 +47,7 @@ class UpdateIssueTool extends Tool
             }
         }
 
-        $issue = $this->github->updateIssue($installation, $validated['repo'], $validated['issue_number'], $data);
+        $issue = $this->github->updateIssue($installation, $validated['repo'], $validated['issue_number'], $data, auth()->user());
 
         return Response::text(json_encode($issue, JSON_PRETTY_PRINT));
     }

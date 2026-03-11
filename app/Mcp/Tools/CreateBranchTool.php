@@ -31,7 +31,7 @@ class CreateBranchTool extends Tool
 
         [, $installation] = $this->resolveInstallation($validated['repo']);
 
-        $result = $this->github->createBranch($installation, $validated['repo'], $validated['branch'], $validated['sha']);
+        $result = $this->github->createBranch($installation, $validated['repo'], $validated['branch'], $validated['sha'], auth()->user());
 
         return Response::text(json_encode($result, JSON_PRETTY_PRINT));
     }

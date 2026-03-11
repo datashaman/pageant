@@ -17,7 +17,7 @@ class GitHubAuthController extends Controller
     public function redirect(): RedirectResponse
     {
         return Socialite::driver('github')
-            ->scopes(['user:email'])
+            ->scopes(['user:email', 'repo'])
             ->redirect();
     }
 
@@ -41,18 +41,21 @@ class GitHubAuthController extends Controller
 
         $user = $query->first();
 
+        $tokenData = [
+            'github_id' => $githubUser->getId(),
+            'avatar_url' => $githubUser->getAvatar(),
+            'github_token' => $githubUser->token,
+            'github_refresh_token' => $githubUser->refreshToken,
+            'github_username' => $githubUser->getNickname(),
+        ];
+
         if ($user) {
-            $user->update([
-                'github_id' => $githubUser->getId(),
-                'avatar_url' => $githubUser->getAvatar(),
-            ]);
+            $user->update($tokenData);
         } else {
-            $user = User::create([
+            $user = User::create(array_merge([
                 'name' => $githubUser->getName() ?? $githubUser->getNickname(),
                 'email' => $email,
-                'github_id' => $githubUser->getId(),
-                'avatar_url' => $githubUser->getAvatar(),
-            ]);
+            ], $tokenData));
         }
 
         $this->syncGitHubOrganizations($user);
